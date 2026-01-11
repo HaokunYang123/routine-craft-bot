@@ -11,6 +11,9 @@ import People from "./pages/People";
 import Tasks from "./pages/Tasks";
 import Assistant from "./pages/Assistant";
 import Progress from "./pages/Progress";
+import StudentLayout from "./pages/student/StudentLayout";
+import StudentTasks from "./pages/student/StudentTasks";
+import StudentCalendar from "./pages/student/StudentCalendar";
 
 const queryClient = new QueryClient();
 
@@ -22,12 +25,18 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          {/* Teacher/Coach Dashboard */}
           <Route path="/dashboard" element={<DashboardLayout />}>
             <Route index element={<Dashboard />} />
             <Route path="people" element={<People />} />
             <Route path="tasks" element={<Tasks />} />
             <Route path="assistant" element={<Assistant />} />
             <Route path="progress" element={<Progress />} />
+          </Route>
+          {/* Student PWA View */}
+          <Route path="/app" element={<StudentLayout />}>
+            <Route index element={<StudentTasks />} />
+            <Route path="calendar" element={<StudentCalendar />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

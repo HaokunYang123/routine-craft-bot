@@ -2,6 +2,7 @@ import { Outlet } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/dashboard/AppSidebar";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { FloatingAI } from "@/components/FloatingAI";
 
 export default function DashboardLayout() {
   return (
@@ -13,13 +14,14 @@ export default function DashboardLayout() {
             <header className="h-14 border-b border-border flex items-center px-4 bg-background/80 backdrop-blur-sm sticky top-0 z-40">
               <SidebarTrigger />
             </header>
-            <div className="flex-1 p-6 bg-muted/30">
+            <div className="flex-1 p-4 md:p-6 bg-muted/30">
               <div className="max-w-6xl mx-auto">
                 <Outlet />
               </div>
             </div>
           </main>
         </div>
+        <FloatingAI placeholder="Ask about routines, tasks, or get suggestions..." />
       </SidebarProvider>
     </ProtectedRoute>
   );
