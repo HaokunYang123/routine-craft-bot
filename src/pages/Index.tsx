@@ -1,23 +1,7 @@
-import Navbar from "@/components/Navbar";
-import HeroSection from "@/components/HeroSection";
-import FeaturesSection from "@/components/FeaturesSection";
-import HowItWorksSection from "@/components/HowItWorksSection";
-import UseCasesSection from "@/components/UseCasesSection";
-import CTASection from "@/components/CTASection";
-import Footer from "@/components/Footer";
+import Auth from "./Auth";
 
 const Index = () => {
-  return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <HeroSection />
-      <FeaturesSection />
-      <HowItWorksSection />
-      <UseCasesSection />
-      <CTASection />
-      <Footer />
-    </div>
-  );
+  return <Auth />;
 };
 
 export default Index;
