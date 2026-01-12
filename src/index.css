@@ -129,7 +129,7 @@
     @apply bg-background text-foreground antialiased;
   }
 
-  /* Clean rounded headers - lowercase style */
+  /* Clean rounded headers */
   h1, h2, h3 {
     font-family: 'Nunito', sans-serif;
     font-weight: 700;

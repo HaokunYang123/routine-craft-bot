@@ -156,8 +156,8 @@ export default function WibblePlanner() {
       {/* ============= TODAY'S TASKS ============= */}
       <SketchCard variant="sticker">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-display-sm text-foreground lowercase">
-            today's tasks
+          <h2 className="text-display-sm text-foreground">
+            Today's Tasks
           </h2>
           <span className="text-body-md font-bold text-muted-foreground">
             {completedCount}/{totalCount}
@@ -229,8 +229,8 @@ export default function WibblePlanner() {
 
       {/* ============= UPCOMING DEADLINES ============= */}
       <SketchCard variant="sticker">
-        <h2 className="text-display-sm text-foreground mb-3 lowercase">
-          upcoming deadlines
+        <h2 className="text-display-sm text-foreground mb-3">
+          Upcoming Deadlines
         </h2>
 
         {upcomingTasks.length === 0 ? (
@@ -259,8 +259,8 @@ export default function WibblePlanner() {
       {/* ============= COACH FEEDBACK ============= */}
       <SketchCard variant="sticker">
         <div className="flex items-center gap-2 mb-3">
-          <h2 className="text-display-sm text-foreground lowercase">
-            coach notes
+          <h2 className="text-display-sm text-foreground">
+            Coach Notes
           </h2>
           <SketchRibbon className="w-5 h-5 text-accent-purple" />
         </div>
@@ -293,8 +293,8 @@ export default function WibblePlanner() {
       {/* ============= RECENT STICKERS ============= */}
       <SketchCard variant="sticker">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-display-sm text-foreground lowercase">
-            recent stickers
+          <h2 className="text-display-sm text-foreground">
+            Recent Stickers
           </h2>
           <button className="text-body-md font-bold text-accent hover:underline">
             view all

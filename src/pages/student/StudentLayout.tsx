@@ -51,7 +51,7 @@ export default function StudentLayout() {
                   ) : (
                     <>
                       <Icon className={cn("w-6 h-6", isActive && "animate-bounce-subtle")} />
-                      <span className="text-caption font-bold lowercase">{item.title}</span>
+                      <span className="text-caption font-bold">{item.title}</span>
                     </>
                   )}
                 </NavLink>

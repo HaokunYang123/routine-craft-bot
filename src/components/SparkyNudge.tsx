@@ -70,7 +70,7 @@ export default function SparkyNudge({ className }: SparkyNudgeProps) {
               <div className="absolute -left-3 top-4 w-3 h-3 bg-accent/10 border-l-2 border-b-2 border-foreground transform rotate-45" />
               
               <div className="flex items-center gap-2 mb-1">
-                <span className="font-bold text-foreground lowercase">zen tip</span>
+                <span className="font-bold text-foreground">Zen Tip</span>
                 <span className="text-xs bg-accent text-white px-2 py-0.5 rounded-full font-bold">ai</span>
               </div>
               <p className="text-body-md text-foreground leading-relaxed">

@@ -488,7 +488,7 @@ export const StatCard = ({ value, label, icon, className }: StatCardProps) => (
       {icon}
       <span className="text-display-md text-foreground">{value}</span>
     </div>
-    <p className="text-caption text-muted-foreground font-semibold lowercase">{label}</p>
+    <p className="text-caption text-muted-foreground font-semibold">{label}</p>
   </div>
 );
 
@@ -561,7 +561,7 @@ export const StickerDisplay = React.forwardRef<HTMLDivElement, StickerDisplayPro
           {characters[type]}
         </div>
         {label && (
-          <span className="text-caption text-muted-foreground text-center max-w-[80px] font-semibold lowercase">
+          <span className="text-caption text-muted-foreground text-center max-w-[80px] font-semibold">
             {label}
           </span>
         )}
@@ -742,7 +742,7 @@ export const EmptyState = ({ icon, illustration, title, description, action, cla
           {icon}
         </div>
       ) : null}
-      <h3 className="text-display-sm text-foreground mb-2 lowercase">{title}</h3>
+      <h3 className="text-display-sm text-foreground mb-2">{title}</h3>
       {description && (
         <p className="text-body-md text-muted-foreground mb-4 max-w-sm mx-auto">{description}</p>
       )}
