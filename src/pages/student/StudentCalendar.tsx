@@ -1,16 +1,16 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Calendar } from "@/components/ui/calendar";
+import { SketchCalendar } from "@/components/ui/sketch-calendar";
 import { format, isSameDay, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 import {
-  SoftCard,
-  PillBadge,
-  DoodleFlower,
-  DoodleStar,
-  DoodleCheck,
-} from "@/components/ui/doodle";
+  SketchCard,
+  SketchCheckbox,
+  SketchClock,
+  DashedDivider,
+  EmptyState,
+} from "@/components/ui/sketch";
 
 interface Task {
   id: string;
@@ -53,28 +53,26 @@ export default function StudentCalendar() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
+        <div className="font-display text-lg text-muted-foreground animate-pulse">
+          Loading...
+        </div>
       </div>
     );
   }
 
-  const pastelCycle: Array<"peach" | "mint" | "lavender" | "sky" | "lemon" | "rose"> = 
-    ["mint", "peach", "lavender", "sky", "lemon", "rose"];
-
   return (
-    <div className="p-5 space-y-6">
+    <div className="p-5 pb-28 max-w-2xl mx-auto space-y-6">
       {/* Header */}
-      <div className="pt-6 pb-2">
-        <div className="flex items-center gap-2 mb-1">
-          <DoodleFlower className="w-6 h-6 text-primary" />
-          <span className="text-sm text-muted-foreground">Plan ahead</span>
-        </div>
-        <h1 className="text-4xl font-hand text-foreground">Calendar</h1>
-      </div>
+      <header className="pt-2">
+        <h1 className="text-3xl font-display font-bold text-foreground">Calendar</h1>
+        <p className="text-body-md text-muted-foreground">
+          View your schedule
+        </p>
+      </header>
 
       {/* Calendar Card */}
-      <SoftCard className="p-2">
-        <Calendar
+      <div className="bg-card p-2 rounded-xl shadow-card">
+        <SketchCalendar
           mode="single"
           selected={selectedDate}
           onSelect={(d) => d && setSelectedDate(d)}
@@ -85,78 +83,73 @@ export default function StudentCalendar() {
           modifiersStyles={{
             hasTasks: {
               fontWeight: "bold",
-              backgroundColor: "hsl(var(--pastel-peach))",
-              borderRadius: "50%",
+              backgroundColor: "hsl(var(--accent) / 0.15)",
             },
           }}
         />
-      </SoftCard>
+      </div>
 
-      {/* Selected Date */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-hand text-foreground flex items-center gap-2">
-            <DoodleStar className="w-5 h-5 text-primary" />
+      <DashedDivider />
+
+      {/* Selected Date Tasks */}
+      <section>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-display-sm font-display text-foreground">
             {format(selectedDate, "EEEE")}
           </h2>
-          <span className="text-sm text-muted-foreground">
+          <span className="text-body-md text-muted-foreground">
             {format(selectedDate, "MMMM d, yyyy")}
           </span>
         </div>
 
         {tasksForDate.length === 0 ? (
-          <SoftCard pastel="mint" className="text-center py-6">
-            <p className="font-hand text-lg text-foreground/60">
-              Nothing scheduled ✨
-            </p>
-            <p className="text-sm text-muted-foreground mt-1">
-              A free day!
-            </p>
-          </SoftCard>
+          <EmptyState
+            illustration="no-tasks"
+            title="Nothing scheduled"
+            description="A free day! ✨"
+          />
         ) : (
-          tasksForDate.map((task, index) => (
-            <CalendarTaskCard 
-              key={task.id} 
-              task={task} 
-              pastel={pastelCycle[index % pastelCycle.length]}
-            />
-          ))
+          <div className="space-y-2">
+            {tasksForDate.map((task) => (
+              <CalendarTaskCard key={task.id} task={task} />
+            ))}
+          </div>
         )}
-      </div>
+      </section>
     </div>
   );
 }
 
-function CalendarTaskCard({ 
-  task, 
-  pastel 
-}: { 
-  task: Task;
-  pastel: "peach" | "mint" | "lavender" | "sky" | "lemon" | "rose";
-}) {
+function CalendarTaskCard({ task }: { task: Task }) {
   return (
-    <SoftCard 
-      pastel={task.is_completed ? "white" : pastel}
-      className={cn(task.is_completed && "opacity-60")}
+    <div
+      className={cn(
+        "flex items-center justify-between p-4 bg-card border-2 border-foreground/20 rounded-xl",
+        task.is_completed && "opacity-60",
+      )}
+      style={{
+        clipPath: "polygon(1% 2%, 99% 0%, 100% 98%, 2% 100%)",
+      }}
     >
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          {task.is_completed && (
-            <DoodleCheck className="w-5 h-5 text-primary" />
-          )}
-          <p className={cn(
-            "font-hand text-lg text-foreground",
+      <div className="flex items-center gap-3">
+        <SketchCheckbox 
+          checked={task.is_completed} 
+          disabled 
+        />
+        <span
+          className={cn(
+            "font-display text-lg text-foreground",
             task.is_completed && "line-through text-muted-foreground"
-          )}>
-            {task.title}
-          </p>
-        </div>
-        {task.duration_minutes && (
-          <PillBadge pastel="sky">
-            {task.duration_minutes} min
-          </PillBadge>
-        )}
+          )}
+        >
+          {task.title}
+        </span>
       </div>
-    </SoftCard>
+      {task.duration_minutes && (
+        <span className="text-caption text-muted-foreground bg-accent/10 px-2 py-1 rounded-full">
+          {task.duration_minutes} min
+        </span>
+      )}
+    </div>
   );
 }
