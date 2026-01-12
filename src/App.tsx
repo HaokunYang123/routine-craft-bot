@@ -14,6 +14,7 @@ import Progress from "./pages/Progress";
 import StudentLayout from "./pages/student/StudentLayout";
 import StudentTasks from "./pages/student/StudentTasks";
 import StudentCalendar from "./pages/student/StudentCalendar";
+import PolygonShowcase from "./pages/PolygonShowcase";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +39,7 @@ const App = () => (
             <Route index element={<StudentTasks />} />
             <Route path="calendar" element={<StudentCalendar />} />
           </Route>
+          <Route path="/ui" element={<PolygonShowcase />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
