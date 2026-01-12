@@ -175,12 +175,12 @@ export default function WibblePlanner() {
           </span>
         </div>
 
-        <SketchProgress value={completedCount} max={totalCount || 1} showLabel={false} />
+        <SketchProgress value={completedCount} max={totalCount || 1} showLabel={false} size="lg" />
 
         <div className="space-y-2 mt-4">
           {tasks.length === 0 ? (
             <EmptyState
-              icon={<SketchBook className="w-10 h-10" />}
+              illustration="no-tasks"
               title="No tasks today"
               description="You're all caught up! Check back later for new assignments."
             />
