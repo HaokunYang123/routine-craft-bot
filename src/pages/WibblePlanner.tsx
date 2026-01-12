@@ -8,15 +8,13 @@ import {
   SketchProgress,
   DashedDivider,
   SketchStar,
-  SketchBook,
   SketchClock,
-  SketchTrophy,
   SketchFlame,
   SketchRibbon,
   StickerDisplay,
   StatCard,
   SketchAvatar,
-  EmptyState,
+  SketchCard,
 } from "@/components/ui/sketch";
 import SparkyNudge from "@/components/SparkyNudge";
 import MagicScheduleButton from "@/components/MagicScheduleButton";
@@ -85,98 +83,83 @@ export default function WibblePlanner() {
   const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
   const today = new Date();
-  const formattedDate = format(today, "EEEE, MMMM d");
 
   const formatDueDate = (dateStr: string | null) => {
     if (!dateStr) return "";
     const date = new Date(dateStr);
-    if (isToday(date)) return "Today";
-    if (isTomorrow(date)) return "Tomorrow";
+    if (isToday(date)) return "today";
+    if (isTomorrow(date)) return "tomorrow";
     const days = differenceInDays(date, today);
-    if (days <= 7) return `In ${days} days`;
+    if (days <= 7) return `in ${days} days`;
     return format(date, "MMM d");
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-display-sm font-display text-muted-foreground animate-pulse-subtle">
-          Loading...
+        <div className="text-display-sm text-muted-foreground animate-pulse-subtle">
+          loading...
         </div>
       </div>
     );
   }
 
   const dayNumber = format(today, "dd");
-  const monthNumber = format(today, "MM");
-  const year = format(today, "yyyy");
+  const monthName = format(today, "MMM").toLowerCase();
   const dayName = format(today, "EEEE").toLowerCase();
 
   return (
-    <div className="p-4 md:p-6 pb-28 max-w-2xl mx-auto space-y-5">
+    <div className="p-4 md:p-6 pb-28 max-w-2xl mx-auto space-y-4">
       {/* ============= HEADER ============= */}
-      <header className="pt-2 pb-1">
+      <header className="pt-2 pb-2">
         <div className="flex items-start justify-between">
-          {/* Date display */}
+          {/* Date display - clean modern style */}
           <div>
-            <div className="flex items-baseline gap-3 font-display text-foreground">
-              <span className="text-4xl font-bold tracking-wide">{dayNumber}</span>
-              <span className="text-4xl font-bold tracking-wide">{monthNumber}</span>
-              <span className="text-4xl font-bold tracking-wide">{year}</span>
+            <div className="flex items-baseline gap-2">
+              <span className="text-5xl font-extrabold text-foreground">{dayNumber}</span>
+              <span className="text-2xl font-bold text-muted-foreground">{monthName}</span>
             </div>
-            <div className="mt-0.5">
-              <span className="text-xl font-display text-foreground">{dayName}</span>
-              {/* Wavy underline */}
-              <svg className="w-20 h-2 mt-0.5" viewBox="0 0 80 8" fill="none">
-                <path 
-                  d="M2 4C8 2 14 6 20 4C26 2 32 6 38 4C44 2 50 6 56 4C62 2 68 6 74 4" 
-                  stroke="currentColor" 
-                  strokeWidth="2" 
-                  strokeLinecap="round"
-                  className="text-foreground"
-                />
-              </svg>
-            </div>
+            <p className="text-body-lg text-muted-foreground mt-1">{dayName}</p>
           </div>
           
           {/* User info */}
           <div className="flex items-center gap-2">
-            <span className="text-caption text-muted-foreground bg-secondary px-2 py-1 rounded-full">
-              Student | JS
+            <span className="text-caption font-semibold text-muted-foreground bg-secondary px-3 py-1.5 rounded-full border-2 border-foreground">
+              student
             </span>
             <SketchAvatar initials="JS" size="sm" />
           </div>
         </div>
       </header>
 
-      {/* ============= SPARKY'S SMART NUDGE ============= */}
+      {/* ============= AI SMART NUDGE ============= */}
       <SparkyNudge />
 
-      {/* ============= STATS ROW ============= */}
+      {/* ============= STATS CARDS ============= */}
       <div className="grid grid-cols-3 gap-3">
         <StatCard
           value={`${progressPercent}%`}
-          label="Progress"
+          label="progress"
         />
         <StatCard
           value={streak}
-          label="Day Streak"
-          icon={<SketchFlame className="w-5 h-5 text-accent-orange" />}
+          label="day streak"
+          icon={<SketchFlame className="w-5 h-5 text-accent-yellow" />}
         />
         <StatCard
           value={totalStickers}
-          label="Stickers"
-          icon={<SketchStar filled className="w-5 h-5 text-accent-orange" />}
+          label="stickers"
+          icon={<SketchStar filled className="w-5 h-5 text-accent" />}
         />
       </div>
 
       {/* ============= TODAY'S TASKS ============= */}
-      <section>
+      <SketchCard variant="sticker">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-display-sm font-display text-foreground">
-            Today's Tasks
+          <h2 className="text-display-sm text-foreground lowercase">
+            today's tasks
           </h2>
-          <span className="text-body-md font-medium text-muted-foreground">
+          <span className="text-body-md font-bold text-muted-foreground">
             {completedCount}/{totalCount}
           </span>
         </div>
@@ -187,7 +170,7 @@ export default function WibblePlanner() {
         <MagicScheduleButton 
           isEmpty={false}
           onMagicPlan={() => console.log("Magic plan triggered!")} 
-          className="mt-2"
+          className="mt-3"
         />
 
         <div className="space-y-2 mt-4">
@@ -201,8 +184,8 @@ export default function WibblePlanner() {
               <div
                 key={task.id}
                 className={cn(
-                  "flex items-start gap-3 p-4 bg-card border border-border rounded-lg shadow-card transition-all",
-                  task.is_completed && "opacity-60"
+                  "flex items-start gap-3 p-4 bg-secondary rounded-xl border-2 border-foreground/10 transition-all",
+                  task.is_completed && "opacity-50"
                 )}
               >
                 <SketchCheckbox
@@ -212,7 +195,7 @@ export default function WibblePlanner() {
                 <div className="flex-1 min-w-0">
                   <span
                     className={cn(
-                      "text-body-lg text-foreground block",
+                      "text-body-lg text-foreground block font-semibold",
                       task.is_completed && "line-through text-muted-foreground"
                     )}
                   >
@@ -221,7 +204,7 @@ export default function WibblePlanner() {
                   {task.scheduled_time && (
                     <div className="flex items-center gap-1.5 mt-1">
                       <SketchClock className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-body-md text-muted-foreground">
+                      <span className="text-body-md text-muted-foreground font-medium">
                         {task.scheduled_time.slice(0, 5)}
                       </span>
                     </div>
@@ -232,7 +215,7 @@ export default function WibblePlanner() {
                   )}
                 </div>
                 {task.duration_minutes && (
-                  <span className="text-caption text-muted-foreground bg-secondary px-2 py-1 rounded-full">
+                  <span className="text-caption font-bold text-muted-foreground bg-card px-2 py-1 rounded-lg border-2 border-foreground/20">
                     {task.duration_minutes}m
                   </span>
                 )}
@@ -240,99 +223,96 @@ export default function WibblePlanner() {
             ))
           )}
         </div>
-      </section>
+      </SketchCard>
 
       <DashedDivider />
 
       {/* ============= UPCOMING DEADLINES ============= */}
-      <section>
-        <h2 className="text-display-sm font-display text-foreground mb-3">
-          Upcoming Deadlines
+      <SketchCard variant="sticker">
+        <h2 className="text-display-sm text-foreground mb-3 lowercase">
+          upcoming deadlines
         </h2>
 
         {upcomingTasks.length === 0 ? (
           <p className="text-body-md text-muted-foreground text-center py-4">
-            No upcoming tasks
+            no upcoming tasks
           </p>
         ) : (
           <div className="space-y-2">
             {upcomingTasks.map((task) => (
               <div
                 key={task.id}
-                className="flex items-center justify-between p-3 bg-card border border-border rounded-lg"
+                className="flex items-center justify-between p-3 bg-secondary rounded-xl border-2 border-foreground/10"
               >
-                <span className="text-body-md text-foreground">{task.title}</span>
-                <span className="text-caption font-medium text-accent bg-accent/10 px-2 py-1 rounded-full">
+                <span className="text-body-md text-foreground font-semibold">{task.title}</span>
+                <span className="text-caption font-bold text-accent bg-accent/10 px-2.5 py-1 rounded-full border-2 border-accent/30">
                   {formatDueDate(task.due_date)}
                 </span>
               </div>
             ))}
           </div>
         )}
-      </section>
+      </SketchCard>
 
       <DashedDivider />
 
       {/* ============= COACH FEEDBACK ============= */}
-      <section>
+      <SketchCard variant="sticker">
         <div className="flex items-center gap-2 mb-3">
-          <h2 className="text-display-sm font-display text-foreground">
-            Coach Notes
+          <h2 className="text-display-sm text-foreground lowercase">
+            coach notes
           </h2>
-          <SketchRibbon className="w-5 h-5 text-accent" />
+          <SketchRibbon className="w-5 h-5 text-accent-purple" />
         </div>
 
-        <div className="bg-card border border-border rounded-lg p-4 shadow-card">
+        <div className="bg-secondary rounded-xl p-4 border-2 border-foreground/10">
           <div className="flex items-start gap-3">
             <SketchAvatar initials="MS" />
             <div className="flex-1">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-body-md font-semibold text-foreground">Ms. Smith</span>
-                <span className="text-caption text-muted-foreground">2 hours ago</span>
+                <span className="text-body-md font-bold text-foreground">ms. smith</span>
+                <span className="text-caption text-muted-foreground font-medium">2 hours ago</span>
               </div>
               <p className="text-body-md text-foreground leading-relaxed">
-                Great progress on your math assignments this week! Keep up the momentum. 
-                Remember to review chapter 5 before Friday's quiz. ⭐
+                great progress on your math assignments this week! keep up the momentum. 
+                remember to review chapter 5 before friday's quiz. ⭐
               </p>
             </div>
           </div>
         </div>
 
-        <div className="bg-secondary rounded-lg p-3 mt-2">
-          <p className="text-caption text-muted-foreground text-center">
-            Your coach can leave feedback and award stickers here
+        <div className="bg-accent/5 rounded-xl p-3 mt-3 border-2 border-accent/20">
+          <p className="text-caption text-accent text-center font-semibold">
+            your coach can leave feedback and award stickers here
           </p>
         </div>
-      </section>
+      </SketchCard>
 
       <DashedDivider />
 
       {/* ============= RECENT STICKERS ============= */}
-      <section>
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <h2 className="text-display-sm font-display text-foreground">
-              Recent Stickers
-            </h2>
-            <SketchTrophy className="w-5 h-5 text-accent" />
-          </div>
-          <button className="text-body-md font-medium text-accent hover:underline">
-            View All
+      <SketchCard variant="sticker">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-display-sm text-foreground lowercase">
+            recent stickers
+          </h2>
+          <button className="text-body-md font-bold text-accent hover:underline">
+            view all
           </button>
         </div>
 
         <div className="flex items-center gap-4 overflow-x-auto py-2 -mx-1 px-1">
-          <StickerDisplay type="star" label="5-Day Streak" />
-          <StickerDisplay type="trophy" label="100% Day" />
-          <StickerDisplay type="heart" label="Coach Award" />
-          <StickerDisplay type="rocket" label="Early Bird" />
-          <StickerDisplay type="rainbow" label="Week Done" />
+          <StickerDisplay type="teapot" label="5-day streak" />
+          <StickerDisplay type="mochi" label="100% day" />
+          <StickerDisplay type="boba" label="coach award" />
+          <StickerDisplay type="leaf" label="early bird" />
+          <StickerDisplay type="cloud" label="week done" />
         </div>
 
-        <p className="text-center text-caption text-muted-foreground mt-3">
-          Complete tasks and hit milestones to earn more stickers!
+        <p className="text-center text-caption text-muted-foreground mt-3 font-medium">
+          complete tasks and hit milestones to earn more stickers!
         </p>
-      </section>
+      </SketchCard>
     </div>
   );
 }
