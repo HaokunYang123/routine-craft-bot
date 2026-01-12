@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { cn } from "@/lib/utils";
 
 // ============= HAND-DRAWN DOODLE ICONS =============
-// Based on bullet journal aesthetic - simple, cute line drawings
 
 export const SketchHome = ({ className }: { className?: string }) => (
   <svg className={cn("w-6 h-6", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -50,14 +49,6 @@ export const SketchSettings = ({ className }: { className?: string }) => (
   </svg>
 );
 
-export const SketchShoppingCart = ({ className }: { className?: string }) => (
-  <svg className={cn("w-5 h-5", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M4 4H6L8 16H18L20 6H7" />
-    <circle cx="10" cy="20" r="1.5" />
-    <circle cx="17" cy="20" r="1.5" />
-  </svg>
-);
-
 export const SketchClock = ({ className }: { className?: string }) => (
   <svg className={cn("w-5 h-5", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="9" />
@@ -74,42 +65,6 @@ export const SketchBook = ({ className }: { className?: string }) => (
   </svg>
 );
 
-export const SketchCoffee = ({ className }: { className?: string }) => (
-  <svg className={cn("w-5 h-5", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M6 8H16V17C16 18.7 14.7 20 13 20H9C7.3 20 6 18.7 6 17V8Z" />
-    <path d="M16 10H17.5C18.9 10 20 11.1 20 12.5C20 13.9 18.9 15 17.5 15H16" />
-    <path d="M9 4C9 4 9 6 10 6C11 6 11 4 11 4" />
-    <path d="M12 4C12 4 12 5.5 13 5.5C14 5.5 14 4 14 4" />
-  </svg>
-);
-
-export const SketchSun = ({ className }: { className?: string }) => (
-  <svg className={cn("w-5 h-5", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-    <circle cx="12" cy="12" r="4" />
-    <path d="M12 3V5M12 19V21M3 12H5M19 12H21M5.6 5.6L7 7M17 17L18.4 18.4M5.6 18.4L7 17M17 7L18.4 5.6" />
-  </svg>
-);
-
-export const SketchCloud = ({ className }: { className?: string }) => (
-  <svg className={cn("w-6 h-6", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M6.5 18C4 18 2 16 2 13.5C2 11.2 3.7 9.3 6 9C6.4 6.2 8.8 4 12 4C14.8 4 17.1 5.8 17.8 8.3C20.2 8.7 22 10.6 22 13C22 15.8 19.8 18 17 18H6.5Z" />
-  </svg>
-);
-
-export const SketchRain = ({ className }: { className?: string }) => (
-  <svg className={cn("w-5 h-5", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M6.5 14C4 14 2 12 2 9.5C2 7.2 3.7 5.3 6 5C6.4 2.2 8.8 0 12 0C14.8 0 17.1 1.8 17.8 4.3C20.2 4.7 22 6.6 22 9C22 11.8 19.8 14 17 14H6.5Z" />
-    <path d="M8 17L7 21M12 17L11 21M16 17L15 21" />
-  </svg>
-);
-
-export const SketchWrench = ({ className }: { className?: string }) => (
-  <svg className={cn("w-5 h-5", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M14.7 6.3C14.3 5.9 13.7 5.9 13.3 6.3L5 14.6V19H9.4L17.7 10.7C18.1 10.3 18.1 9.7 17.7 9.3L14.7 6.3Z" />
-    <path d="M12 8L16 12" />
-  </svg>
-);
-
 export const SketchStar = ({ className, filled }: { className?: string; filled?: boolean }) => (
   <svg className={cn("w-5 h-5", className)} viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <path d="M12 3L14 9H20L15 13L17 20L12 16L7 20L9 13L4 9H10L12 3Z" />
@@ -122,58 +77,52 @@ export const SketchHeart = ({ className, filled }: { className?: string; filled?
   </svg>
 );
 
-export const SketchDroplet = ({ className, filled }: { className?: string; filled?: boolean }) => (
-  <svg className={cn("w-4 h-4", className)} viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 4C12 4 7 10 7 14C7 17 9.2 19 12 19C14.8 19 17 17 17 14C17 10 12 4 12 4Z" />
-  </svg>
-);
-
-export const SketchArrow = ({ className }: { className?: string }) => (
-  <svg className={cn("w-5 h-5", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M5 12H19M14 7L19 12L14 17" />
-  </svg>
-);
-
-// Music player icons
-export const SketchPlay = ({ className }: { className?: string }) => (
-  <svg className={cn("w-6 h-6", className)} viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M8 5V19L19 12L8 5Z" />
-  </svg>
-);
-
-export const SketchPause = ({ className }: { className?: string }) => (
-  <svg className={cn("w-6 h-6", className)} viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-    <rect x="6" y="5" width="4" height="14" rx="1" />
-    <rect x="14" y="5" width="4" height="14" rx="1" />
-  </svg>
-);
-
-export const SketchSkipBack = ({ className }: { className?: string }) => (
-  <svg className={cn("w-5 h-5", className)} viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M19 5L9 12L19 19V5Z" />
-    <rect x="5" y="5" width="2" height="14" />
-  </svg>
-);
-
-export const SketchSkipForward = ({ className }: { className?: string }) => (
-  <svg className={cn("w-5 h-5", className)} viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M5 5L15 12L5 19V5Z" />
-    <rect x="17" y="5" width="2" height="14" />
-  </svg>
-);
-
-// Computer/work icon
-export const SketchComputer = ({ className }: { className?: string }) => (
+export const SketchFlame = ({ className }: { className?: string }) => (
   <svg className={cn("w-5 h-5", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="3" y="4" width="18" height="12" rx="1" />
-    <path d="M7 20H17" />
-    <path d="M12 16V20" />
-    <path d="M7 8H10" />
-    <path d="M7 11H8" />
+    <path d="M12 22C16 22 19 18.5 19 14.5C19 10.5 16 8 14 6C14 8 13 10 11 11C11 9 10 6 7 3C7 7 5 10 5 14.5C5 18.5 8 22 12 22Z" />
+    <path d="M12 22C10 22 8 20 8 17.5C8 15 10 14 12 12C14 14 16 15 16 17.5C16 20 14 22 12 22Z" />
   </svg>
 );
 
-// Train icon
+export const SketchTrophy = ({ className }: { className?: string }) => (
+  <svg className={cn("w-5 h-5", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M6 4H18V9C18 12 15.3 14 12 14C8.7 14 6 12 6 9V4Z" />
+    <path d="M6 6H4C4 8 5 10 6 10" />
+    <path d="M18 6H20C20 8 19 10 18 10" />
+    <path d="M12 14V17" />
+    <path d="M8 21H16" />
+    <path d="M9 17H15V21H9V17Z" />
+  </svg>
+);
+
+export const SketchRibbon = ({ className }: { className?: string }) => (
+  <svg className={cn("w-5 h-5", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="9" r="5" />
+    <path d="M8 13L6 21L12 18L18 21L16 13" />
+    <path d="M12 6V8" />
+    <path d="M10 9H14" />
+  </svg>
+);
+
+export const SketchRocket = ({ className }: { className?: string }) => (
+  <svg className={cn("w-5 h-5", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 3C12 3 8 8 8 14C8 17 9.5 19 12 20C14.5 19 16 17 16 14C16 8 12 3 12 3Z" />
+    <path d="M5 15L8 14" />
+    <path d="M19 15L16 14" />
+    <circle cx="12" cy="12" r="2" />
+    <path d="M10 20L9 23" />
+    <path d="M14 20L15 23" />
+  </svg>
+);
+
+export const SketchRainbow = ({ className }: { className?: string }) => (
+  <svg className={cn("w-5 h-5", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+    <path d="M4 18C4 13 7.6 9 12 9C16.4 9 20 13 20 18" />
+    <path d="M7 18C7 14.7 9.2 12 12 12C14.8 12 17 14.7 17 18" />
+    <path d="M10 18C10 16.3 10.9 15 12 15C13.1 15 14 16.3 14 18" />
+  </svg>
+);
+
 export const SketchTrain = ({ className }: { className?: string }) => (
   <svg className={cn("w-5 h-5", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <rect x="5" y="4" width="14" height="14" rx="2" />
@@ -186,32 +135,13 @@ export const SketchTrain = ({ className }: { className?: string }) => (
   </svg>
 );
 
-// ============= MOOD FACES =============
-
-export const MoodHappy = ({ className }: { className?: string }) => (
-  <svg className={cn("w-8 h-8", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-    <circle cx="12" cy="12" r="9" />
-    <circle cx="8.5" cy="10" r="1" fill="currentColor" />
-    <circle cx="15.5" cy="10" r="1" fill="currentColor" />
-    <path d="M8 14.5C8.5 16 10 17 12 17C14 17 15.5 16 16 14.5" />
-  </svg>
-);
-
-export const MoodNeutral = ({ className }: { className?: string }) => (
-  <svg className={cn("w-8 h-8", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-    <circle cx="12" cy="12" r="9" />
-    <circle cx="8.5" cy="10" r="1" fill="currentColor" />
-    <circle cx="15.5" cy="10" r="1" fill="currentColor" />
-    <path d="M8 15H16" />
-  </svg>
-);
-
-export const MoodSad = ({ className }: { className?: string }) => (
-  <svg className={cn("w-8 h-8", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-    <circle cx="12" cy="12" r="9" />
-    <circle cx="8.5" cy="10" r="1" fill="currentColor" />
-    <circle cx="15.5" cy="10" r="1" fill="currentColor" />
-    <path d="M8 16.5C8.5 15 10 14 12 14C14 14 15.5 15 16 16.5" />
+export const SketchComputer = ({ className }: { className?: string }) => (
+  <svg className={cn("w-5 h-5", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="4" width="18" height="12" rx="1" />
+    <path d="M7 20H17" />
+    <path d="M12 16V20" />
+    <path d="M7 8H10" />
+    <path d="M7 11H8" />
   </svg>
 );
 
@@ -283,22 +213,15 @@ export const SketchProgress = ({ value, max = 100, className, showLabel = true }
   return (
     <div className={cn("space-y-1", className)}>
       <div
-        className="h-4 border-2 border-ink rounded-sm overflow-hidden relative bg-card"
+        className="h-3 border-2 border-ink overflow-hidden relative bg-card"
+        style={{ borderRadius: "2px" }}
       >
         <div
-          className="h-full bg-ink/20 transition-all duration-500 ease-out"
+          className="h-full bg-sage-green transition-all duration-500 ease-out"
           style={{
             width: `${percentage}%`,
           }}
         />
-        {/* Sketchy fill marks */}
-        {Array.from({ length: Math.floor(percentage / 10) }).map((_, i) => (
-          <div
-            key={i}
-            className="absolute top-0 h-full w-px bg-ink/30"
-            style={{ left: `${(i + 1) * 10}%` }}
-          />
-        ))}
       </div>
       {showLabel && (
         <div className="flex justify-between text-sm font-hand text-ink">
@@ -310,7 +233,7 @@ export const SketchProgress = ({ value, max = 100, className, showLabel = true }
   );
 };
 
-// ============= SKETCHY CARD (no background color variants - pure paper look) =============
+// ============= SKETCHY CARD =============
 
 interface SketchCardProps {
   children: React.ReactNode;
@@ -338,20 +261,63 @@ export const SketchCard = ({ children, className, bordered = true }: SketchCardP
 // ============= DASHED DIVIDER =============
 
 export const DashedDivider = ({ className }: { className?: string }) => (
-  <div className={cn("py-3", className)}>
-    <div className="border-t-2 border-dashed border-ink/40" />
+  <div className={cn("py-4", className)}>
+    <div className="border-t-2 border-dashed border-ink/30" />
   </div>
 );
 
-// ============= WAVY UNDERLINE =============
+// ============= STICKER DISPLAY =============
 
-export const WavyUnderline = ({ className }: { className?: string }) => (
-  <svg className={cn("w-20 h-2", className)} viewBox="0 0 80 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-    <path d="M2 4C8 2 14 6 20 4C26 2 32 6 38 4C44 2 50 6 56 4C62 2 68 6 74 4" />
-  </svg>
-);
+interface StickerDisplayProps {
+  type: "star" | "trophy" | "heart" | "rocket" | "rainbow" | "flame";
+  label?: string;
+  size?: "sm" | "md" | "lg";
+  className?: string;
+}
 
-// ============= PILL BADGE =============
+export const StickerDisplay = ({ type, label, size = "md", className }: StickerDisplayProps) => {
+  const sizeClasses = {
+    sm: "w-10 h-10",
+    md: "w-14 h-14",
+    lg: "w-20 h-20",
+  };
+
+  const iconClasses = {
+    sm: "w-5 h-5",
+    md: "w-7 h-7",
+    lg: "w-10 h-10",
+  };
+
+  const icons = {
+    star: <SketchStar filled className={cn(iconClasses[size], "text-ink")} />,
+    trophy: <SketchTrophy className={cn(iconClasses[size], "text-ink")} />,
+    heart: <SketchHeart filled className={cn(iconClasses[size], "text-ink")} />,
+    rocket: <SketchRocket className={cn(iconClasses[size], "text-ink")} />,
+    rainbow: <SketchRainbow className={cn(iconClasses[size], "text-ink")} />,
+    flame: <SketchFlame className={cn(iconClasses[size], "text-ink")} />,
+  };
+
+  return (
+    <div className={cn("flex flex-col items-center gap-1 flex-shrink-0", className)}>
+      <div
+        className={cn(
+          sizeClasses[size],
+          "border-2 border-ink bg-soft-cream flex items-center justify-center"
+        )}
+        style={{ borderRadius: "50%" }}
+      >
+        {icons[type]}
+      </div>
+      {label && (
+        <span className="text-xs font-hand text-ink-light text-center max-w-[60px]">
+          {label}
+        </span>
+      )}
+    </div>
+  );
+};
+
+// ============= BADGE =============
 
 interface SketchBadgeProps {
   children: React.ReactNode;
@@ -370,127 +336,5 @@ export const SketchBadge = ({ children, filled, className }: SketchBadgeProps) =
     >
       {children}
     </span>
-  );
-};
-
-// ============= TIME WHEEL / PIE CHART =============
-
-interface TimeSlice {
-  label: string;
-  hours: number;
-  icon?: React.ReactNode;
-}
-
-interface TimeWheelProps {
-  slices: TimeSlice[];
-  className?: string;
-}
-
-export const TimeWheel = ({ slices, className }: TimeWheelProps) => {
-  const total = slices.reduce((sum, s) => sum + s.hours, 0);
-  let currentAngle = -90; // Start from top
-
-  // Clock numbers
-  const clockNumbers = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
-
-  return (
-    <div className={cn("relative", className)}>
-      <svg viewBox="0 0 100 100" className="w-full h-full">
-        {/* Clock hour markers */}
-        {clockNumbers.map((num, i) => {
-          const angle = (i * 30 - 90) * (Math.PI / 180);
-          const x = 50 + 42 * Math.cos(angle);
-          const y = 50 + 42 * Math.sin(angle);
-          return (
-            <text
-              key={num}
-              x={x}
-              y={y}
-              textAnchor="middle"
-              dominantBaseline="central"
-              className="text-[6px] font-hand fill-ink"
-            >
-              {num}
-            </text>
-          );
-        })}
-
-        {/* Pie slices */}
-        {slices.map((slice, index) => {
-          const angle = (slice.hours / total) * 360;
-          const startAngle = currentAngle;
-          const endAngle = currentAngle + angle;
-          currentAngle = endAngle;
-
-          const startRad = (startAngle * Math.PI) / 180;
-          const endRad = (endAngle * Math.PI) / 180;
-
-          const x1 = 50 + 35 * Math.cos(startRad);
-          const y1 = 50 + 35 * Math.sin(startRad);
-          const x2 = 50 + 35 * Math.cos(endRad);
-          const y2 = 50 + 35 * Math.sin(endRad);
-
-          const largeArc = angle > 180 ? 1 : 0;
-          const pathD = `M 50 50 L ${x1} ${y1} A 35 35 0 ${largeArc} 1 ${x2} ${y2} Z`;
-
-          return (
-            <path
-              key={index}
-              d={pathD}
-              fill="none"
-              stroke="hsl(var(--ink))"
-              strokeWidth="1"
-            />
-          );
-        })}
-
-        {/* Center circle */}
-        <circle cx="50" cy="50" r="12" fill="hsl(var(--card))" stroke="hsl(var(--ink))" strokeWidth="1" />
-      </svg>
-    </div>
-  );
-};
-
-// ============= MUSIC PLAYER WIDGET =============
-
-interface MusicPlayerProps {
-  songTitle?: string;
-  artist?: string;
-  progress?: number;
-  className?: string;
-}
-
-export const MusicPlayer = ({ songTitle = "HERE ALWAYS", artist = "Stray Kids", progress = 0.3, className }: MusicPlayerProps) => {
-  return (
-    <div className={cn("text-center space-y-2", className)}>
-      {/* Album art placeholder */}
-      <div className="w-10 h-10 mx-auto border border-ink rounded-sm flex items-center justify-center">
-        <div className="w-6 h-6 border border-ink rounded-full" />
-      </div>
-      
-      <div>
-        <p className="font-hand-bold text-ink text-sm uppercase">{songTitle}</p>
-        <p className="font-hand text-ink-light text-xs">{artist}</p>
-      </div>
-
-      {/* Progress bar */}
-      <div className="flex items-center gap-1 text-[10px] text-ink-light">
-        <span>0:52</span>
-        <div className="flex-1 h-px bg-ink relative">
-          <div 
-            className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-ink rounded-full"
-            style={{ left: `${progress * 100}%` }}
-          />
-        </div>
-        <span>3:21</span>
-      </div>
-
-      {/* Controls */}
-      <div className="flex items-center justify-center gap-4">
-        <SketchSkipBack className="w-4 h-4 text-ink" />
-        <SketchPause className="w-5 h-5 text-ink" />
-        <SketchSkipForward className="w-4 h-4 text-ink" />
-      </div>
-    </div>
   );
 };
