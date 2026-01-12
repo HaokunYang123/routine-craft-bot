@@ -1,33 +1,20 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { format } from "date-fns";
+import { format, isToday, isTomorrow, differenceInDays } from "date-fns";
 import { cn } from "@/lib/utils";
 import {
   SketchCard,
   SketchCheckbox,
   SketchProgress,
-  SketchBadge,
   DashedDivider,
-  WavyUnderline,
-  TimeWheel,
-  MusicPlayer,
-  SketchSun,
-  SketchCloud,
-  SketchHome,
-  SketchCoffee,
-  SketchBook,
-  SketchShoppingCart,
-  SketchArrow,
   SketchStar,
-  SketchDroplet,
-  MoodHappy,
-  MoodNeutral,
-  MoodSad,
+  SketchBook,
   SketchClock,
-  SketchWrench,
-  SketchComputer,
-  SketchTrain,
+  SketchTrophy,
+  SketchFlame,
+  SketchRibbon,
+  StickerDisplay,
 } from "@/components/ui/sketch";
 
 interface Task {
@@ -43,10 +30,10 @@ interface Task {
 export default function WibblePlanner() {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [upcomingTasks, setUpcomingTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
-  const [hydration, setHydration] = useState(5);
-  const [mood, setMood] = useState<"happy" | "neutral" | "sad">("happy");
-  const [sleepHours, setSleepHours] = useState(6);
+  const [streak, setStreak] = useState(7);
+  const [totalStickers, setTotalStickers] = useState(12);
 
   useEffect(() => {
     if (!user) return;
@@ -55,23 +42,36 @@ export default function WibblePlanner() {
 
   const fetchTasks = async () => {
     const today = format(new Date(), "yyyy-MM-dd");
-    const { data } = await supabase
+    
+    // Fetch today's tasks
+    const { data: todayData } = await supabase
       .from("tasks")
       .select("*")
       .eq("user_id", user!.id)
       .eq("due_date", today)
       .order("scheduled_time", { ascending: true });
 
-    if (data) setTasks(data);
+    // Fetch upcoming tasks (next 7 days)
+    const { data: upcomingData } = await supabase
+      .from("tasks")
+      .select("*")
+      .eq("user_id", user!.id)
+      .gt("due_date", today)
+      .order("due_date", { ascending: true })
+      .limit(5);
+
+    if (todayData) setTasks(todayData);
+    if (upcomingData) setUpcomingTasks(upcomingData);
     setLoading(false);
   };
 
   const toggleTask = async (task: Task) => {
+    const newCompleted = !task.is_completed;
     await supabase
       .from("tasks")
       .update({
-        is_completed: !task.is_completed,
-        completed_at: !task.is_completed ? new Date().toISOString() : null,
+        is_completed: newCompleted,
+        completed_at: newCompleted ? new Date().toISOString() : null,
       })
       .eq("id", task.id);
     fetchTasks();
@@ -80,43 +80,19 @@ export default function WibblePlanner() {
   const completedCount = tasks.filter((t) => t.is_completed).length;
   const totalCount = tasks.length;
   const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-  const isAllDone = totalCount > 0 && completedCount === totalCount;
 
   const today = new Date();
-  const dayNumber = format(today, "dd");
-  const monthNumber = format(today, "MM");
-  const yearNumber = format(today, "yyyy");
-  const dayOfWeek = format(today, "EEEE").toLowerCase();
+  const formattedDate = format(today, "EEEE, MMMM d");
 
-  // Category icons for tasks
-  const getCategoryIcon = (title: string) => {
-    const lower = title.toLowerCase();
-    if (lower.includes("shop") || lower.includes("buy") || lower.includes("groceries")) {
-      return <SketchShoppingCart className="w-4 h-4" />;
-    }
-    if (lower.includes("fix") || lower.includes("repair")) {
-      return <SketchWrench className="w-4 h-4" />;
-    }
-    if (lower.includes("read") || lower.includes("study") || lower.includes("book")) {
-      return <SketchBook className="w-4 h-4" />;
-    }
-    if (lower.includes("coffee") || lower.includes("breakfast") || lower.includes("lunch") || lower.includes("dinner")) {
-      return <SketchCoffee className="w-4 h-4" />;
-    }
-    return null;
+  const formatDueDate = (dateStr: string | null) => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    if (isToday(date)) return "Today";
+    if (isTomorrow(date)) return "Tomorrow";
+    const days = differenceInDays(date, today);
+    if (days <= 7) return `In ${days} days`;
+    return format(date, "MMM d");
   };
-
-  // Time wheel slices
-  const timeSlices = [
-    { label: "Nighty night", hours: 8 },
-    { label: "Morning Routine", hours: 2 },
-    { label: "Working time", hours: 4 },
-    { label: "Lunch", hours: 1 },
-    { label: "Work", hours: 4 },
-    { label: "After Hours", hours: 2 },
-    { label: "Leisure Time", hours: 2 },
-    { label: "Before bed", hours: 1 },
-  ];
 
   if (loading) {
     return (
@@ -129,110 +105,64 @@ export default function WibblePlanner() {
   }
 
   return (
-    <div className="p-5 pb-28 space-y-4 max-w-lg mx-auto">
+    <div className="p-5 pb-28 max-w-2xl mx-auto space-y-6">
       {/* ============= HEADER ============= */}
-      <div className="flex items-start justify-between pt-2">
-        <div>
-          <h1 className="text-4xl font-hand-bold text-ink tracking-wider">
-            {dayNumber} {monthNumber} {yearNumber}
-          </h1>
-          <div className="flex items-center gap-1">
-            <p className="text-xl font-hand text-ink">{dayOfWeek}</p>
-            <WavyUnderline className="text-ink w-16" />
-          </div>
+      <header className="pt-2">
+        <h1 className="text-3xl font-hand-bold text-ink">
+          Wibble
+        </h1>
+        <p className="text-lg font-hand text-ink-light">{formattedDate}</p>
+      </header>
+
+      {/* ============= STATS ROW ============= */}
+      <div className="grid grid-cols-3 gap-3">
+        {/* Progress */}
+        <div className="border-2 border-ink p-3 text-center" style={{ borderRadius: "2px" }}>
+          <div className="text-2xl font-hand-bold text-ink">{progressPercent}%</div>
+          <p className="text-xs font-hand text-ink-light">Today's Progress</p>
         </div>
-        <div className="flex items-center gap-1.5 text-ink">
-          <SketchCloud className="w-7 h-7" />
-          <span className="font-hand text-lg">3° clear</span>
+
+        {/* Streak */}
+        <div className="border-2 border-ink p-3 text-center" style={{ borderRadius: "2px" }}>
+          <div className="flex items-center justify-center gap-1">
+            <SketchFlame className="w-5 h-5 text-ink" />
+            <span className="text-2xl font-hand-bold text-ink">{streak}</span>
+          </div>
+          <p className="text-xs font-hand text-ink-light">Day Streak</p>
         </div>
-      </div>
 
-      {/* ============= DAILY JOURNEY STRIP ============= */}
-      <div className="flex items-center justify-center gap-2 py-2">
-        <SketchHome className="w-6 h-6 text-ink" />
-        <SketchArrow className="w-4 h-4 text-ink" />
-        <SketchComputer className="w-6 h-6 text-ink" />
-        <SketchArrow className="w-4 h-4 text-ink" />
-        <SketchShoppingCart className="w-6 h-6 text-ink" />
-        <SketchArrow className="w-4 h-4 text-ink" />
-        <SketchWrench className="w-6 h-6 text-ink" />
-        <SketchArrow className="w-4 h-4 text-ink" />
-        <SketchHome className="w-6 h-6 text-ink" />
-      </div>
-
-      <DashedDivider />
-
-      {/* ============= MUSIC PLAYER ============= */}
-      <MusicPlayer songTitle="HERE ALWAYS" artist="Stray Kids" progress={0.25} />
-
-      <DashedDivider />
-
-      {/* ============= TIME WHEEL + QUICK LIST ROW ============= */}
-      <div className="grid grid-cols-2 gap-4">
-        <TimeWheel slices={timeSlices} className="w-full h-32" />
-        
-        <div className="space-y-1.5 text-sm">
-          <div className="flex items-start gap-2">
-            <SketchBook className="w-4 h-4 text-ink flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="font-hand-bold text-ink">&lt;The Waves&gt;</p>
-              <p className="font-hand text-ink-light">p 357</p>
-            </div>
+        {/* Stickers */}
+        <div className="border-2 border-ink p-3 text-center" style={{ borderRadius: "2px" }}>
+          <div className="flex items-center justify-center gap-1">
+            <SketchStar filled className="w-5 h-5 text-ink" />
+            <span className="text-2xl font-hand-bold text-ink">{totalStickers}</span>
           </div>
-          <div className="flex items-start gap-2">
-            <SketchWrench className="w-4 h-4 text-ink flex-shrink-0 mt-0.5" />
-            <p className="font-hand text-ink">Repairing the water pipe</p>
-          </div>
-          <div className="flex items-start gap-2">
-            <SketchComputer className="w-4 h-4 text-ink flex-shrink-0 mt-0.5" />
-            <p className="font-hand text-ink">paper ~3</p>
-          </div>
+          <p className="text-xs font-hand text-ink-light">Stickers</p>
         </div>
       </div>
 
-      <DashedDivider />
-
-      {/* ============= CHECKLIST SECTION ============= */}
-      <div>
+      {/* ============= TODAY'S TASKS ============= */}
+      <section>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-xl font-hand-bold text-ink uppercase tracking-widest">
-            Checklist
+            Today's Tasks
           </h2>
-          <div className="flex items-center gap-3 text-xs font-hand text-ink">
-            <span className="flex items-center gap-1">
-              <div className="w-3 h-3 border border-ink bg-sage-green" style={{ borderRadius: "1px" }} />
-              done
-            </span>
-            <span className="flex items-center gap-1">
-              <div className="w-3 h-3 border border-ink" style={{ borderRadius: "1px" }} />
-              not yet
-            </span>
-            <span className="flex items-center gap-1">
-              <div className="w-3 h-3 border border-ink bg-ink" style={{ borderRadius: "1px" }}>
-                <div className="w-1.5 h-1.5 bg-card m-0.5" />
-              </div>
-              postponed
-            </span>
-          </div>
+          <span className="text-sm font-hand text-ink-light">
+            {completedCount}/{totalCount}
+          </span>
         </div>
 
-        {/* Progress indicator */}
-        <div className="flex items-center gap-2 mb-3">
-          <div className="flex items-center gap-1 border border-ink px-2 py-0.5 rounded-sm">
-            <span className="font-hand-bold text-lg text-ink">{progressPercent}%</span>
-            {isAllDone && <span className="text-xs">☺</span>}
-          </div>
-          <span className="font-hand text-sm text-ink-light">satisfaction</span>
-        </div>
+        <SketchProgress value={completedCount} max={totalCount || 1} showLabel={false} />
 
-        <div className="space-y-2">
+        <div className="space-y-2 mt-4">
           {tasks.length === 0 ? (
-            <div className="text-center py-6 border-2 border-dashed border-ink/30">
-              <p className="font-hand text-xl text-ink-light">
-                No tasks for today!
+            <div className="text-center py-8 border-2 border-dashed border-ink/30" style={{ borderRadius: "2px" }}>
+              <SketchBook className="w-8 h-8 mx-auto text-ink-light mb-2" />
+              <p className="font-hand text-lg text-ink-light">
+                No tasks scheduled for today
               </p>
               <p className="font-hand text-sm text-ink-light mt-1">
-                Tap + to add one
+                Tap + to add a task
               </p>
             </div>
           ) : (
@@ -240,149 +170,140 @@ export default function WibblePlanner() {
               <div
                 key={task.id}
                 className={cn(
-                  "flex items-start gap-3 py-1",
-                  task.is_completed && "opacity-60"
+                  "flex items-start gap-3 p-3 border-2 border-ink/20 bg-card",
+                  task.is_completed && "opacity-50"
                 )}
+                style={{ borderRadius: "2px" }}
               >
                 <SketchCheckbox
                   checked={!!task.is_completed}
                   onChange={() => toggleTask(task)}
                 />
-                <div className="flex-1 min-w-0 flex items-center gap-2">
-                  {getCategoryIcon(task.title)}
+                <div className="flex-1 min-w-0">
                   <span
                     className={cn(
-                      "font-hand text-lg text-ink",
+                      "font-hand text-lg text-ink block",
                       task.is_completed && "line-through text-ink-light"
                     )}
                   >
                     {task.title}
                   </span>
                   {task.scheduled_time && (
-                    <span className="text-sm font-hand text-ink-light ml-1">
-                      {task.scheduled_time.slice(0, 5)}
-                    </span>
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <SketchClock className="w-3.5 h-3.5 text-ink-light" />
+                      <span className="text-sm font-hand text-ink-light">
+                        {task.scheduled_time.slice(0, 5)}
+                      </span>
+                    </div>
                   )}
                 </div>
+                {task.duration_minutes && (
+                  <span className="text-sm font-hand text-ink-light border border-ink/30 px-2 py-0.5 rounded-full">
+                    {task.duration_minutes}m
+                  </span>
+                )}
               </div>
             ))
           )}
         </div>
-      </div>
+      </section>
 
       <DashedDivider />
 
-      {/* ============= TIMETABLE SECTION ============= */}
-      <div>
+      {/* ============= UPCOMING DEADLINES ============= */}
+      <section>
+        <h2 className="text-xl font-hand-bold text-ink uppercase tracking-widest mb-3">
+          Upcoming Deadlines
+        </h2>
+
+        {upcomingTasks.length === 0 ? (
+          <p className="font-hand text-ink-light text-center py-4">
+            No upcoming tasks
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {upcomingTasks.map((task) => (
+              <div
+                key={task.id}
+                className="flex items-center justify-between p-3 border border-ink/20"
+                style={{ borderRadius: "2px" }}
+              >
+                <div className="flex-1">
+                  <span className="font-hand text-ink">{task.title}</span>
+                </div>
+                <span className="text-sm font-hand-bold text-ink bg-soft-cream px-2 py-0.5 rounded-full">
+                  {formatDueDate(task.due_date)}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <DashedDivider />
+
+      {/* ============= COACH FEEDBACK ============= */}
+      <section>
         <div className="flex items-center gap-2 mb-3">
           <h2 className="text-xl font-hand-bold text-ink uppercase tracking-widest">
-            Timetable
+            Coach Notes
           </h2>
-          <SketchClock className="w-5 h-5 text-ink" />
+          <SketchRibbon className="w-5 h-5 text-ink" />
         </div>
 
-        <div className="border border-ink">
-          <div className="grid grid-cols-2">
-            {/* Left column */}
-            <div className="border-r border-ink">
-              <div className="border-b border-ink px-2 py-1 text-center">
-                <span className="font-hand-bold text-sm text-ink">T</span>
-                <span className="font-hand text-sm text-ink-light ml-2">works</span>
-              </div>
-              {[
-                { time: "9:00", activity: "meal time + breakfast", icon: <SketchCoffee className="w-3.5 h-3.5" /> },
-                { time: "10:00", activity: "Shower" },
-                { time: "11:00", activity: "🚌", icon: null },
-                { time: "12:30", activity: "Incheon", icon: <SketchTrain className="w-3.5 h-3.5" /> },
-                { time: "13:30", activity: "Lunch together ☺" },
-              ].map((item, i) => (
-                <div key={i} className="flex items-center gap-2 px-2 py-1 border-b border-ink last:border-b-0">
-                  <span className="font-hand text-sm text-ink-light w-10">{item.time}</span>
-                  {item.icon && <span className="text-ink">{item.icon}</span>}
-                  <span className="font-hand text-sm text-ink">{item.activity}</span>
-                </div>
-              ))}
+        <div className="border-2 border-ink/20 p-4" style={{ borderRadius: "2px" }}>
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 border-2 border-ink rounded-full flex items-center justify-center flex-shrink-0">
+              <span className="font-hand-bold text-ink">MS</span>
             </div>
-
-            {/* Right column */}
-            <div>
-              <div className="border-b border-ink px-2 py-1 text-center">
-                <span className="font-hand-bold text-sm text-ink">T</span>
-                <span className="font-hand text-sm text-ink-light ml-2">works</span>
+            <div className="flex-1">
+              <div className="flex items-center justify-between">
+                <span className="font-hand-bold text-ink">Ms. Smith</span>
+                <span className="text-xs font-hand text-ink-light">2 hours ago</span>
               </div>
-              {[
-                { time: "14:30", activity: "☺☺☺☺☺" },
-                { time: "15:40", activity: "way back 🏠" },
-                { time: "16:30", activity: "Bakery 🍞" },
-                { time: "17:00", activity: "🏠" },
-                { time: "18:00", activity: "movie 🎬" },
-              ].map((item, i) => (
-                <div key={i} className="flex items-center gap-2 px-2 py-1 border-b border-ink last:border-b-0">
-                  <span className="font-hand text-sm text-ink-light w-10">{item.time}</span>
-                  <span className="font-hand text-sm text-ink">{item.activity}</span>
-                </div>
-              ))}
+              <p className="font-hand text-ink mt-1">
+                Great progress on your math assignments this week! Keep up the momentum. 
+                Remember to review chapter 5 before Friday's quiz. ⭐
+              </p>
             </div>
           </div>
         </div>
-      </div>
+
+        <div className="border border-ink/10 p-3 mt-2 bg-soft-cream" style={{ borderRadius: "2px" }}>
+          <p className="font-hand text-sm text-ink-light text-center">
+            Your coach can leave feedback and award stickers here
+          </p>
+        </div>
+      </section>
 
       <DashedDivider />
 
-      {/* ============= TRACKERS ROW ============= */}
-      <div className="grid grid-cols-3 gap-4">
-        {/* Mood Tracker */}
-        <div className="text-center">
-          <p className="text-xs font-hand-bold text-ink uppercase mb-2">Mood</p>
-          <div className="flex justify-center gap-1">
-            <button onClick={() => setMood("happy")}>
-              <MoodHappy className={cn("w-7 h-7", mood === "happy" ? "text-ink" : "text-ink-light/40")} />
-            </button>
-            <button onClick={() => setMood("neutral")}>
-              <MoodNeutral className={cn("w-7 h-7", mood === "neutral" ? "text-ink" : "text-ink-light/40")} />
-            </button>
-            <button onClick={() => setMood("sad")}>
-              <MoodSad className={cn("w-7 h-7", mood === "sad" ? "text-ink" : "text-ink-light/40")} />
-            </button>
+      {/* ============= RECENT STICKERS ============= */}
+      <section>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl font-hand-bold text-ink uppercase tracking-widest">
+              Recent Stickers
+            </h2>
+            <SketchTrophy className="w-5 h-5 text-ink" />
           </div>
+          <button className="text-sm font-hand text-ink underline">
+            View All
+          </button>
         </div>
 
-        {/* Hydration Tracker */}
-        <div className="text-center">
-          <p className="text-xs font-hand-bold text-ink uppercase mb-2">Hydration</p>
-          <div className="flex justify-center gap-0.5">
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
-              <button key={n} onClick={() => setHydration(n)}>
-                <SketchDroplet
-                  className={cn("w-3 h-3", n <= hydration ? "text-ink" : "text-ink-light/30")}
-                  filled={n <= hydration}
-                />
-              </button>
-            ))}
-          </div>
+        <div className="flex items-center gap-3 overflow-x-auto py-2">
+          <StickerDisplay type="star" label="5-Day Streak" />
+          <StickerDisplay type="trophy" label="100% Day" />
+          <StickerDisplay type="heart" label="Coach Award" />
+          <StickerDisplay type="rocket" label="Early Bird" />
+          <StickerDisplay type="rainbow" label="Week Done" />
         </div>
 
-        {/* Sleep Tracker */}
-        <div className="text-center">
-          <p className="text-xs font-hand-bold text-ink uppercase mb-2">Sleep</p>
-          <div className="flex items-center justify-center gap-1">
-            <span className="font-hand-bold text-lg text-ink">{sleepHours}</span>
-            <span className="font-hand text-sm text-ink-light">hours</span>
-          </div>
-          <div className="flex justify-center gap-0.5 mt-1">
-            {[1,2,3,4,5,6,7,8].map((n) => (
-              <div 
-                key={n}
-                onClick={() => setSleepHours(n)}
-                className={cn(
-                  "w-2 h-3 border border-ink cursor-pointer",
-                  n <= sleepHours ? "bg-ink" : "bg-transparent"
-                )}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
+        <p className="text-center text-sm font-hand text-ink-light mt-2">
+          Complete tasks and hit milestones to earn more stickers!
+        </p>
+      </section>
     </div>
   );
 }
