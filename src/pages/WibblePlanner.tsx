@@ -9,7 +9,9 @@ import {
   SketchProgress,
   SketchBadge,
   DashedDivider,
+  WavyUnderline,
   TimeWheel,
+  MusicPlayer,
   SketchSun,
   SketchCloud,
   SketchHome,
@@ -24,6 +26,8 @@ import {
   MoodSad,
   SketchClock,
   SketchWrench,
+  SketchComputer,
+  SketchTrain,
 } from "@/components/ui/sketch";
 
 interface Task {
@@ -40,9 +44,9 @@ export default function WibblePlanner() {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
-  const [hydration, setHydration] = useState(4);
-  const [mood, setMood] = useState<"happy" | "neutral" | "sad">("neutral");
-  const [sleepHours, setSleepHours] = useState(7);
+  const [hydration, setHydration] = useState(5);
+  const [mood, setMood] = useState<"happy" | "neutral" | "sad">("happy");
+  const [sleepHours, setSleepHours] = useState(6);
 
   useEffect(() => {
     if (!user) return;
@@ -75,24 +79,14 @@ export default function WibblePlanner() {
 
   const completedCount = tasks.filter((t) => t.is_completed).length;
   const totalCount = tasks.length;
-  const progressValue = totalCount > 0 ? completedCount : 0;
-  const progressMax = totalCount > 0 ? totalCount : 1;
+  const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
   const isAllDone = totalCount > 0 && completedCount === totalCount;
 
   const today = new Date();
   const dayNumber = format(today, "dd");
   const monthNumber = format(today, "MM");
   const yearNumber = format(today, "yyyy");
-  const dayOfWeek = format(today, "EEEE");
-
-  // Time wheel data
-  const timeSlices = [
-    { label: "Sleep", hours: 8, color: "hsl(270, 25%, 85%)", icon: null },
-    { label: "Work", hours: 8, color: "hsl(200, 25%, 80%)", icon: null },
-    { label: "Meals", hours: 2, color: "hsl(30, 25%, 75%)", icon: null },
-    { label: "Leisure", hours: 4, color: "hsl(140, 30%, 80%)", icon: null },
-    { label: "Other", hours: 2, color: "hsl(45, 40%, 92%)", icon: null },
-  ];
+  const dayOfWeek = format(today, "EEEE").toLowerCase();
 
   // Category icons for tasks
   const getCategoryIcon = (title: string) => {
@@ -109,8 +103,20 @@ export default function WibblePlanner() {
     if (lower.includes("coffee") || lower.includes("breakfast") || lower.includes("lunch") || lower.includes("dinner")) {
       return <SketchCoffee className="w-4 h-4" />;
     }
-    return <SketchClock className="w-4 h-4" />;
+    return null;
   };
+
+  // Time wheel slices
+  const timeSlices = [
+    { label: "Nighty night", hours: 8 },
+    { label: "Morning Routine", hours: 2 },
+    { label: "Working time", hours: 4 },
+    { label: "Lunch", hours: 1 },
+    { label: "Work", hours: 4 },
+    { label: "After Hours", hours: 2 },
+    { label: "Leisure Time", hours: 2 },
+    { label: "Before bed", hours: 1 },
+  ];
 
   if (loading) {
     return (
@@ -123,79 +129,65 @@ export default function WibblePlanner() {
   }
 
   return (
-    <div className="p-4 pb-28 space-y-5 max-w-lg mx-auto">
+    <div className="p-5 pb-28 space-y-4 max-w-lg mx-auto">
       {/* ============= HEADER ============= */}
-      <div className="flex items-start justify-between pt-4">
+      <div className="flex items-start justify-between pt-2">
         <div>
-          <h1 className="text-5xl font-hand-bold text-ink leading-none">
+          <h1 className="text-4xl font-hand-bold text-ink tracking-wider">
             {dayNumber} {monthNumber} {yearNumber}
           </h1>
-          <p className="text-xl font-hand text-ink-light mt-1">{dayOfWeek}</p>
+          <div className="flex items-center gap-1">
+            <p className="text-xl font-hand text-ink">{dayOfWeek}</p>
+            <WavyUnderline className="text-ink w-16" />
+          </div>
         </div>
-        <div className="flex items-center gap-1 text-ink-light">
-          <SketchSun className="w-6 h-6" />
-          <span className="font-hand-bold text-lg">22°</span>
+        <div className="flex items-center gap-1.5 text-ink">
+          <SketchCloud className="w-7 h-7" />
+          <span className="font-hand text-lg">3° clear</span>
         </div>
+      </div>
+
+      {/* ============= DAILY JOURNEY STRIP ============= */}
+      <div className="flex items-center justify-center gap-2 py-2">
+        <SketchHome className="w-6 h-6 text-ink" />
+        <SketchArrow className="w-4 h-4 text-ink" />
+        <SketchComputer className="w-6 h-6 text-ink" />
+        <SketchArrow className="w-4 h-4 text-ink" />
+        <SketchShoppingCart className="w-6 h-6 text-ink" />
+        <SketchArrow className="w-4 h-4 text-ink" />
+        <SketchWrench className="w-6 h-6 text-ink" />
+        <SketchArrow className="w-4 h-4 text-ink" />
+        <SketchHome className="w-6 h-6 text-ink" />
       </div>
 
       <DashedDivider />
 
-      {/* ============= DAILY TIMELINE STRIP ============= */}
-      <SketchCard variant="soft-cream" className="overflow-x-auto">
-        <p className="text-sm font-hand-bold text-ink-light uppercase mb-3 tracking-wider">
-          Today's Journey
-        </p>
-        <div className="flex items-center gap-2 min-w-max">
-          <div className="flex flex-col items-center">
-            <SketchHome className="w-6 h-6 text-ink" />
-            <span className="text-xs font-hand text-ink-light">6am</span>
+      {/* ============= MUSIC PLAYER ============= */}
+      <MusicPlayer songTitle="HERE ALWAYS" artist="Stray Kids" progress={0.25} />
+
+      <DashedDivider />
+
+      {/* ============= TIME WHEEL + QUICK LIST ROW ============= */}
+      <div className="grid grid-cols-2 gap-4">
+        <TimeWheel slices={timeSlices} className="w-full h-32" />
+        
+        <div className="space-y-1.5 text-sm">
+          <div className="flex items-start gap-2">
+            <SketchBook className="w-4 h-4 text-ink flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-hand-bold text-ink">&lt;The Waves&gt;</p>
+              <p className="font-hand text-ink-light">p 357</p>
+            </div>
           </div>
-          <SketchArrow className="text-ink-light" />
-          <div className="flex flex-col items-center">
-            <SketchBook className="w-6 h-6 text-ink" />
-            <span className="text-xs font-hand text-ink-light">9am</span>
+          <div className="flex items-start gap-2">
+            <SketchWrench className="w-4 h-4 text-ink flex-shrink-0 mt-0.5" />
+            <p className="font-hand text-ink">Repairing the water pipe</p>
           </div>
-          <SketchArrow className="text-ink-light" />
-          <div className="flex flex-col items-center">
-            <SketchCoffee className="w-6 h-6 text-ink" />
-            <span className="text-xs font-hand text-ink-light">12pm</span>
-          </div>
-          <SketchArrow className="text-ink-light" />
-          <div className="flex flex-col items-center">
-            <SketchShoppingCart className="w-6 h-6 text-ink" />
-            <span className="text-xs font-hand text-ink-light">3pm</span>
-          </div>
-          <SketchArrow className="text-ink-light" />
-          <div className="flex flex-col items-center">
-            <SketchHome className="w-6 h-6 text-ink" />
-            <span className="text-xs font-hand text-ink-light">6pm</span>
+          <div className="flex items-start gap-2">
+            <SketchComputer className="w-4 h-4 text-ink flex-shrink-0 mt-0.5" />
+            <p className="font-hand text-ink">paper ~3</p>
           </div>
         </div>
-      </SketchCard>
-
-      {/* ============= PROGRESS + TIME WHEEL ROW ============= */}
-      <div className="grid grid-cols-2 gap-4">
-        {/* Progress Widget */}
-        <SketchCard variant="dusty-pink">
-          <p className="text-sm font-hand-bold text-ink-light uppercase mb-2 tracking-wider">
-            Progress
-          </p>
-          <SketchProgress value={progressValue} max={progressMax} />
-          {isAllDone && (
-            <div className="flex items-center gap-1 mt-2 text-sm font-hand text-ink">
-              <SketchStar filled className="w-4 h-4 text-primary" />
-              All done!
-            </div>
-          )}
-        </SketchCard>
-
-        {/* Time Wheel */}
-        <SketchCard variant="light-lavender" className="flex flex-col items-center">
-          <p className="text-sm font-hand-bold text-ink-light uppercase mb-2 tracking-wider">
-            Day Plan
-          </p>
-          <TimeWheel slices={timeSlices} className="w-24 h-24" />
-        </SketchCard>
       </div>
 
       <DashedDivider />
@@ -203,72 +195,75 @@ export default function WibblePlanner() {
       {/* ============= CHECKLIST SECTION ============= */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-2xl font-hand-bold text-ink uppercase tracking-wide">
+          <h2 className="text-xl font-hand-bold text-ink uppercase tracking-widest">
             Checklist
           </h2>
-          <div className="flex items-center gap-3 text-xs font-hand text-ink-light">
+          <div className="flex items-center gap-3 text-xs font-hand text-ink">
             <span className="flex items-center gap-1">
-              <div className="w-3 h-3 border border-ink bg-sage-green" style={{ borderRadius: "2px" }} />
+              <div className="w-3 h-3 border border-ink bg-sage-green" style={{ borderRadius: "1px" }} />
               done
             </span>
             <span className="flex items-center gap-1">
-              <div className="w-3 h-3 border border-ink" style={{ borderRadius: "2px" }} />
-              todo
+              <div className="w-3 h-3 border border-ink" style={{ borderRadius: "1px" }} />
+              not yet
             </span>
             <span className="flex items-center gap-1">
-              <div className="w-3 h-3 border border-ink bg-warm-brown" style={{ borderRadius: "2px" }} />
-              later
+              <div className="w-3 h-3 border border-ink bg-ink" style={{ borderRadius: "1px" }}>
+                <div className="w-1.5 h-1.5 bg-card m-0.5" />
+              </div>
+              postponed
             </span>
           </div>
         </div>
 
+        {/* Progress indicator */}
+        <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center gap-1 border border-ink px-2 py-0.5 rounded-sm">
+            <span className="font-hand-bold text-lg text-ink">{progressPercent}%</span>
+            {isAllDone && <span className="text-xs">☺</span>}
+          </div>
+          <span className="font-hand text-sm text-ink-light">satisfaction</span>
+        </div>
+
         <div className="space-y-2">
           {tasks.length === 0 ? (
-            <SketchCard variant="soft-cream" className="text-center py-6">
+            <div className="text-center py-6 border-2 border-dashed border-ink/30">
               <p className="font-hand text-xl text-ink-light">
                 No tasks for today!
               </p>
               <p className="font-hand text-sm text-ink-light mt-1">
                 Tap + to add one
               </p>
-            </SketchCard>
+            </div>
           ) : (
             tasks.map((task) => (
               <div
                 key={task.id}
                 className={cn(
-                  "flex items-start gap-3 p-3 border-2 border-ink/15 bg-card",
+                  "flex items-start gap-3 py-1",
                   task.is_completed && "opacity-60"
                 )}
-                style={{ borderRadius: "6px 10px 8px 12px" }}
               >
                 <SketchCheckbox
                   checked={!!task.is_completed}
                   onChange={() => toggleTask(task)}
                 />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    {getCategoryIcon(task.title)}
-                    <span
-                      className={cn(
-                        "font-hand text-lg text-ink",
-                        task.is_completed && "line-through text-ink-light"
-                      )}
-                    >
-                      {task.title}
-                    </span>
-                  </div>
+                <div className="flex-1 min-w-0 flex items-center gap-2">
+                  {getCategoryIcon(task.title)}
+                  <span
+                    className={cn(
+                      "font-hand text-lg text-ink",
+                      task.is_completed && "line-through text-ink-light"
+                    )}
+                  >
+                    {task.title}
+                  </span>
                   {task.scheduled_time && (
-                    <span className="text-sm font-hand text-ink-light">
+                    <span className="text-sm font-hand text-ink-light ml-1">
                       {task.scheduled_time.slice(0, 5)}
                     </span>
                   )}
                 </div>
-                {task.duration_minutes && (
-                  <SketchBadge variant="muted-blue">
-                    {task.duration_minutes}m
-                  </SketchBadge>
-                )}
               </div>
             ))
           )}
@@ -279,108 +274,113 @@ export default function WibblePlanner() {
 
       {/* ============= TIMETABLE SECTION ============= */}
       <div>
-        <h2 className="text-2xl font-hand-bold text-ink uppercase tracking-wide mb-3">
-          Timetable
-        </h2>
-        <SketchCard variant="soft-cream">
-          <div className="space-y-2">
-            {[
-              { time: "06:00", activity: "Wake up & stretch", icon: <SketchSun className="w-4 h-4" /> },
-              { time: "07:00", activity: "Breakfast", icon: <SketchCoffee className="w-4 h-4" /> },
-              { time: "09:00", activity: "Work / Study", icon: <SketchBook className="w-4 h-4" /> },
-              { time: "12:00", activity: "Lunch break", icon: <SketchCoffee className="w-4 h-4" /> },
-              { time: "14:00", activity: "Deep work", icon: <SketchBook className="w-4 h-4" /> },
-              { time: "17:00", activity: "Errands", icon: <SketchShoppingCart className="w-4 h-4" /> },
-              { time: "19:00", activity: "Dinner & relax", icon: <SketchHome className="w-4 h-4" /> },
-            ].map((item, i) => (
-              <div key={i} className="flex items-center gap-3 py-1">
-                <span className="font-hand-bold text-ink-light w-12">{item.time}</span>
-                <span className="text-ink-light">{item.icon}</span>
-                <span className="font-hand text-ink">{item.activity}</span>
+        <div className="flex items-center gap-2 mb-3">
+          <h2 className="text-xl font-hand-bold text-ink uppercase tracking-widest">
+            Timetable
+          </h2>
+          <SketchClock className="w-5 h-5 text-ink" />
+        </div>
+
+        <div className="border border-ink">
+          <div className="grid grid-cols-2">
+            {/* Left column */}
+            <div className="border-r border-ink">
+              <div className="border-b border-ink px-2 py-1 text-center">
+                <span className="font-hand-bold text-sm text-ink">T</span>
+                <span className="font-hand text-sm text-ink-light ml-2">works</span>
               </div>
-            ))}
+              {[
+                { time: "9:00", activity: "meal time + breakfast", icon: <SketchCoffee className="w-3.5 h-3.5" /> },
+                { time: "10:00", activity: "Shower" },
+                { time: "11:00", activity: "🚌", icon: null },
+                { time: "12:30", activity: "Incheon", icon: <SketchTrain className="w-3.5 h-3.5" /> },
+                { time: "13:30", activity: "Lunch together ☺" },
+              ].map((item, i) => (
+                <div key={i} className="flex items-center gap-2 px-2 py-1 border-b border-ink last:border-b-0">
+                  <span className="font-hand text-sm text-ink-light w-10">{item.time}</span>
+                  {item.icon && <span className="text-ink">{item.icon}</span>}
+                  <span className="font-hand text-sm text-ink">{item.activity}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Right column */}
+            <div>
+              <div className="border-b border-ink px-2 py-1 text-center">
+                <span className="font-hand-bold text-sm text-ink">T</span>
+                <span className="font-hand text-sm text-ink-light ml-2">works</span>
+              </div>
+              {[
+                { time: "14:30", activity: "☺☺☺☺☺" },
+                { time: "15:40", activity: "way back 🏠" },
+                { time: "16:30", activity: "Bakery 🍞" },
+                { time: "17:00", activity: "🏠" },
+                { time: "18:00", activity: "movie 🎬" },
+              ].map((item, i) => (
+                <div key={i} className="flex items-center gap-2 px-2 py-1 border-b border-ink last:border-b-0">
+                  <span className="font-hand text-sm text-ink-light w-10">{item.time}</span>
+                  <span className="font-hand text-sm text-ink">{item.activity}</span>
+                </div>
+              ))}
+            </div>
           </div>
-        </SketchCard>
+        </div>
       </div>
 
       <DashedDivider />
 
       {/* ============= TRACKERS ROW ============= */}
-      <div>
-        <h2 className="text-2xl font-hand-bold text-ink uppercase tracking-wide mb-3">
-          Trackers
-        </h2>
-        <div className="grid grid-cols-3 gap-3">
-          {/* Mood Tracker */}
-          <SketchCard variant="dusty-pink" className="text-center">
-            <p className="text-xs font-hand-bold text-ink-light uppercase mb-2">Mood</p>
-            <div className="flex justify-center gap-1">
-              <button
-                onClick={() => setMood("happy")}
-                className={cn(
-                  "p-1 rounded-full transition-transform",
-                  mood === "happy" && "scale-110 bg-card"
-                )}
-              >
-                <MoodHappy className={cn("w-6 h-6", mood === "happy" ? "text-accent" : "text-ink-light")} />
-              </button>
-              <button
-                onClick={() => setMood("neutral")}
-                className={cn(
-                  "p-1 rounded-full transition-transform",
-                  mood === "neutral" && "scale-110 bg-card"
-                )}
-              >
-                <MoodNeutral className={cn("w-6 h-6", mood === "neutral" ? "text-accent" : "text-ink-light")} />
-              </button>
-              <button
-                onClick={() => setMood("sad")}
-                className={cn(
-                  "p-1 rounded-full transition-transform",
-                  mood === "sad" && "scale-110 bg-card"
-                )}
-              >
-                <MoodSad className={cn("w-6 h-6", mood === "sad" ? "text-accent" : "text-ink-light")} />
-              </button>
-            </div>
-          </SketchCard>
+      <div className="grid grid-cols-3 gap-4">
+        {/* Mood Tracker */}
+        <div className="text-center">
+          <p className="text-xs font-hand-bold text-ink uppercase mb-2">Mood</p>
+          <div className="flex justify-center gap-1">
+            <button onClick={() => setMood("happy")}>
+              <MoodHappy className={cn("w-7 h-7", mood === "happy" ? "text-ink" : "text-ink-light/40")} />
+            </button>
+            <button onClick={() => setMood("neutral")}>
+              <MoodNeutral className={cn("w-7 h-7", mood === "neutral" ? "text-ink" : "text-ink-light/40")} />
+            </button>
+            <button onClick={() => setMood("sad")}>
+              <MoodSad className={cn("w-7 h-7", mood === "sad" ? "text-ink" : "text-ink-light/40")} />
+            </button>
+          </div>
+        </div>
 
-          {/* Hydration Tracker */}
-          <SketchCard variant="muted-blue" className="text-center">
-            <p className="text-xs font-hand-bold text-ink-light uppercase mb-2">Water</p>
-            <div className="flex justify-center gap-0.5">
-              {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
-                <button key={n} onClick={() => setHydration(n)}>
-                  <SketchDroplet
-                    className={cn("w-3.5 h-3.5", n <= hydration ? "text-accent" : "text-ink-light/30")}
-                    filled={n <= hydration}
-                  />
-                </button>
-              ))}
-            </div>
-            <p className="text-xs font-hand text-ink-light mt-1">{hydration}/8</p>
-          </SketchCard>
+        {/* Hydration Tracker */}
+        <div className="text-center">
+          <p className="text-xs font-hand-bold text-ink uppercase mb-2">Hydration</p>
+          <div className="flex justify-center gap-0.5">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+              <button key={n} onClick={() => setHydration(n)}>
+                <SketchDroplet
+                  className={cn("w-3 h-3", n <= hydration ? "text-ink" : "text-ink-light/30")}
+                  filled={n <= hydration}
+                />
+              </button>
+            ))}
+          </div>
+        </div>
 
-          {/* Sleep Tracker */}
-          <SketchCard variant="light-lavender" className="text-center">
-            <p className="text-xs font-hand-bold text-ink-light uppercase mb-2">Sleep</p>
-            <div className="flex items-center justify-center gap-2">
-              <button
-                onClick={() => setSleepHours(Math.max(0, sleepHours - 1))}
-                className="w-6 h-6 border border-ink rounded-full text-ink font-hand-bold"
-              >
-                -
-              </button>
-              <span className="font-hand-bold text-lg text-ink w-6">{sleepHours}</span>
-              <button
-                onClick={() => setSleepHours(Math.min(12, sleepHours + 1))}
-                className="w-6 h-6 border border-ink rounded-full text-ink font-hand-bold"
-              >
-                +
-              </button>
-            </div>
-            <p className="text-xs font-hand text-ink-light mt-1">hours</p>
-          </SketchCard>
+        {/* Sleep Tracker */}
+        <div className="text-center">
+          <p className="text-xs font-hand-bold text-ink uppercase mb-2">Sleep</p>
+          <div className="flex items-center justify-center gap-1">
+            <span className="font-hand-bold text-lg text-ink">{sleepHours}</span>
+            <span className="font-hand text-sm text-ink-light">hours</span>
+          </div>
+          <div className="flex justify-center gap-0.5 mt-1">
+            {[1,2,3,4,5,6,7,8].map((n) => (
+              <div 
+                key={n}
+                onClick={() => setSleepHours(n)}
+                className={cn(
+                  "w-2 h-3 border border-ink cursor-pointer",
+                  n <= sleepHours ? "bg-ink" : "bg-transparent"
+                )}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </div>

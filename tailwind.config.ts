@@ -19,6 +19,7 @@ export default {
     },
     extend: {
       fontFamily: {
+        sans: ['Gaegu', 'cursive'],
         gaegu: ['Gaegu', 'cursive'],
         hand: ['Gaegu', 'cursive'],
       },
