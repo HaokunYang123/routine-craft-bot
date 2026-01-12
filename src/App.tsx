@@ -12,8 +12,8 @@ import Tasks from "./pages/Tasks";
 import Assistant from "./pages/Assistant";
 import Progress from "./pages/Progress";
 import StudentLayout from "./pages/student/StudentLayout";
-import StudentTasks from "./pages/student/StudentTasks";
 import StudentCalendar from "./pages/student/StudentCalendar";
+import WibblePlanner from "./pages/WibblePlanner";
 import PolygonShowcase from "./pages/PolygonShowcase";
 
 const queryClient = new QueryClient();
@@ -36,7 +36,7 @@ const App = () => (
           </Route>
           {/* Student PWA View */}
           <Route path="/app" element={<StudentLayout />}>
-            <Route index element={<StudentTasks />} />
+            <Route index element={<WibblePlanner />} />
             <Route path="calendar" element={<StudentCalendar />} />
           </Route>
           <Route path="/ui" element={<PolygonShowcase />} />
