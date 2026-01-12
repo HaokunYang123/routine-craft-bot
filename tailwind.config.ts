@@ -19,8 +19,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Nunito', 'sans-serif'],
-        display: ['Nunito', 'sans-serif'],
+        sans: ['Gaegu', 'cursive'],
+        display: ['Gaegu', 'cursive'],
       },
       fontSize: {
         // Clean typography scale
