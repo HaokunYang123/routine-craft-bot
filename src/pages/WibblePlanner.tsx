@@ -4,27 +4,31 @@ import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import {
-  SketchCard,
-  SketchCheckbox,
-  SketchProgress,
-  SketchBadge,
+  DoodleHome,
+  DoodleCart,
+  DoodleClock,
+  DoodleBook,
+  DoodleCoffee,
+  DoodleSun,
+  DoodleCloud,
+  DoodleWrench,
+  DoodleTrain,
+  DoodleArrow,
+  DoodleStar,
+  DoodleSparkle,
+  DoodleDroplet,
+  DoodleMoon,
+  DoodleCheckbox,
+  DoodleProgress,
   DashedDivider,
-  TimeWheel,
-  SketchSun,
-  SketchCloud,
-  SketchHome,
-  SketchCoffee,
-  SketchBook,
-  SketchShoppingCart,
-  SketchArrow,
-  SketchStar,
-  SketchDroplet,
+  WavyText,
   MoodHappy,
   MoodNeutral,
   MoodSad,
-  SketchClock,
-  SketchWrench,
-} from "@/components/ui/sketch";
+  PauseIcon,
+  SkipBack,
+  SkipForward,
+} from "@/components/ui/doodles";
 
 interface Task {
   id: string;
@@ -40,9 +44,9 @@ export default function WibblePlanner() {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
-  const [hydration, setHydration] = useState(4);
-  const [mood, setMood] = useState<"happy" | "neutral" | "sad">("neutral");
-  const [sleepHours, setSleepHours] = useState(7);
+  const [hydration, setHydration] = useState(5);
+  const [mood, setMood] = useState<"happy" | "neutral" | "sad">("happy");
+  const [sleepHours, setSleepHours] = useState(6);
 
   useEffect(() => {
     if (!user) return;
@@ -75,200 +79,196 @@ export default function WibblePlanner() {
 
   const completedCount = tasks.filter((t) => t.is_completed).length;
   const totalCount = tasks.length;
-  const progressValue = totalCount > 0 ? completedCount : 0;
-  const progressMax = totalCount > 0 ? totalCount : 1;
-  const isAllDone = totalCount > 0 && completedCount === totalCount;
+  const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
   const today = new Date();
-  const dayNumber = format(today, "dd");
-  const monthNumber = format(today, "MM");
-  const yearNumber = format(today, "yyyy");
-  const dayOfWeek = format(today, "EEEE");
+  const dateStr = format(today, "dd MM yyyy");
+  const dayOfWeek = format(today, "EEEE").toLowerCase();
 
-  // Time wheel data
-  const timeSlices = [
-    { label: "Sleep", hours: 8, color: "hsl(270, 25%, 85%)", icon: null },
-    { label: "Work", hours: 8, color: "hsl(200, 25%, 80%)", icon: null },
-    { label: "Meals", hours: 2, color: "hsl(30, 25%, 75%)", icon: null },
-    { label: "Leisure", hours: 4, color: "hsl(140, 30%, 80%)", icon: null },
-    { label: "Other", hours: 2, color: "hsl(45, 40%, 92%)", icon: null },
-  ];
-
-  // Category icons for tasks
+  // Category icons
   const getCategoryIcon = (title: string) => {
     const lower = title.toLowerCase();
-    if (lower.includes("shop") || lower.includes("buy") || lower.includes("groceries")) {
-      return <SketchShoppingCart className="w-4 h-4" />;
-    }
-    if (lower.includes("fix") || lower.includes("repair")) {
-      return <SketchWrench className="w-4 h-4" />;
-    }
-    if (lower.includes("read") || lower.includes("study") || lower.includes("book")) {
-      return <SketchBook className="w-4 h-4" />;
-    }
-    if (lower.includes("coffee") || lower.includes("breakfast") || lower.includes("lunch") || lower.includes("dinner")) {
-      return <SketchCoffee className="w-4 h-4" />;
-    }
-    return <SketchClock className="w-4 h-4" />;
+    if (lower.includes("shop") || lower.includes("grocery")) return <DoodleCart className="w-4 h-4" />;
+    if (lower.includes("fix") || lower.includes("repair")) return <DoodleWrench className="w-4 h-4" />;
+    if (lower.includes("read") || lower.includes("book") || lower.includes("study")) return <DoodleBook className="w-4 h-4" />;
+    if (lower.includes("coffee") || lower.includes("breakfast") || lower.includes("lunch") || lower.includes("dinner") || lower.includes("meal")) return <DoodleCoffee className="w-4 h-4" />;
+    if (lower.includes("train") || lower.includes("travel")) return <DoodleTrain className="w-4 h-4" />;
+    return null;
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-2xl font-hand-bold text-ink-light animate-float">
-          Loading...
-        </div>
+        <p className="text-2xl text-ink-light">loading...</p>
       </div>
     );
   }
 
   return (
-    <div className="p-4 pb-28 space-y-5 max-w-lg mx-auto">
+    <div className="p-5 pb-28 max-w-md mx-auto">
       {/* ============= HEADER ============= */}
-      <div className="flex items-start justify-between pt-4">
+      <div className="flex items-start justify-between mb-2">
         <div>
-          <h1 className="text-5xl font-hand-bold text-ink leading-none">
-            {dayNumber} {monthNumber} {yearNumber}
-          </h1>
-          <p className="text-xl font-hand text-ink-light mt-1">{dayOfWeek}</p>
+          <h1 className="text-3xl font-bold text-ink tracking-wide">{dateStr}</h1>
+          <div className="flex items-center gap-1">
+            <WavyText className="text-xl text-ink">{dayOfWeek}</WavyText>
+          </div>
         </div>
-        <div className="flex items-center gap-1 text-ink-light">
-          <SketchSun className="w-6 h-6" />
-          <span className="font-hand-bold text-lg">22°</span>
+        <div className="flex items-center gap-1 text-ink">
+          <DoodleCloud className="w-6 h-6" />
+          <span className="text-lg">3° clear</span>
+        </div>
+      </div>
+
+      {/* ============= DAILY JOURNEY STRIP ============= */}
+      <div className="flex items-center justify-center gap-1 py-4 flex-wrap">
+        <DoodleHome className="w-7 h-7 text-ink" />
+        <DoodleArrow className="text-ink" />
+        <DoodleBook className="w-6 h-6 text-ink" />
+        <DoodleArrow className="text-ink" />
+        <DoodleCart className="w-6 h-6 text-ink" />
+        <DoodleArrow className="text-ink" />
+        <DoodleCoffee className="w-6 h-6 text-ink" />
+        <DoodleArrow className="text-ink" />
+        <DoodleWrench className="w-6 h-6 text-ink" />
+        <DoodleArrow className="text-ink" />
+        <DoodleHome className="w-7 h-7 text-ink" />
+      </div>
+
+      <DashedDivider />
+
+      {/* ============= MUSIC PLAYER WIDGET ============= */}
+      <div className="text-center py-3">
+        <p className="text-3xl font-bold text-ink">21</p>
+        <p className="text-lg text-ink">Mitch James</p>
+        <div className="mt-3 px-4">
+          <DoodleProgress value={52} max={321} className="mb-2" />
+          <div className="flex items-center justify-between text-sm text-ink-light px-1">
+            <span>0:52</span>
+            <span>3:21</span>
+          </div>
+        </div>
+        <div className="flex items-center justify-center gap-6 mt-3">
+          <button className="p-2 text-ink hover:scale-110 transition-transform">
+            <SkipBack className="w-6 h-6" />
+          </button>
+          <button className="p-2 text-ink hover:scale-110 transition-transform">
+            <PauseIcon className="w-8 h-8" />
+          </button>
+          <button className="p-2 text-ink hover:scale-110 transition-transform">
+            <SkipForward className="w-6 h-6" />
+          </button>
         </div>
       </div>
 
       <DashedDivider />
 
-      {/* ============= DAILY TIMELINE STRIP ============= */}
-      <SketchCard variant="soft-cream" className="overflow-x-auto">
-        <p className="text-sm font-hand-bold text-ink-light uppercase mb-3 tracking-wider">
-          Today's Journey
-        </p>
-        <div className="flex items-center gap-2 min-w-max">
-          <div className="flex flex-col items-center">
-            <SketchHome className="w-6 h-6 text-ink" />
-            <span className="text-xs font-hand text-ink-light">6am</span>
-          </div>
-          <SketchArrow className="text-ink-light" />
-          <div className="flex flex-col items-center">
-            <SketchBook className="w-6 h-6 text-ink" />
-            <span className="text-xs font-hand text-ink-light">9am</span>
-          </div>
-          <SketchArrow className="text-ink-light" />
-          <div className="flex flex-col items-center">
-            <SketchCoffee className="w-6 h-6 text-ink" />
-            <span className="text-xs font-hand text-ink-light">12pm</span>
-          </div>
-          <SketchArrow className="text-ink-light" />
-          <div className="flex flex-col items-center">
-            <SketchShoppingCart className="w-6 h-6 text-ink" />
-            <span className="text-xs font-hand text-ink-light">3pm</span>
-          </div>
-          <SketchArrow className="text-ink-light" />
-          <div className="flex flex-col items-center">
-            <SketchHome className="w-6 h-6 text-ink" />
-            <span className="text-xs font-hand text-ink-light">6pm</span>
-          </div>
-        </div>
-      </SketchCard>
-
-      {/* ============= PROGRESS + TIME WHEEL ROW ============= */}
-      <div className="grid grid-cols-2 gap-4">
-        {/* Progress Widget */}
-        <SketchCard variant="dusty-pink">
-          <p className="text-sm font-hand-bold text-ink-light uppercase mb-2 tracking-wider">
-            Progress
-          </p>
-          <SketchProgress value={progressValue} max={progressMax} />
-          {isAllDone && (
-            <div className="flex items-center gap-1 mt-2 text-sm font-hand text-ink">
-              <SketchStar filled className="w-4 h-4 text-primary" />
-              All done!
-            </div>
-          )}
-        </SketchCard>
-
+      {/* ============= TIME WHEEL + QUICK TASKS ============= */}
+      <div className="flex gap-4 py-3">
         {/* Time Wheel */}
-        <SketchCard variant="light-lavender" className="flex flex-col items-center">
-          <p className="text-sm font-hand-bold text-ink-light uppercase mb-2 tracking-wider">
-            Day Plan
-          </p>
-          <TimeWheel slices={timeSlices} className="w-24 h-24" />
-        </SketchCard>
+        <div className="flex-shrink-0">
+          <svg className="w-32 h-32" viewBox="0 0 100 100">
+            {/* Clock face */}
+            <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-ink" />
+            {/* Pie segments */}
+            <path d="M50 50 L50 5 A45 45 0 0 1 95 50 Z" fill="none" stroke="currentColor" strokeWidth="1" className="text-ink" />
+            <path d="M50 50 L95 50 A45 45 0 0 1 50 95 Z" fill="none" stroke="currentColor" strokeWidth="1" className="text-ink" />
+            <path d="M50 50 L50 95 A45 45 0 0 1 5 50 Z" fill="none" stroke="currentColor" strokeWidth="1" className="text-ink" />
+            <path d="M50 50 L5 50 A45 45 0 0 1 50 5 Z" fill="none" stroke="currentColor" strokeWidth="1" className="text-ink" />
+            {/* Clock numbers */}
+            <text x="50" y="12" textAnchor="middle" className="text-[8px] fill-ink">12</text>
+            <text x="88" y="53" textAnchor="middle" className="text-[8px] fill-ink">3</text>
+            <text x="50" y="94" textAnchor="middle" className="text-[8px] fill-ink">6</text>
+            <text x="12" y="53" textAnchor="middle" className="text-[8px] fill-ink">9</text>
+            {/* Doodles in segments */}
+            <text x="70" y="30" textAnchor="middle" className="text-[6px] fill-ink">Book</text>
+            <text x="75" y="70" textAnchor="middle" className="text-[6px] fill-ink">Nap</text>
+            <text x="30" y="75" textAnchor="middle" className="text-[6px] fill-ink">Work</text>
+            <text x="25" y="35" textAnchor="middle" className="text-[6px] fill-ink">Fresh!</text>
+          </svg>
+        </div>
+
+        {/* Quick Tasks */}
+        <div className="flex-1 space-y-2">
+          <div className="flex items-center gap-2">
+            <DoodleBook className="w-4 h-4 text-ink" />
+            <span className="text-ink">&lt;The Waves&gt;</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-ink-light text-sm">P 357</span>
+          </div>
+          <div className="flex items-center gap-2 mt-3">
+            <DoodleWrench className="w-4 h-4 text-ink" />
+            <span className="text-ink">Repairing the water pipe</span>
+          </div>
+          <div className="flex items-center gap-2 mt-3">
+            <DoodleBook className="w-4 h-4 text-ink" />
+            <span className="text-ink">paper ~3</span>
+          </div>
+        </div>
       </div>
 
       <DashedDivider />
 
-      {/* ============= CHECKLIST SECTION ============= */}
-      <div>
+      {/* ============= CHECKLIST ============= */}
+      <div className="py-3">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-2xl font-hand-bold text-ink uppercase tracking-wide">
-            Checklist
-          </h2>
-          <div className="flex items-center gap-3 text-xs font-hand text-ink-light">
-            <span className="flex items-center gap-1">
-              <div className="w-3 h-3 border border-ink bg-sage-green" style={{ borderRadius: "2px" }} />
-              done
+          <h2 className="text-xl font-bold text-ink tracking-widest uppercase">Checklist</h2>
+          <div className="flex flex-col text-xs text-ink-light text-right">
+            <span className="flex items-center gap-1 justify-end">
+              <span className="w-3 h-3 bg-ink inline-block" style={{ borderRadius: "1px" }} /> Done
             </span>
-            <span className="flex items-center gap-1">
-              <div className="w-3 h-3 border border-ink" style={{ borderRadius: "2px" }} />
-              todo
+            <span className="flex items-center gap-1 justify-end">
+              <span className="w-3 h-3 border border-ink inline-block" style={{ borderRadius: "1px" }}>
+                <span className="block w-2 h-0.5 bg-ink mt-1 mx-auto" />
+              </span> Not yet
             </span>
-            <span className="flex items-center gap-1">
-              <div className="w-3 h-3 border border-ink bg-warm-brown" style={{ borderRadius: "2px" }} />
-              later
+            <span className="flex items-center gap-1 justify-end">
+              <span className="w-3 h-3 bg-ink-light inline-block" style={{ borderRadius: "1px" }} /> postponed
             </span>
           </div>
         </div>
 
+        {/* Progress indicator */}
+        {totalCount > 0 && (
+          <div className="flex items-center gap-3 mb-4 p-2 border border-ink" style={{ borderRadius: "2px 4px 3px 5px" }}>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-ink">{progressPercent}%</div>
+              <div className="text-xs text-ink-light">😊</div>
+            </div>
+            <div className="flex-1">
+              <div className="text-sm text-ink-light mb-1">satis-faction</div>
+              <DoodleProgress value={completedCount} max={totalCount || 1} />
+              <div className="text-xs text-ink-light mt-1">Done?</div>
+            </div>
+          </div>
+        )}
+
+        {/* Task list */}
         <div className="space-y-2">
           {tasks.length === 0 ? (
-            <SketchCard variant="soft-cream" className="text-center py-6">
-              <p className="font-hand text-xl text-ink-light">
-                No tasks for today!
-              </p>
-              <p className="font-hand text-sm text-ink-light mt-1">
-                Tap + to add one
-              </p>
-            </SketchCard>
+            <p className="text-ink-light text-center py-4">No tasks for today!</p>
           ) : (
             tasks.map((task) => (
-              <div
-                key={task.id}
-                className={cn(
-                  "flex items-start gap-3 p-3 border-2 border-ink/15 bg-card",
-                  task.is_completed && "opacity-60"
-                )}
-                style={{ borderRadius: "6px 10px 8px 12px" }}
-              >
-                <SketchCheckbox
+              <div key={task.id} className="flex items-start gap-3 py-1">
+                <DoodleCheckbox
                   checked={!!task.is_completed}
                   onChange={() => toggleTask(task)}
                 />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    {getCategoryIcon(task.title)}
-                    <span
-                      className={cn(
-                        "font-hand text-lg text-ink",
-                        task.is_completed && "line-through text-ink-light"
-                      )}
-                    >
-                      {task.title}
-                    </span>
-                  </div>
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  {getCategoryIcon(task.title)}
+                  <span className={cn(
+                    "text-ink text-lg",
+                    task.is_completed && "task-done text-ink-light"
+                  )}>
+                    {task.title}
+                  </span>
                   {task.scheduled_time && (
-                    <span className="text-sm font-hand text-ink-light">
+                    <span className="text-sm text-ink-light ml-auto">
                       {task.scheduled_time.slice(0, 5)}
                     </span>
                   )}
                 </div>
-                {task.duration_minutes && (
-                  <SketchBadge variant="muted-blue">
-                    {task.duration_minutes}m
-                  </SketchBadge>
-                )}
               </div>
             ))
           )}
@@ -277,110 +277,98 @@ export default function WibblePlanner() {
 
       <DashedDivider />
 
-      {/* ============= TIMETABLE SECTION ============= */}
-      <div>
-        <h2 className="text-2xl font-hand-bold text-ink uppercase tracking-wide mb-3">
-          Timetable
-        </h2>
-        <SketchCard variant="soft-cream">
-          <div className="space-y-2">
-            {[
-              { time: "06:00", activity: "Wake up & stretch", icon: <SketchSun className="w-4 h-4" /> },
-              { time: "07:00", activity: "Breakfast", icon: <SketchCoffee className="w-4 h-4" /> },
-              { time: "09:00", activity: "Work / Study", icon: <SketchBook className="w-4 h-4" /> },
-              { time: "12:00", activity: "Lunch break", icon: <SketchCoffee className="w-4 h-4" /> },
-              { time: "14:00", activity: "Deep work", icon: <SketchBook className="w-4 h-4" /> },
-              { time: "17:00", activity: "Errands", icon: <SketchShoppingCart className="w-4 h-4" /> },
-              { time: "19:00", activity: "Dinner & relax", icon: <SketchHome className="w-4 h-4" /> },
-            ].map((item, i) => (
-              <div key={i} className="flex items-center gap-3 py-1">
-                <span className="font-hand-bold text-ink-light w-12">{item.time}</span>
-                <span className="text-ink-light">{item.icon}</span>
-                <span className="font-hand text-ink">{item.activity}</span>
+      {/* ============= TIMETABLE ============= */}
+      <div className="py-3">
+        <div className="flex items-center gap-2 mb-3">
+          <h2 className="text-xl font-bold text-ink tracking-widest uppercase">Timetable</h2>
+          <DoodleClock className="w-5 h-5 text-ink" />
+        </div>
+
+        <div className="border border-ink" style={{ borderRadius: "2px 4px 3px 5px" }}>
+          <div className="grid grid-cols-2 divide-x divide-ink">
+            {/* Left column */}
+            <div className="divide-y divide-ink">
+              <div className="flex items-center gap-2 p-2 text-xs font-bold text-ink bg-muted">
+                <span className="w-10">T</span>
+                <span>works</span>
               </div>
-            ))}
+              {[
+                { time: "9:00", task: "🍳 meal time + breakfast" },
+                { time: "10:00", task: "Shower" },
+                { time: "11:00", task: "🚃" },
+                { time: "12:30", task: "🏠 Incheon" },
+                { time: "13:30", task: "Lunch together ☺" },
+              ].map((item, i) => (
+                <div key={i} className="flex items-center gap-2 p-2 text-sm">
+                  <span className="w-10 text-ink-light">{item.time}</span>
+                  <span className="text-ink">{item.task}</span>
+                </div>
+              ))}
+            </div>
+            {/* Right column */}
+            <div className="divide-y divide-ink">
+              <div className="flex items-center gap-2 p-2 text-xs font-bold text-ink bg-muted">
+                <span className="w-10">T</span>
+                <span>works</span>
+              </div>
+              {[
+                { time: "14:30", task: "😊😊😊😊" },
+                { time: "15:40", task: "way back 🏠" },
+                { time: "16:30", task: "Bakery" },
+                { time: "17:00", task: "🏠" },
+                { time: "18:00", task: "movie 🎬" },
+              ].map((item, i) => (
+                <div key={i} className="flex items-center gap-2 p-2 text-sm">
+                  <span className="w-10 text-ink-light">{item.time}</span>
+                  <span className="text-ink">{item.task}</span>
+                </div>
+              ))}
+            </div>
           </div>
-        </SketchCard>
+        </div>
       </div>
 
       <DashedDivider />
 
-      {/* ============= TRACKERS ROW ============= */}
-      <div>
-        <h2 className="text-2xl font-hand-bold text-ink uppercase tracking-wide mb-3">
-          Trackers
-        </h2>
-        <div className="grid grid-cols-3 gap-3">
-          {/* Mood Tracker */}
-          <SketchCard variant="dusty-pink" className="text-center">
-            <p className="text-xs font-hand-bold text-ink-light uppercase mb-2">Mood</p>
-            <div className="flex justify-center gap-1">
-              <button
-                onClick={() => setMood("happy")}
-                className={cn(
-                  "p-1 rounded-full transition-transform",
-                  mood === "happy" && "scale-110 bg-card"
-                )}
-              >
-                <MoodHappy className={cn("w-6 h-6", mood === "happy" ? "text-accent" : "text-ink-light")} />
-              </button>
-              <button
-                onClick={() => setMood("neutral")}
-                className={cn(
-                  "p-1 rounded-full transition-transform",
-                  mood === "neutral" && "scale-110 bg-card"
-                )}
-              >
-                <MoodNeutral className={cn("w-6 h-6", mood === "neutral" ? "text-accent" : "text-ink-light")} />
-              </button>
-              <button
-                onClick={() => setMood("sad")}
-                className={cn(
-                  "p-1 rounded-full transition-transform",
-                  mood === "sad" && "scale-110 bg-card"
-                )}
-              >
-                <MoodSad className={cn("w-6 h-6", mood === "sad" ? "text-accent" : "text-ink-light")} />
-              </button>
-            </div>
-          </SketchCard>
+      {/* ============= TRACKERS ============= */}
+      <div className="py-3">
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-lg text-ink">Mood</span>
+          <span className="text-lg text-ink">Hydration</span>
+          <span className="text-lg text-ink">Sleep</span>
+        </div>
 
-          {/* Hydration Tracker */}
-          <SketchCard variant="muted-blue" className="text-center">
-            <p className="text-xs font-hand-bold text-ink-light uppercase mb-2">Water</p>
-            <div className="flex justify-center gap-0.5">
-              {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
-                <button key={n} onClick={() => setHydration(n)}>
-                  <SketchDroplet
-                    className={cn("w-3.5 h-3.5", n <= hydration ? "text-accent" : "text-ink-light/30")}
-                    filled={n <= hydration}
-                  />
-                </button>
-              ))}
-            </div>
-            <p className="text-xs font-hand text-ink-light mt-1">{hydration}/8</p>
-          </SketchCard>
+        <div className="flex items-center justify-between">
+          {/* Mood */}
+          <div className="flex gap-1">
+            <button onClick={() => setMood("happy")} className={cn("transition-transform", mood === "happy" && "scale-125")}>
+              <MoodHappy className={cn("w-7 h-7", mood === "happy" ? "text-ink" : "text-ink-light")} />
+            </button>
+            <button onClick={() => setMood("neutral")} className={cn("transition-transform", mood === "neutral" && "scale-125")}>
+              <MoodNeutral className={cn("w-7 h-7", mood === "neutral" ? "text-ink" : "text-ink-light")} />
+            </button>
+            <button onClick={() => setMood("sad")} className={cn("transition-transform", mood === "sad" && "scale-125")}>
+              <MoodSad className={cn("w-7 h-7", mood === "sad" ? "text-ink" : "text-ink-light")} />
+            </button>
+          </div>
 
-          {/* Sleep Tracker */}
-          <SketchCard variant="light-lavender" className="text-center">
-            <p className="text-xs font-hand-bold text-ink-light uppercase mb-2">Sleep</p>
-            <div className="flex items-center justify-center gap-2">
-              <button
-                onClick={() => setSleepHours(Math.max(0, sleepHours - 1))}
-                className="w-6 h-6 border border-ink rounded-full text-ink font-hand-bold"
-              >
-                -
+          {/* Hydration */}
+          <div className="flex gap-0.5">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+              <button key={n} onClick={() => setHydration(n)}>
+                <DoodleDroplet
+                  className={cn("w-4 h-4", n <= hydration ? "text-ink" : "text-ink-light opacity-40")}
+                  filled={n <= hydration}
+                />
               </button>
-              <span className="font-hand-bold text-lg text-ink w-6">{sleepHours}</span>
-              <button
-                onClick={() => setSleepHours(Math.min(12, sleepHours + 1))}
-                className="w-6 h-6 border border-ink rounded-full text-ink font-hand-bold"
-              >
-                +
-              </button>
-            </div>
-            <p className="text-xs font-hand text-ink-light mt-1">hours</p>
-          </SketchCard>
+            ))}
+          </div>
+
+          {/* Sleep */}
+          <div className="flex items-center gap-1">
+            <DoodleMoon className="w-4 h-4 text-ink" />
+            <span className="text-lg font-bold text-ink">{sleepHours}hours</span>
+          </div>
         </div>
       </div>
     </div>
