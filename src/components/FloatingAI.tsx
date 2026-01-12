@@ -1,12 +1,19 @@
 import { useState, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Mic, MicOff, Send, X, MessageCircle, Loader2, Sparkles } from "lucide-react";
+import { Mic, MicOff, Send, X, MessageCircle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  WobblyButton,
+  WobblyPanel,
+  WobblyChatBubble,
+  WobblyInput,
+  DoodleStar,
+  DoodleHeart,
+  DoodleLeaf,
+} from "@/components/ui/wobbly";
 
 interface Message {
   role: "user" | "assistant";
@@ -96,7 +103,7 @@ export function FloatingAI({ context = "", placeholder = "Ask anything..." }: Fl
       setMessages((prev) => [...prev, { role: "assistant", content: data.message }]);
     } catch (error: any) {
       console.error("Chat error:", error);
-      setMessages((prev) => [...prev, { role: "assistant", content: "Sorry, I couldn't process that. Please try again." }]);
+      setMessages((prev) => [...prev, { role: "assistant", content: "Oops! Something went wrong. Try again?" }]);
     } finally {
       setLoading(false);
     }
@@ -111,46 +118,68 @@ export function FloatingAI({ context = "", placeholder = "Ask anything..." }: Fl
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button
-          size="icon"
-          className="fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full shadow-lg bg-primary hover:bg-primary/90 md:bottom-8 md:right-8"
+        <button
+          className="fixed bottom-28 right-5 z-50 h-14 w-14 flex items-center justify-center transition-transform active:scale-90 md:bottom-8 md:right-8"
         >
-          <MessageCircle className="h-6 w-6" />
-        </Button>
-      </SheetTrigger>
-      <SheetContent side="bottom" className="h-[85vh] rounded-t-3xl p-0 md:h-[70vh]">
-        <SheetHeader className="border-b px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                <Sparkles className="h-4 w-4 text-primary" />
-              </div>
-              <SheetTitle className="text-base font-medium">AI Assistant</SheetTitle>
+          <WobblyPanel variant="badge1" fill="hsl(var(--primary))" className="w-full h-full">
+            <div className="flex items-center justify-center h-full">
+              <MessageCircle className="h-6 w-6 text-primary-foreground" />
             </div>
-            <Button variant="ghost" size="icon" onClick={() => setOpen(false)}>
-              <X className="h-5 w-5" />
-            </Button>
-          </div>
+          </WobblyPanel>
+          <DoodleStar className="absolute -top-1 -right-1 w-5 h-5 animate-wiggle" />
+        </button>
+      </SheetTrigger>
+      <SheetContent side="bottom" className="h-[85vh] p-0 md:h-[70vh] bg-background border-t-0">
+        {/* Wobbly header */}
+        <SheetHeader className="relative px-4 pt-4 pb-2">
+          <WobblyPanel variant="progress" className="h-14">
+            <div className="flex items-center justify-between h-full px-4">
+              <div className="flex items-center gap-3">
+                <DoodleHeart className="w-6 h-6 animate-bounce-soft" />
+                <SheetTitle className="font-sketch text-xl">AI Helper</SheetTitle>
+              </div>
+              <button 
+                onClick={() => setOpen(false)}
+                className="p-2 transition-transform active:scale-90"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          </WobblyPanel>
         </SheetHeader>
 
-        <ScrollArea className="flex-1 h-[calc(100%-8rem)]">
+        <ScrollArea className="flex-1 h-[calc(100%-10rem)]">
           <div className="p-4 space-y-4">
             {messages.length === 0 ? (
-              <div className="text-center py-8">
-                <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Sparkles className="h-6 w-6 text-primary" />
+              <div className="text-center py-8 space-y-6">
+                <div className="relative inline-block">
+                  <DoodleLeaf className="w-12 h-12 mx-auto animate-float-gentle" />
+                  <DoodleStar className="absolute -top-2 -right-4 w-6 h-6 animate-wiggle" />
                 </div>
-                <p className="text-muted-foreground text-sm mb-4">
-                  How can I help you today?
-                </p>
-                <div className="flex flex-wrap justify-center gap-2">
-                  {suggestions.map((s) => (
+                <div>
+                  <p className="font-sketch text-2xl text-foreground">
+                    How can I help you?
+                  </p>
+                  <p className="text-muted-foreground text-sm mt-1">
+                    I'm here to help with your tasks~
+                  </p>
+                </div>
+                <div className="flex flex-wrap justify-center gap-2 px-4">
+                  {suggestions.map((s, i) => (
                     <button
                       key={s}
                       onClick={() => setInput(s)}
-                      className="text-xs px-3 py-2 rounded-full bg-muted hover:bg-muted/80 text-foreground transition-colors"
+                      className="relative"
                     >
-                      {s}
+                      <WobblyPanel 
+                        variant="badge2" 
+                        fill={`hsl(var(--pastel-${['mint', 'pink', 'yellow'][i % 3]}))`}
+                        className="h-9 px-4"
+                      >
+                        <span className="flex items-center h-full font-sketch text-sm text-foreground px-2">
+                          {s}
+                        </span>
+                      </WobblyPanel>
                     </button>
                   ))}
                 </div>
@@ -164,58 +193,67 @@ export function FloatingAI({ context = "", placeholder = "Ask anything..." }: Fl
                     msg.role === "user" ? "justify-end" : "justify-start"
                   )}
                 >
-                  <div
-                    className={cn(
-                      "max-w-[85%] rounded-2xl px-4 py-2.5 text-sm",
-                      msg.role === "user"
-                        ? "bg-primary text-primary-foreground rounded-br-sm"
-                        : "bg-muted text-foreground rounded-bl-sm"
-                    )}
-                  >
+                  <WobblyChatBubble role={msg.role} className="max-w-[85%] min-h-[50px]">
                     {msg.content}
-                  </div>
+                  </WobblyChatBubble>
                 </div>
               ))
             )}
             {loading && (
               <div className="flex justify-start">
-                <div className="bg-muted rounded-2xl rounded-bl-sm px-4 py-2.5">
-                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                </div>
+                <WobblyChatBubble role="assistant" className="min-h-[50px]">
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="font-sketch">Thinking...</span>
+                  </div>
+                </WobblyChatBubble>
               </div>
             )}
             <div ref={scrollRef} />
           </div>
         </ScrollArea>
 
-        <form onSubmit={handleSubmit} className="border-t p-3 bg-background">
-          <div className="flex items-center gap-2">
-            <Button
+        <form onSubmit={handleSubmit} className="p-4 bg-background">
+          <div className="flex items-center gap-3">
+            <button
               type="button"
-              variant={isListening ? "default" : "ghost"}
-              size="icon"
               onClick={toggleListening}
               className={cn(
-                "shrink-0 rounded-full h-10 w-10",
-                isListening && "bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                "shrink-0 h-12 w-12 flex items-center justify-center transition-transform active:scale-90"
               )}
             >
-              {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
-            </Button>
-            <Input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder={placeholder}
-              className="flex-1 rounded-full border-muted bg-muted/50 h-10"
-            />
-            <Button
+              <WobblyPanel 
+                variant="badge1" 
+                fill={isListening ? "hsl(var(--destructive))" : "hsl(var(--muted))"}
+                className="w-full h-full"
+              >
+                <div className="flex items-center justify-center h-full">
+                  {isListening ? (
+                    <MicOff className="h-5 w-5 text-destructive-foreground" />
+                  ) : (
+                    <Mic className="h-5 w-5 text-foreground" />
+                  )}
+                </div>
+              </WobblyPanel>
+            </button>
+            <div className="flex-1">
+              <WobblyInput
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder={placeholder}
+              />
+            </div>
+            <button
               type="submit"
-              size="icon"
               disabled={loading || !input.trim()}
-              className="shrink-0 rounded-full h-10 w-10"
+              className="shrink-0 h-12 w-12 flex items-center justify-center transition-transform active:scale-90 disabled:opacity-50"
             >
-              <Send className="h-4 w-4" />
-            </Button>
+              <WobblyPanel variant="badge1" fill="hsl(var(--primary))" className="w-full h-full">
+                <div className="flex items-center justify-center h-full">
+                  <Send className="h-5 w-5 text-primary-foreground" />
+                </div>
+              </WobblyPanel>
+            </button>
           </div>
         </form>
       </SheetContent>
