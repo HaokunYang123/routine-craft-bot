@@ -104,21 +104,45 @@ export default function WibblePlanner() {
     );
   }
 
+  const dayNumber = format(today, "dd");
+  const monthNumber = format(today, "MM");
+  const year = format(today, "yyyy");
+  const dayName = format(today, "EEEE").toLowerCase();
+
   return (
     <div className="p-4 md:p-6 pb-28 max-w-2xl mx-auto space-y-6">
       {/* ============= HEADER ============= */}
-      <header className="flex items-start justify-between pt-2">
-        <div>
-          <h1 className="text-display-lg font-display text-foreground">
-            Wibble
-          </h1>
-          <p className="text-body-md font-medium text-muted-foreground">{formattedDate}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-caption text-muted-foreground bg-secondary px-2 py-1 rounded-full">
-            Student
-          </span>
-          <SketchAvatar initials="JS" size="sm" />
+      <header className="pt-4 pb-2">
+        <div className="flex items-start justify-between">
+          {/* Date display */}
+          <div>
+            <div className="flex items-baseline gap-3 font-display text-foreground">
+              <span className="text-4xl font-bold tracking-wide">{dayNumber}</span>
+              <span className="text-4xl font-bold tracking-wide">{monthNumber}</span>
+              <span className="text-4xl font-bold tracking-wide">{year}</span>
+            </div>
+            <div className="mt-1">
+              <span className="text-xl font-display text-foreground">{dayName}</span>
+              {/* Wavy underline */}
+              <svg className="w-20 h-2 mt-0.5" viewBox="0 0 80 8" fill="none">
+                <path 
+                  d="M2 4C8 2 14 6 20 4C26 2 32 6 38 4C44 2 50 6 56 4C62 2 68 6 74 4" 
+                  stroke="currentColor" 
+                  strokeWidth="2" 
+                  strokeLinecap="round"
+                  className="text-foreground"
+                />
+              </svg>
+            </div>
+          </div>
+          
+          {/* User info */}
+          <div className="flex items-center gap-2">
+            <span className="text-caption text-muted-foreground bg-secondary px-2 py-1 rounded-full">
+              Student
+            </span>
+            <SketchAvatar initials="JS" size="sm" />
+          </div>
         </div>
       </header>
 
