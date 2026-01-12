@@ -1,26 +1,25 @@
+@import url('https://fonts.googleapis.com/css2?family=Gaegu:wght@300;400;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Gaegu font for hand-drawn aesthetic */
-@import url('https://fonts.googleapis.com/css2?family=Gaegu:wght@300;400;700&display=swap');
-
 @layer base {
   :root {
-    /* Warm cream/off-white background */
-    --background: 45 30% 97%;
+    /* Warm cream/off-white background like real paper */
+    --background: 45 30% 96%;
     --foreground: 0 0% 18%;
 
     /* Clean white cards */
-    --card: 45 50% 99%;
+    --card: 45 40% 98%;
     --card-foreground: 0 0% 18%;
 
-    --popover: 45 50% 99%;
+    --popover: 45 40% 98%;
     --popover-foreground: 0 0% 18%;
 
-    /* Dusty pink primary */
-    --primary: 350 35% 55%;
-    --primary-foreground: 0 0% 100%;
+    /* Soft black ink as primary */
+    --primary: 0 0% 22%;
+    --primary-foreground: 45 40% 98%;
 
     --secondary: 45 20% 94%;
     --secondary-foreground: 0 0% 18%;
@@ -28,61 +27,61 @@
     --muted: 45 15% 90%;
     --muted-foreground: 0 0% 45%;
 
-    /* Sage green accent */
+    /* Sage green accent for completed */
     --accent: 140 25% 55%;
     --accent-foreground: 0 0% 100%;
 
-    /* Warm brown for completed states */
+    /* Warm brown for postponed states */
     --completed: 30 30% 45%;
     --completed-foreground: 0 0% 100%;
 
     --destructive: 0 50% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 45 20% 85%;
+    --border: 0 0% 75%;
     --input: 45 25% 94%;
-    --ring: 350 35% 55%;
+    --ring: 0 0% 22%;
 
     /* Generous rounding for soft aesthetic */
-    --radius: 12px;
+    --radius: 8px;
 
-    /* Muted earth tones for accents */
+    /* Muted earth tones for accents (sparingly used) */
     --dusty-pink: 350 40% 85%;
     --sage-green: 140 30% 80%;
     --warm-brown: 30 25% 75%;
-    --soft-cream: 45 40% 92%;
+    --soft-cream: 45 40% 94%;
     --muted-blue: 200 25% 80%;
     --light-lavender: 270 25% 85%;
 
     /* Ink color for hand-drawn elements */
     --ink: 0 0% 18%;
-    --ink-light: 0 0% 40%;
+    --ink-light: 0 0% 50%;
 
-    /* Soft shadows - very subtle */
-    --shadow-soft: 0 2px 8px -2px rgba(45, 45, 45, 0.06);
-    --shadow-card: 0 4px 16px -4px rgba(45, 45, 45, 0.08);
+    /* No shadows for paper-like feel */
+    --shadow-soft: none;
+    --shadow-card: none;
 
     /* Sidebar */
-    --sidebar-background: 45 50% 99%;
+    --sidebar-background: 45 40% 98%;
     --sidebar-foreground: 0 0% 18%;
-    --sidebar-primary: 350 35% 55%;
-    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-primary: 0 0% 22%;
+    --sidebar-primary-foreground: 45 40% 98%;
     --sidebar-accent: 45 20% 94%;
     --sidebar-accent-foreground: 0 0% 18%;
-    --sidebar-border: 45 20% 85%;
-    --sidebar-ring: 350 35% 55%;
+    --sidebar-border: 0 0% 75%;
+    --sidebar-ring: 0 0% 22%;
   }
 
   .dark {
     /* Keep light theme for paper-like aesthetic */
-    --background: 45 30% 97%;
+    --background: 45 30% 96%;
     --foreground: 0 0% 18%;
-    --card: 45 50% 99%;
+    --card: 45 40% 98%;
     --card-foreground: 0 0% 18%;
-    --popover: 45 50% 99%;
+    --popover: 45 40% 98%;
     --popover-foreground: 0 0% 18%;
-    --primary: 350 35% 55%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 0 0% 22%;
+    --primary-foreground: 45 40% 98%;
     --secondary: 45 20% 94%;
     --secondary-foreground: 0 0% 18%;
     --muted: 45 15% 90%;
@@ -93,39 +92,42 @@
     --completed-foreground: 0 0% 100%;
     --destructive: 0 50% 50%;
     --destructive-foreground: 0 0% 100%;
-    --border: 45 20% 85%;
+    --border: 0 0% 75%;
     --input: 45 25% 94%;
-    --ring: 350 35% 55%;
-    --sidebar-background: 45 50% 99%;
+    --ring: 0 0% 22%;
+    --sidebar-background: 45 40% 98%;
     --sidebar-foreground: 0 0% 18%;
-    --sidebar-primary: 350 35% 55%;
-    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-primary: 0 0% 22%;
+    --sidebar-primary-foreground: 45 40% 98%;
     --sidebar-accent: 45 20% 94%;
     --sidebar-accent-foreground: 0 0% 18%;
-    --sidebar-border: 45 20% 85%;
-    --sidebar-ring: 350 35% 55%;
+    --sidebar-border: 0 0% 75%;
+    --sidebar-ring: 0 0% 22%;
   }
 }
 
 @layer base {
-  * {
+  html, body, * {
     @apply border-border;
     font-family: 'Gaegu', cursive !important;
   }
 
   body {
     @apply bg-background text-foreground antialiased;
-    background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.02'/%3E%3C/svg%3E");
+    /* Subtle paper texture */
+    background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.015'/%3E%3C/svg%3E");
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply tracking-tight;
+    font-family: 'Gaegu', cursive !important;
     font-weight: 700;
+    letter-spacing: 0.02em;
   }
 
-  /* Handwritten style class */
+  /* Handwritten style classes */
   .font-hand {
     font-family: 'Gaegu', cursive !important;
+    font-weight: 400;
   }
 
   .font-hand-light {
@@ -153,6 +155,7 @@
   .text-ink-light { color: hsl(var(--ink-light)); }
   .border-ink { border-color: hsl(var(--ink)); }
   .border-ink-light { border-color: hsl(var(--ink-light)); }
+  .stroke-ink { stroke: hsl(var(--ink)); }
 
   /* Safe area for mobile */
   .safe-area-pb {
@@ -161,26 +164,6 @@
 
   .text-balance {
     text-wrap: balance;
-  }
-
-  /* Shadow utilities */
-  .shadow-soft {
-    box-shadow: var(--shadow-soft);
-  }
-
-  .shadow-card {
-    box-shadow: var(--shadow-card);
-  }
-
-  /* Hand-drawn wobbly border using SVG filter */
-  .wobbly-border {
-    filter: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='wobbly'%3E%3CfeTurbulence type='turbulence' baseFrequency='0.02' numOctaves='3' result='noise' seed='1'/%3E%3CfeDisplacementMap in='SourceGraphic' in2='noise' scale='2' xChannelSelector='R' yChannelSelector='G'/%3E%3C/filter%3E%3C/svg%3E#wobbly");
-  }
-
-  /* Dashed line divider */
-  .dashed-divider {
-    border-top: 2px dashed hsl(var(--ink-light));
-    opacity: 0.4;
   }
 
   /* Strikethrough for completed items */
@@ -221,7 +204,7 @@
   /* Float animation for icons */
   @keyframes float {
     0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-4px); }
+    50% { transform: translateY(-3px); }
   }
 
   .animate-float {
