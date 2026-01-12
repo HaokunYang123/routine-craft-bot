@@ -364,18 +364,13 @@ export const SketchCheckbox = ({ checked, onChange, postponed, disabled, classNa
       onClick={handleClick}
       disabled={disabled}
       className={cn(
-        "w-6 h-6 border-2 border-ink flex items-center justify-center transition-all flex-shrink-0",
+        "w-6 h-6 border-2 border-ink rounded flex items-center justify-center transition-all flex-shrink-0",
         checked && "bg-success",
         postponed && "bg-ink",
         disabled && "opacity-50 cursor-not-allowed",
         !disabled && "hover:border-accent",
         className
       )}
-      style={{
-        borderRadius: "3px",
-        // Slightly irregular border effect
-        clipPath: "polygon(2% 0%, 100% 2%, 98% 100%, 0% 98%)",
-      }}
     >
       {checked && (
         <svg
@@ -391,7 +386,7 @@ export const SketchCheckbox = ({ checked, onChange, postponed, disabled, classNa
         </svg>
       )}
       {postponed && !checked && (
-        <div className="w-3 h-3 bg-white" style={{ borderRadius: "1px" }} />
+        <div className="w-3 h-3 bg-white rounded-sm" />
       )}
     </button>
   );
@@ -418,26 +413,15 @@ export const SketchProgress = ({ value, max = 100, className, showLabel = true, 
 
   return (
     <div className={cn("space-y-1.5", className)}>
-      {/* Sketchy container with irregular border */}
       <div 
         className={cn(
-          "relative border-2 border-ink overflow-hidden bg-secondary",
+          "relative border-2 border-ink rounded-full overflow-hidden bg-secondary",
           heightClasses[size]
         )}
-        style={{
-          borderRadius: "4px",
-          // Slightly wobbly border
-          clipPath: "polygon(0% 5%, 2% 0%, 98% 2%, 100% 8%, 99% 95%, 97% 100%, 3% 98%, 0% 92%)",
-        }}
       >
-        {/* Progress fill with sketchy edge */}
         <div
-          className="h-full bg-success transition-all duration-500 ease-out relative"
-          style={{ 
-            width: `${percentage}%`,
-            // Irregular right edge
-            clipPath: percentage < 100 ? "polygon(0% 0%, 100% 5%, 98% 95%, 0% 100%)" : undefined,
-          }}
+          className="h-full bg-success transition-all duration-500 ease-out rounded-full"
+          style={{ width: `${percentage}%` }}
         />
       </div>
       {showLabel && (
@@ -461,21 +445,13 @@ interface StatCardProps {
 
 export const StatCard = ({ value, label, icon, className }: StatCardProps) => (
   <div 
-    className={cn("bg-card p-4 text-center relative", className)}
-    style={{
-      // Hand-drawn border effect with irregular corners
-      border: "2px solid currentColor",
-      borderRadius: "6px",
-      clipPath: "polygon(2% 0%, 99% 3%, 97% 98%, 0% 96%)",
-    }}
+    className={cn("bg-card p-4 text-center border-2 border-ink rounded-lg", className)}
   >
-    {/* Subtle inner shadow for depth */}
-    <div className="absolute inset-0 opacity-5 bg-gradient-to-br from-transparent via-transparent to-foreground pointer-events-none" />
-    <div className="flex items-center justify-center gap-1.5 mb-1 relative">
+    <div className="flex items-center justify-center gap-1.5 mb-1">
       {icon}
       <span className="text-display-md font-display text-foreground">{value}</span>
     </div>
-    <p className="text-caption text-muted-foreground font-medium uppercase tracking-wide relative">{label}</p>
+    <p className="text-caption text-muted-foreground font-medium uppercase tracking-wide">{label}</p>
   </div>
 );
 
@@ -490,26 +466,13 @@ interface SketchCardProps {
 export const SketchCard = ({ children, className, variant = "default" }: SketchCardProps) => {
   const baseStyles = "p-4 rounded-lg";
   
-  if (variant === "sketchy") {
-    return (
-      <div
-        className={cn(baseStyles, "bg-card relative", className)}
-        style={{
-          border: "2px solid currentColor",
-          clipPath: "polygon(1% 2%, 99% 0%, 98% 99%, 2% 97%)",
-        }}
-      >
-        {children}
-      </div>
-    );
-  }
-  
   return (
     <div
       className={cn(
         baseStyles,
         variant === "default" && "bg-card shadow-card border border-border",
         variant === "outlined" && "border-2 border-ink bg-card",
+        variant === "sketchy" && "border-2 border-ink bg-card",
         className
       )}
     >
@@ -617,14 +580,10 @@ export const SketchAvatar = ({ initials, size = "md", className }: SketchAvatarP
   return (
     <div
       className={cn(
-        "border-2 border-ink flex items-center justify-center bg-secondary font-display font-bold text-foreground",
+        "border-2 border-ink rounded-full flex items-center justify-center bg-secondary font-display font-bold text-foreground",
         sizeClasses[size],
         className
       )}
-      style={{
-        borderRadius: "50%",
-        clipPath: "polygon(5% 5%, 95% 2%, 98% 95%, 3% 98%)",
-      }}
     >
       {initials}
     </div>
@@ -676,13 +635,10 @@ export const SketchButton = ({
         baseClasses,
         variantClasses[variant],
         sizeClasses[size],
+        "rounded-lg",
         disabled && "opacity-50 cursor-not-allowed",
         className
       )}
-      style={{
-        borderRadius: "6px",
-        clipPath: "polygon(1% 5%, 98% 0%, 100% 95%, 2% 100%)",
-      }}
     >
       {children}
     </button>
@@ -716,16 +672,12 @@ export const SketchInput = ({
       onChange={(e) => onChange?.(e.target.value)}
       disabled={disabled}
       className={cn(
-        "w-full px-4 py-2.5 bg-input border-2 border-border text-body-md",
+        "w-full px-4 py-2.5 bg-input border-2 border-border text-body-md rounded-lg",
         "placeholder:text-hint focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent",
         "transition-colors",
         disabled && "opacity-50 cursor-not-allowed",
         className
       )}
-      style={{
-        borderRadius: "6px",
-        clipPath: "polygon(0% 3%, 99% 0%, 100% 97%, 1% 100%)",
-      }}
     />
   );
 };
