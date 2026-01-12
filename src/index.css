@@ -127,12 +127,11 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Gaegu', cursive;
   }
 
   /* Clean rounded headers */
   h1, h2, h3 {
-    font-family: 'Gaegu', cursive;
+    font-family: 'Nunito', sans-serif;
     font-weight: 700;
   }
 
