@@ -15,6 +15,7 @@ import StudentLayout from "./pages/student/StudentLayout";
 import StudentCalendar from "./pages/student/StudentCalendar";
 import WibblePlanner from "./pages/WibblePlanner";
 import StickerBook from "./pages/student/StickerBook";
+import CoachDashboard from "./pages/CoachDashboard";
 import PolygonShowcase from "./pages/PolygonShowcase";
 
 const queryClient = new QueryClient();
@@ -41,6 +42,7 @@ const App = () => (
             <Route path="calendar" element={<StudentCalendar />} />
             <Route path="stickers" element={<StickerBook />} />
           </Route>
+          <Route path="/coach" element={<CoachDashboard />} />
           <Route path="/ui" element={<PolygonShowcase />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
