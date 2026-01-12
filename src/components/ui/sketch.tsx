@@ -1,128 +1,122 @@
 import React, { useState } from "react";
 import { cn } from "@/lib/utils";
 
-// ============= HAND-DRAWN DOODLE ICONS =============
-// Bold black outlines (2-3px stroke) matching Heytea/Sungwon style
+// ============= BOLD VECTOR ICONS (Monoline, Uniform Thickness) =============
 
 export const SketchHome = ({ className }: { className?: string }) => (
-  <svg className={cn("w-6 h-6", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M4 10L12 4L20 10" />
-    <path d="M6 9V18C6 18.5 6.5 19 7 19H17C17.5 19 18 18.5 18 18V9" />
-    <rect x="10" y="13" width="4" height="6" rx="0.5" />
+  <svg className={cn("w-6 h-6", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 10L12 3L21 10" />
+    <path d="M5 9V19C5 19.5 5.5 20 6 20H18C18.5 20 19 19.5 19 19V9" />
+    <rect x="9" y="13" width="6" height="7" rx="1" />
   </svg>
 );
 
 export const SketchCalendar = ({ className }: { className?: string }) => (
-  <svg className={cn("w-6 h-6", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="4" y="5" width="16" height="15" rx="1" />
-    <path d="M4 10H20" />
-    <path d="M8 3V6" />
-    <path d="M16 3V6" />
-    <circle cx="8" cy="14" r="1" fill="currentColor" />
-    <circle cx="12" cy="14" r="1" fill="currentColor" />
-    <circle cx="16" cy="14" r="1" fill="currentColor" />
+  <svg className={cn("w-6 h-6", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="4" width="18" height="17" rx="2" />
+    <path d="M3 9H21" />
+    <path d="M8 2V5" />
+    <path d="M16 2V5" />
+    <circle cx="8" cy="14" r="1.5" fill="currentColor" stroke="none" />
+    <circle cx="12" cy="14" r="1.5" fill="currentColor" stroke="none" />
+    <circle cx="16" cy="14" r="1.5" fill="currentColor" stroke="none" />
   </svg>
 );
 
 export const SketchPlus = ({ className }: { className?: string }) => (
-  <svg className={cn("w-6 h-6", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-    <path d="M12 6V18M6 12H18" />
+  <svg className={cn("w-6 h-6", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+    <path d="M12 5V19M5 12H19" />
   </svg>
 );
 
 export const SketchStats = ({ className }: { className?: string }) => (
-  <svg className={cn("w-6 h-6", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M5 20V14" />
-    <path d="M10 20V8" />
-    <path d="M15 20V11" />
-    <path d="M20 20V5" />
+  <svg className={cn("w-6 h-6", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 20V12" />
+    <path d="M9 20V8" />
+    <path d="M14 20V4" />
+    <path d="M19 20V14" />
   </svg>
 );
 
 export const SketchSettings = ({ className }: { className?: string }) => (
-  <svg className={cn("w-6 h-6", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg className={cn("w-6 h-6", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="3" />
     <path d="M12 2V5M12 19V22M2 12H5M19 12H22" />
-    <path d="M5.6 5.6L7.4 7.4M16.6 16.6L18.4 18.4M5.6 18.4L7.4 16.6M16.6 7.4L18.4 5.6" />
+    <path d="M5.6 5.6L7.8 7.8M16.2 16.2L18.4 18.4M5.6 18.4L7.8 16.2M16.2 7.8L18.4 5.6" />
   </svg>
 );
 
 export const SketchClock = ({ className }: { className?: string }) => (
-  <svg className={cn("w-5 h-5", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg className={cn("w-5 h-5", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="9" />
     <path d="M12 7V12L15 14" />
   </svg>
 );
 
 export const SketchBook = ({ className }: { className?: string }) => (
-  <svg className={cn("w-5 h-5", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M5 4C5 3.5 5.5 3 6 3H18C18.5 3 19 3.5 19 4V20C19 20.5 18.5 21 18 21H6C5.5 21 5 20.5 5 20V4Z" />
-    <path d="M9 3V21" />
-    <path d="M13 8H16" />
-    <path d="M13 11H16" />
+  <svg className={cn("w-5 h-5", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 4C4 3 5 2 6 2H18C19 2 20 3 20 4V20C20 21 19 22 18 22H6C5 22 4 21 4 20V4Z" />
+    <path d="M8 2V22" />
+    <path d="M12 8H16" />
+    <path d="M12 12H16" />
   </svg>
 );
 
 export const SketchStar = ({ className, filled }: { className?: string; filled?: boolean }) => (
-  <svg className={cn("w-5 h-5", className)} viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 3L14 9H20L15 13L17 20L12 16L7 20L9 13L4 9H10L12 3Z" />
+  <svg className={cn("w-5 h-5", className)} viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 2L14.5 9H22L16 13.5L18 21L12 16.5L6 21L8 13.5L2 9H9.5L12 2Z" />
   </svg>
 );
 
 export const SketchHeart = ({ className, filled }: { className?: string; filled?: boolean }) => (
-  <svg className={cn("w-5 h-5", className)} viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 20C12 20 4 14 4 8.5C4 5.5 6.5 3 9.5 3C11 3 12 4 12 4C12 4 13 3 14.5 3C17.5 3 20 5.5 20 8.5C20 14 12 20 12 20Z" />
+  <svg className={cn("w-5 h-5", className)} viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 21C12 21 3 14 3 8C3 5 5.5 2 9 2C10.5 2 12 3 12 3C12 3 13.5 2 15 2C18.5 2 21 5 21 8C21 14 12 21 12 21Z" />
   </svg>
 );
 
 export const SketchFlame = ({ className }: { className?: string }) => (
-  <svg className={cn("w-5 h-5", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 22C16 22 19 18.5 19 14.5C19 10.5 16 8 14 6C14 8 13 10 11 11C11 9 10 6 7 3C7 7 5 10 5 14.5C5 18.5 8 22 12 22Z" />
-    <path d="M12 22C10 22 8 20 8 17.5C8 15 10 14 12 12C14 14 16 15 16 17.5C16 20 14 22 12 22Z" />
+  <svg className={cn("w-5 h-5", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 22C16 22 19 18 19 14C19 10 16 7 14 5C14 7 13 9 11 10C11 8 10 5 7 2C7 6 5 9 5 14C5 18 8 22 12 22Z" />
   </svg>
 );
 
 export const SketchTrophy = ({ className }: { className?: string }) => (
-  <svg className={cn("w-5 h-5", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M6 4H18V9C18 12 15.3 14 12 14C8.7 14 6 12 6 9V4Z" />
-    <path d="M6 6H4C4 8 5 10 6 10" />
-    <path d="M18 6H20C20 8 19 10 18 10" />
-    <path d="M12 14V17" />
-    <path d="M8 21H16" />
-    <path d="M9 17H15V21H9V17Z" />
+  <svg className={cn("w-5 h-5", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M6 3H18V10C18 14 15 16 12 16C9 16 6 14 6 10V3Z" />
+    <path d="M6 6H4C4 9 5 11 6 11" />
+    <path d="M18 6H20C20 9 19 11 18 11" />
+    <path d="M12 16V19" />
+    <path d="M8 22H16" />
+    <path d="M8 19H16V22H8V19Z" />
   </svg>
 );
 
 export const SketchRibbon = ({ className }: { className?: string }) => (
-  <svg className={cn("w-5 h-5", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="9" r="5" />
-    <path d="M8 13L6 21L12 18L18 21L16 13" />
-    <path d="M12 6V8" />
-    <path d="M10 9H14" />
+  <svg className={cn("w-5 h-5", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="9" r="6" />
+    <path d="M7 14L5 22L12 19L19 22L17 14" />
   </svg>
 );
 
 export const SketchRocket = ({ className }: { className?: string }) => (
-  <svg className={cn("w-5 h-5", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 3C12 3 8 8 8 14C8 17 9.5 19 12 20C14.5 19 16 17 16 14C16 8 12 3 12 3Z" />
-    <path d="M5 15L8 14" />
-    <path d="M19 15L16 14" />
+  <svg className={cn("w-5 h-5", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 2C12 2 8 8 8 15C8 18 9.5 20 12 21C14.5 20 16 18 16 15C16 8 12 2 12 2Z" />
+    <path d="M5 16L8 15" />
+    <path d="M19 16L16 15" />
     <circle cx="12" cy="12" r="2" />
-    <path d="M10 20L9 23" />
-    <path d="M14 20L15 23" />
   </svg>
 );
 
 export const SketchRainbow = ({ className }: { className?: string }) => (
-  <svg className={cn("w-5 h-5", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-    <path d="M4 18C4 13 7.6 9 12 9C16.4 9 20 13 20 18" />
-    <path d="M7 18C7 14.7 9.2 12 12 12C14.8 12 17 14.7 17 18" />
-    <path d="M10 18C10 16.3 10.9 15 12 15C13.1 15 14 16.3 14 18" />
+  <svg className={cn("w-5 h-5", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+    <path d="M3 18C3 12 7.5 7 13 7C18.5 7 21 12 21 18" />
+    <path d="M6 18C6 13.5 9 10 13 10C17 10 18 13.5 18 18" />
+    <path d="M9 18C9 15.5 10.5 13 13 13C15.5 13 15 15.5 15 18" />
   </svg>
 );
 
 export const SketchPeople = ({ className }: { className?: string }) => (
-  <svg className={cn("w-6 h-6", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg className={cn("w-6 h-6", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="9" cy="7" r="3" />
     <path d="M3 21V17C3 15 5 13 9 13C13 13 15 15 15 17V21" />
     <circle cx="17" cy="7" r="2.5" />
@@ -131,13 +125,13 @@ export const SketchPeople = ({ className }: { className?: string }) => (
 );
 
 export const SketchCheck = ({ className }: { className?: string }) => (
-  <svg className={cn("w-5 h-5", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+  <svg className={cn("w-5 h-5", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
     <path d="M5 13L9 17L19 7" />
   </svg>
 );
 
 export const SketchAlert = ({ className }: { className?: string }) => (
-  <svg className={cn("w-5 h-5", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg className={cn("w-5 h-5", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="9" />
     <path d="M12 8V12" />
     <circle cx="12" cy="16" r="1" fill="currentColor" />
@@ -145,125 +139,161 @@ export const SketchAlert = ({ className }: { className?: string }) => (
 );
 
 export const SketchUser = ({ className }: { className?: string }) => (
-  <svg className={cn("w-5 h-5", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg className={cn("w-5 h-5", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="8" r="4" />
     <path d="M4 21C4 17 7.5 14 12 14C16.5 14 20 17 20 21" />
   </svg>
 );
 
 export const SketchSend = ({ className }: { className?: string }) => (
-  <svg className={cn("w-5 h-5", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg className={cn("w-5 h-5", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
     <path d="M22 2L11 13" />
     <path d="M22 2L15 22L11 13L2 9L22 2Z" />
   </svg>
 );
 
-// ============= HEYTEA-STYLE STICKER ILLUSTRATIONS =============
-// Quirky characters with bold outlines, minimal detail
+// ============= QUIRKY CHARACTER ILLUSTRATIONS (HeyTea Style) =============
+// Abstract objects with faces, bold monoline outlines
 
-export const StickerStarCharacter = ({ className }: { className?: string }) => (
+// Zen Teapot Character - The wise AI friend
+export const TeapotCharacter = ({ className }: { className?: string }) => (
   <svg className={cn("w-full h-full", className)} viewBox="0 0 64 64" fill="none">
-    {/* Star body */}
-    <path d="M32 8L38 24H54L42 34L46 50L32 40L18 50L22 34L10 24H26L32 8Z" fill="#FFE066" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+    {/* Teapot body */}
+    <ellipse cx="32" cy="38" rx="18" ry="14" fill="hsl(150 45% 45%)" stroke="currentColor" strokeWidth="2.5"/>
+    {/* Lid */}
+    <ellipse cx="32" cy="24" rx="10" ry="4" fill="hsl(150 45% 55%)" stroke="currentColor" strokeWidth="2.5"/>
+    <circle cx="32" cy="20" r="3" fill="hsl(150 45% 65%)" stroke="currentColor" strokeWidth="2"/>
+    {/* Spout */}
+    <path d="M50 36C54 34 58 32 58 28C58 24 54 24 52 26" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+    {/* Handle */}
+    <path d="M14 30C10 30 8 34 8 38C8 42 10 46 14 46" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
     {/* Face */}
-    <circle cx="26" cy="28" r="2" fill="currentColor"/>
-    <circle cx="38" cy="28" r="2" fill="currentColor"/>
-    <path d="M28 34C28 34 30 37 32 37C34 37 36 34 36 34" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-    {/* Blush */}
-    <circle cx="22" cy="32" r="2.5" fill="#FFB5B5" opacity="0.6"/>
-    <circle cx="42" cy="32" r="2.5" fill="#FFB5B5" opacity="0.6"/>
+    <circle cx="26" cy="36" r="2.5" fill="currentColor"/>
+    <circle cx="38" cy="36" r="2.5" fill="currentColor"/>
+    <path d="M28 42C28 42 30 45 32 45C34 45 36 42 36 42" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+    {/* Steam wisps */}
+    <path d="M28 14C28 10 30 8 30 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" opacity="0.5"/>
+    <path d="M32 12C32 8 34 6 34 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" opacity="0.5"/>
+    <path d="M36 14C36 10 38 8 38 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" opacity="0.5"/>
   </svg>
 );
 
-export const StickerTrophyCharacter = ({ className }: { className?: string }) => (
+// Walking Clock Character
+export const WalkingClockCharacter = ({ className }: { className?: string }) => (
   <svg className={cn("w-full h-full", className)} viewBox="0 0 64 64" fill="none">
-    {/* Trophy cup */}
-    <path d="M18 12H46V28C46 38 40 44 32 44C24 44 18 38 18 28V12Z" fill="#4A90A4" stroke="currentColor" strokeWidth="2.5" strokeLinejoin="round"/>
-    {/* Handles */}
-    <path d="M18 16H12C12 22 14 28 18 28" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
-    <path d="M46 16H52C52 22 50 28 46 28" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
-    {/* Base */}
-    <path d="M26 44V50H38V44" stroke="currentColor" strokeWidth="2.5"/>
-    <path d="M22 50H42V56H22V50Z" fill="currentColor" stroke="currentColor" strokeWidth="2"/>
+    {/* Clock body */}
+    <circle cx="32" cy="28" r="18" fill="hsl(45 90% 60%)" stroke="currentColor" strokeWidth="2.5"/>
+    {/* Clock face */}
+    <circle cx="32" cy="28" r="14" fill="white" stroke="currentColor" strokeWidth="2"/>
+    {/* Clock hands */}
+    <path d="M32 28V18" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+    <path d="M32 28L38 28" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+    <circle cx="32" cy="28" r="2" fill="currentColor"/>
     {/* Face */}
-    <circle cx="27" cy="26" r="2" fill="white"/>
-    <circle cx="37" cy="26" r="2" fill="white"/>
-    <path d="M29 32C29 32 31 35 32 35C33 35 35 32 35 32" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-    {/* Sparkle */}
-    <path d="M50 8L52 12L56 10L54 14L58 16L54 18L56 22L52 20L50 24L48 20L44 22L46 18L42 16L46 14L44 10L48 12L50 8Z" fill="#FFE066" stroke="currentColor" strokeWidth="1.5"/>
-  </svg>
-);
-
-export const StickerHeartCharacter = ({ className }: { className?: string }) => (
-  <svg className={cn("w-full h-full", className)} viewBox="0 0 64 64" fill="none">
-    {/* Heart body */}
-    <path d="M32 56C32 56 8 40 8 22C8 14 14 8 22 8C27 8 32 12 32 12C32 12 37 8 42 8C50 8 56 14 56 22C56 40 32 56 32 56Z" fill="#E07A3A" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-    {/* Face */}
-    <circle cx="24" cy="26" r="2.5" fill="white"/>
-    <circle cx="40" cy="26" r="2.5" fill="white"/>
-    <path d="M28 34C28 34 31 38 32 38C33 38 36 34 36 34" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
-    {/* Arms */}
-    <path d="M12 32L6 36" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
-    <path d="M52 32L58 36" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+    <circle cx="27" cy="26" r="2" fill="currentColor"/>
+    <circle cx="37" cy="26" r="2" fill="currentColor"/>
+    <path d="M29 32C29 32 31 34 32 34C33 34 35 32 35 32" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
     {/* Legs */}
-    <path d="M26 52L24 60" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
-    <path d="M38 52L40 60" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+    <path d="M26 46L24 56" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+    <path d="M38 46L40 56" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+    {/* Feet */}
+    <ellipse cx="22" cy="58" rx="4" ry="2" fill="currentColor"/>
+    <ellipse cx="42" cy="58" rx="4" ry="2" fill="currentColor"/>
+    {/* Arms */}
+    <path d="M14 32L8 28" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+    <path d="M50 32L56 28" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
   </svg>
 );
 
-export const StickerRocketCharacter = ({ className }: { className?: string }) => (
+// Sleepy Cloud Character
+export const SleepyCloudCharacter = ({ className }: { className?: string }) => (
   <svg className={cn("w-full h-full", className)} viewBox="0 0 64 64" fill="none">
-    {/* Rocket body */}
-    <path d="M32 6C32 6 20 18 20 38C20 46 24 52 32 56C40 52 44 46 44 38C44 18 32 6 32 6Z" fill="white" stroke="currentColor" strokeWidth="2.5" strokeLinejoin="round"/>
-    {/* Window */}
-    <circle cx="32" cy="28" r="8" fill="#4A90A4" stroke="currentColor" strokeWidth="2"/>
-    {/* Face in window */}
-    <circle cx="29" cy="27" r="1.5" fill="white"/>
-    <circle cx="35" cy="27" r="1.5" fill="white"/>
-    <path d="M30 31C30 31 31 33 32 33C33 33 34 31 34 31" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
-    {/* Fins */}
-    <path d="M20 44L10 52L14 44" fill="#E07A3A" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
-    <path d="M44 44L54 52L50 44" fill="#E07A3A" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
-    {/* Flames */}
-    <path d="M28 56C28 56 26 62 28 62C30 62 30 58 32 58C34 58 34 62 36 62C38 62 36 56 36 56" fill="#FFE066" stroke="currentColor" strokeWidth="2"/>
+    {/* Cloud body */}
+    <ellipse cx="32" cy="36" rx="22" ry="12" fill="white" stroke="currentColor" strokeWidth="2.5"/>
+    <circle cx="18" cy="32" r="10" fill="white" stroke="currentColor" strokeWidth="2.5"/>
+    <circle cx="46" cy="32" r="10" fill="white" stroke="currentColor" strokeWidth="2.5"/>
+    <circle cx="32" cy="28" r="12" fill="white" stroke="currentColor" strokeWidth="2.5"/>
+    {/* White fill to cover internal lines */}
+    <ellipse cx="32" cy="34" rx="20" ry="10" fill="white"/>
+    {/* Sleepy face */}
+    <path d="M24 34C24 34 26 32 28 34" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+    <path d="M36 34C36 34 38 32 40 34" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+    <ellipse cx="32" cy="40" rx="3" ry="2" fill="currentColor"/>
+    {/* ZZZ */}
+    <text x="48" y="18" fill="currentColor" fontSize="8" fontWeight="bold" fontFamily="Nunito">z</text>
+    <text x="52" y="12" fill="currentColor" fontSize="10" fontWeight="bold" fontFamily="Nunito">z</text>
+    <text x="56" y="6" fill="currentColor" fontSize="12" fontWeight="bold" fontFamily="Nunito">z</text>
+    {/* Blush */}
+    <circle cx="20" cy="38" r="3" fill="hsl(10 70% 80%)" opacity="0.6"/>
+    <circle cx="44" cy="38" r="3" fill="hsl(10 70% 80%)" opacity="0.6"/>
   </svg>
 );
 
-export const StickerRainbowCharacter = ({ className }: { className?: string }) => (
+// Happy Boba Cup Character  
+export const BobaCupCharacter = ({ className }: { className?: string }) => (
   <svg className={cn("w-full h-full", className)} viewBox="0 0 64 64" fill="none">
-    {/* Cloud base */}
-    <ellipse cx="32" cy="48" rx="20" ry="10" fill="white" stroke="currentColor" strokeWidth="2.5"/>
-    <circle cx="20" cy="44" r="8" fill="white" stroke="currentColor" strokeWidth="2.5"/>
-    <circle cx="44" cy="44" r="8" fill="white" stroke="currentColor" strokeWidth="2.5"/>
-    <circle cx="32" cy="42" r="10" fill="white" stroke="currentColor" strokeWidth="2.5"/>
-    {/* White cover for internal lines */}
-    <ellipse cx="32" cy="46" rx="18" ry="8" fill="white"/>
-    {/* Rainbow arcs */}
-    <path d="M14 40C14 28 22 18 32 18C42 18 50 28 50 40" stroke="#E07A3A" strokeWidth="3" strokeLinecap="round"/>
-    <path d="M18 40C18 30 24 22 32 22C40 22 46 30 46 40" stroke="#FFE066" strokeWidth="3" strokeLinecap="round"/>
-    <path d="M22 40C22 32 26 26 32 26C38 26 42 32 42 40" stroke="#5BA865" strokeWidth="3" strokeLinecap="round"/>
-    <path d="M26 40C26 34 28 30 32 30C36 30 38 34 38 40" stroke="#4A90A4" strokeWidth="3" strokeLinecap="round"/>
-    {/* Face on cloud */}
-    <circle cx="26" cy="48" r="2" fill="currentColor"/>
-    <circle cx="38" cy="48" r="2" fill="currentColor"/>
-    <path d="M30 52C30 52 31 54 32 54C33 54 34 52 34 52" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-  </svg>
-);
-
-export const StickerFlameCharacter = ({ className }: { className?: string }) => (
-  <svg className={cn("w-full h-full", className)} viewBox="0 0 64 64" fill="none">
-    {/* Outer flame */}
-    <path d="M32 4C32 4 48 16 48 34C48 48 40 58 32 58C24 58 16 48 16 34C16 16 32 4 32 4Z" fill="#E07A3A" stroke="currentColor" strokeWidth="2.5" strokeLinejoin="round"/>
-    {/* Inner flame */}
-    <path d="M32 20C32 20 40 28 40 40C40 48 36 54 32 54C28 54 24 48 24 40C24 28 32 20 32 20Z" fill="#FFE066" stroke="currentColor" strokeWidth="2"/>
+    {/* Cup body */}
+    <path d="M18 20H46L42 56H22L18 20Z" fill="hsl(280 35% 60%)" stroke="currentColor" strokeWidth="2.5" strokeLinejoin="round"/>
+    {/* Lid */}
+    <ellipse cx="32" cy="18" rx="16" ry="4" fill="hsl(280 35% 70%)" stroke="currentColor" strokeWidth="2.5"/>
+    {/* Dome lid */}
+    <path d="M20 18C20 12 26 8 32 8C38 8 44 12 44 18" fill="hsl(280 35% 75%)" stroke="currentColor" strokeWidth="2.5"/>
+    {/* Straw */}
+    <rect x="30" y="2" width="4" height="20" rx="2" fill="hsl(150 45% 45%)" stroke="currentColor" strokeWidth="1.5"/>
     {/* Face */}
-    <circle cx="28" cy="38" r="2" fill="currentColor"/>
-    <circle cx="36" cy="38" r="2" fill="currentColor"/>
-    <path d="M30 44C30 44 31 46 32 46C33 46 34 44 34 44" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-    {/* Sparkles */}
-    <circle cx="12" cy="20" r="2" fill="#FFE066" stroke="currentColor" strokeWidth="1"/>
-    <circle cx="52" cy="24" r="2" fill="#FFE066" stroke="currentColor" strokeWidth="1"/>
-    <circle cx="8" cy="36" r="1.5" fill="#FFE066" stroke="currentColor" strokeWidth="1"/>
+    <circle cx="26" cy="34" r="2.5" fill="currentColor"/>
+    <circle cx="38" cy="34" r="2.5" fill="currentColor"/>
+    <path d="M28 42C28 42 30 46 32 46C34 46 36 42 36 42" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+    {/* Boba pearls at bottom */}
+    <circle cx="26" cy="50" r="3" fill="currentColor" opacity="0.3"/>
+    <circle cx="32" cy="52" r="3" fill="currentColor" opacity="0.3"/>
+    <circle cx="38" cy="50" r="3" fill="currentColor" opacity="0.3"/>
+    {/* Blush */}
+    <circle cx="22" cy="38" r="2.5" fill="hsl(10 70% 80%)" opacity="0.6"/>
+    <circle cx="42" cy="38" r="2.5" fill="hsl(10 70% 80%)" opacity="0.6"/>
+  </svg>
+);
+
+// Dancing Leaf Character
+export const DancingLeafCharacter = ({ className }: { className?: string }) => (
+  <svg className={cn("w-full h-full", className)} viewBox="0 0 64 64" fill="none">
+    {/* Leaf body */}
+    <path d="M32 8C16 16 12 36 20 48C24 54 32 58 32 58C32 58 40 54 44 48C52 36 48 16 32 8Z" fill="hsl(150 45% 50%)" stroke="currentColor" strokeWidth="2.5" strokeLinejoin="round"/>
+    {/* Leaf vein */}
+    <path d="M32 16V50" stroke="currentColor" strokeWidth="2" opacity="0.5"/>
+    <path d="M32 24L24 32" stroke="currentColor" strokeWidth="1.5" opacity="0.4"/>
+    <path d="M32 32L40 40" stroke="currentColor" strokeWidth="1.5" opacity="0.4"/>
+    {/* Face */}
+    <circle cx="26" cy="32" r="2.5" fill="currentColor"/>
+    <circle cx="38" cy="32" r="2.5" fill="currentColor"/>
+    <path d="M28 40C28 40 30 44 32 44C34 44 36 40 36 40" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+    {/* Arms/stems */}
+    <path d="M12 36L20 34" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+    <path d="M52 36L44 34" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+    {/* Little feet */}
+    <ellipse cx="28" cy="58" rx="4" ry="2" fill="currentColor"/>
+    <ellipse cx="36" cy="58" rx="4" ry="2" fill="currentColor"/>
+  </svg>
+);
+
+// Happy Mochi Character
+export const MochiCharacter = ({ className }: { className?: string }) => (
+  <svg className={cn("w-full h-full", className)} viewBox="0 0 64 64" fill="none">
+    {/* Mochi body - soft rounded shape */}
+    <ellipse cx="32" cy="36" rx="22" ry="18" fill="white" stroke="currentColor" strokeWidth="2.5"/>
+    {/* Face */}
+    <circle cx="24" cy="34" r="2.5" fill="currentColor"/>
+    <circle cx="40" cy="34" r="2.5" fill="currentColor"/>
+    <path d="M28 42C28 42 31 46 32 46C33 46 36 42 36 42" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+    {/* Blush */}
+    <circle cx="18" cy="40" r="4" fill="hsl(10 70% 80%)" opacity="0.5"/>
+    <circle cx="46" cy="40" r="4" fill="hsl(10 70% 80%)" opacity="0.5"/>
+    {/* Little arms */}
+    <ellipse cx="12" cy="38" rx="4" ry="3" fill="white" stroke="currentColor" strokeWidth="2"/>
+    <ellipse cx="52" cy="38" rx="4" ry="3" fill="white" stroke="currentColor" strokeWidth="2"/>
+    {/* Sparkle */}
+    <circle cx="50" cy="20" r="2" fill="hsl(45 90% 60%)"/>
+    <circle cx="14" cy="24" r="1.5" fill="hsl(45 90% 60%)"/>
   </svg>
 );
 
@@ -271,75 +301,81 @@ export const StickerFlameCharacter = ({ className }: { className?: string }) => 
 
 export const IllustrationNoTasks = ({ className }: { className?: string }) => (
   <svg className={cn("w-32 h-32", className)} viewBox="0 0 128 128" fill="none">
-    {/* Character body */}
-    <ellipse cx="64" cy="100" rx="30" ry="8" fill="#E0E0E0"/>
-    <circle cx="64" cy="60" r="35" fill="white" stroke="currentColor" strokeWidth="3"/>
-    {/* Face */}
-    <circle cx="52" cy="55" r="4" fill="currentColor"/>
-    <circle cx="76" cy="55" r="4" fill="currentColor"/>
-    <path d="M54 72C54 72 59 78 64 78C69 78 74 72 74 72" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
-    {/* Arms up celebrating */}
-    <path d="M30 50L20 35" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
-    <path d="M98 50L108 35" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
-    {/* Stars around */}
-    <path d="M16 45L18 50L23 48L21 53L26 55L21 57L23 62L18 60L16 65L14 60L9 62L11 57L6 55L11 53L9 48L14 50L16 45Z" fill="#FFE066" stroke="currentColor" strokeWidth="1.5"/>
-    <path d="M112 50L114 54L118 52L116 56L120 58L116 60L118 64L114 62L112 66L110 62L106 64L108 60L104 58L108 56L106 52L110 54L112 50Z" fill="#FFE066" stroke="currentColor" strokeWidth="1.5"/>
-    {/* Checkmark thought */}
-    <path d="M90 20L92 18L96 22L104 14" stroke="#5BA865" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+    {/* Sleepy cloud resting */}
+    <ellipse cx="64" cy="90" rx="40" ry="10" fill="hsl(0 0% 90%)"/>
+    <ellipse cx="64" cy="60" rx="32" ry="18" fill="white" stroke="currentColor" strokeWidth="3"/>
+    <circle cx="42" cy="54" r="14" fill="white" stroke="currentColor" strokeWidth="3"/>
+    <circle cx="86" cy="54" r="14" fill="white" stroke="currentColor" strokeWidth="3"/>
+    <circle cx="64" cy="48" r="16" fill="white" stroke="currentColor" strokeWidth="3"/>
+    <ellipse cx="64" cy="58" rx="28" ry="14" fill="white"/>
+    {/* Sleepy face */}
+    <path d="M50 58C50 58 54 55 58 58" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+    <path d="M70 58C70 58 74 55 78 58" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+    <ellipse cx="64" cy="68" rx="4" ry="3" fill="currentColor"/>
+    {/* ZZZ */}
+    <text x="88" y="36" fill="currentColor" fontSize="12" fontWeight="bold" fontFamily="Nunito">z</text>
+    <text x="96" y="26" fill="currentColor" fontSize="16" fontWeight="bold" fontFamily="Nunito">z</text>
+    <text x="106" y="14" fill="currentColor" fontSize="20" fontWeight="bold" fontFamily="Nunito">z</text>
+    {/* Blush */}
+    <circle cx="44" cy="64" r="4" fill="hsl(10 70% 80%)" opacity="0.5"/>
+    <circle cx="84" cy="64" r="4" fill="hsl(10 70% 80%)" opacity="0.5"/>
   </svg>
 );
 
 export const IllustrationNoPeople = ({ className }: { className?: string }) => (
   <svg className={cn("w-32 h-32", className)} viewBox="0 0 128 128" fill="none">
     {/* Shadow */}
-    <ellipse cx="64" cy="110" rx="35" ry="8" fill="#E0E0E0"/>
-    {/* Main character with magnifying glass */}
-    <circle cx="55" cy="60" r="28" fill="white" stroke="currentColor" strokeWidth="3"/>
-    {/* Face looking curious */}
-    <circle cx="47" cy="55" r="3" fill="currentColor"/>
-    <circle cx="63" cy="55" r="3" fill="currentColor"/>
-    <ellipse cx="55" cy="68" rx="4" ry="3" fill="currentColor"/>
-    {/* Magnifying glass */}
-    <circle cx="95" cy="45" r="18" fill="#4A90A4" fillOpacity="0.2" stroke="currentColor" strokeWidth="3"/>
-    <path d="M108 58L120 70" stroke="currentColor" strokeWidth="4" strokeLinecap="round"/>
-    {/* Arm holding magnifying glass */}
-    <path d="M75 55C75 55 82 48 88 45" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
-    {/* Little person silhouette in magnifying glass */}
-    <circle cx="95" cy="40" r="5" stroke="currentColor" strokeWidth="2"/>
-    <path d="M95 45V52" stroke="currentColor" strokeWidth="2"/>
+    <ellipse cx="64" cy="110" rx="35" ry="8" fill="hsl(0 0% 90%)"/>
+    {/* Mochi looking around */}
+    <ellipse cx="64" cy="70" rx="30" ry="24" fill="white" stroke="currentColor" strokeWidth="3"/>
+    {/* Looking eyes */}
+    <circle cx="52" cy="66" r="4" fill="currentColor"/>
+    <circle cx="76" cy="66" r="4" fill="currentColor"/>
+    <circle cx="54" cy="64" r="1.5" fill="white"/>
+    <circle cx="78" cy="64" r="1.5" fill="white"/>
+    {/* Curious expression */}
+    <ellipse cx="64" cy="80" rx="4" ry="3" fill="currentColor"/>
+    {/* Arms up questioning */}
+    <ellipse cx="30" cy="70" rx="6" ry="4" fill="white" stroke="currentColor" strokeWidth="2.5"/>
+    <ellipse cx="98" cy="70" rx="6" ry="4" fill="white" stroke="currentColor" strokeWidth="2.5"/>
     {/* Question marks */}
-    <path d="M30 30C30 25 35 22 40 24C45 26 45 32 40 34C38 35 38 38 38 40" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-    <circle cx="38" cy="45" r="1.5" fill="currentColor"/>
+    <path d="M44 30C44 24 50 20 56 22C62 24 62 32 56 36C54 38 54 42 54 44" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+    <circle cx="54" cy="50" r="2" fill="currentColor"/>
+    <path d="M84 26C84 20 90 16 96 18C102 20 102 28 96 32C94 34 94 38 94 40" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+    <circle cx="94" cy="46" r="1.5" fill="currentColor"/>
+    {/* Blush */}
+    <circle cx="42" cy="76" r="5" fill="hsl(10 70% 80%)" opacity="0.5"/>
+    <circle cx="86" cy="76" r="5" fill="hsl(10 70% 80%)" opacity="0.5"/>
   </svg>
 );
 
 export const IllustrationNoStickers = ({ className }: { className?: string }) => (
   <svg className={cn("w-32 h-32", className)} viewBox="0 0 128 128" fill="none">
     {/* Shadow */}
-    <ellipse cx="64" cy="108" rx="30" ry="6" fill="#E0E0E0"/>
-    {/* Open sticker book */}
-    <path d="M20 85L64 95L108 85L108 45L64 35L20 45L20 85Z" fill="white" stroke="currentColor" strokeWidth="2.5"/>
+    <ellipse cx="64" cy="108" rx="30" ry="6" fill="hsl(0 0% 90%)"/>
+    {/* Open book/album */}
+    <path d="M20 85L64 95L108 85V45L64 35L20 45V85Z" fill="white" stroke="currentColor" strokeWidth="2.5"/>
     <path d="M64 35V95" stroke="currentColor" strokeWidth="2" strokeDasharray="4 4"/>
     {/* Empty sticker spots */}
     <circle cx="42" cy="60" r="10" stroke="currentColor" strokeWidth="2" strokeDasharray="4 4"/>
     <circle cx="86" cy="60" r="10" stroke="currentColor" strokeWidth="2" strokeDasharray="4 4"/>
     <rect x="32" y="72" width="20" height="10" rx="2" stroke="currentColor" strokeWidth="2" strokeDasharray="4 4"/>
     <rect x="76" y="72" width="20" height="10" rx="2" stroke="currentColor" strokeWidth="2" strokeDasharray="4 4"/>
-    {/* Floating star waiting to be collected */}
-    <path d="M64 15L68 25H78L70 31L74 41L64 35L54 41L58 31L50 25H60L64 15Z" fill="#FFE066" stroke="currentColor" strokeWidth="2"/>
+    {/* Floating star wanting to be collected */}
+    <path d="M64 15L68 25H78L70 31L74 41L64 35L54 41L58 31L50 25H60L64 15Z" fill="hsl(45 90% 60%)" stroke="currentColor" strokeWidth="2"/>
+    {/* Star face */}
+    <circle cx="61" cy="26" r="1.5" fill="currentColor"/>
+    <circle cx="67" cy="26" r="1.5" fill="currentColor"/>
+    <path d="M63 30C63 30 64 32 64 32C64 32 65 30 65 30" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
     {/* Motion lines */}
-    <path d="M46 20L50 22" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-    <path d="M78 18L82 20" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-    <path d="M64 8L64 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-    {/* Little face on star */}
-    <circle cx="61" cy="26" r="1" fill="currentColor"/>
-    <circle cx="67" cy="26" r="1" fill="currentColor"/>
-    <path d="M63 29C63 29 64 30 64 30C64 30 65 29 65 29" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/>
+    <path d="M46 18L50 20" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+    <path d="M78 16L82 18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
   </svg>
 );
 
-// ============= HAND-DRAWN CHECKBOX =============
+// ============= UI COMPONENTS =============
 
+// Checkbox with bold monoline style
 interface SketchCheckboxProps {
   checked: boolean;
   onChange?: () => void;
@@ -364,25 +400,25 @@ export const SketchCheckbox = ({ checked, onChange, postponed, disabled, classNa
       onClick={handleClick}
       disabled={disabled}
       className={cn(
-        "w-6 h-6 border-2 border-ink rounded flex items-center justify-center transition-all flex-shrink-0",
-        checked && "bg-success",
-        postponed && "bg-ink",
+        "w-7 h-7 border-[2.5px] border-foreground rounded-lg flex items-center justify-center transition-all flex-shrink-0",
+        checked && "bg-accent",
+        postponed && "bg-foreground",
         disabled && "opacity-50 cursor-not-allowed",
-        !disabled && "hover:border-accent",
+        !disabled && "hover:bg-accent/10 active:scale-95",
         className
       )}
     >
       {checked && (
         <svg
-          className={cn("w-4 h-4 text-white", animating && "animate-wobbly-check")}
+          className={cn("w-4 h-4 text-white", animating && "animate-pop")}
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          strokeWidth="3"
+          strokeWidth="3.5"
           strokeLinecap="round"
           strokeLinejoin="round"
         >
-          <path d="M4 12L9 17L20 6" />
+          <path d="M5 12L10 17L19 7" />
         </svg>
       )}
       {postponed && !checked && (
@@ -392,8 +428,7 @@ export const SketchCheckbox = ({ checked, onChange, postponed, disabled, classNa
   );
 };
 
-// ============= SKETCHY PROGRESS BAR =============
-
+// Progress Bar - thick with solid borders
 interface SketchProgressProps {
   value: number;
   max?: number;
@@ -412,30 +447,29 @@ export const SketchProgress = ({ value, max = 100, className, showLabel = true, 
   };
 
   return (
-    <div className={cn("space-y-1.5", className)}>
+    <div className={cn("space-y-2", className)}>
       <div 
         className={cn(
-          "relative border-2 border-ink rounded-full overflow-hidden bg-secondary",
+          "relative border-[2.5px] border-foreground rounded-full overflow-hidden bg-secondary",
           heightClasses[size]
         )}
       >
         <div
-          className="h-full bg-success transition-all duration-500 ease-out rounded-full"
+          className="h-full bg-accent transition-all duration-500 ease-out rounded-full"
           style={{ width: `${percentage}%` }}
         />
       </div>
       {showLabel && (
-        <div className="flex justify-between text-caption text-muted-foreground">
-          <span className="font-display">{value}/{max}</span>
-          <span className="font-display">{Math.round(percentage)}%</span>
+        <div className="flex justify-between text-caption text-muted-foreground font-semibold">
+          <span>{value}/{max}</span>
+          <span>{Math.round(percentage)}%</span>
         </div>
       )}
     </div>
   );
 };
 
-// ============= SKETCHY STAT CARD =============
-
+// Stat Card - Wii Channel style with sticker shadow
 interface StatCardProps {
   value: string | number;
   label: string;
@@ -445,34 +479,34 @@ interface StatCardProps {
 
 export const StatCard = ({ value, label, icon, className }: StatCardProps) => (
   <div 
-    className={cn("bg-card p-4 text-center border-2 border-ink rounded-lg", className)}
+    className={cn(
+      "bg-card p-4 text-center border-[2.5px] border-foreground rounded-2xl shadow-sticker",
+      className
+    )}
   >
     <div className="flex items-center justify-center gap-1.5 mb-1">
       {icon}
-      <span className="text-display-md font-display text-foreground">{value}</span>
+      <span className="text-display-md text-foreground">{value}</span>
     </div>
-    <p className="text-caption text-muted-foreground font-medium uppercase tracking-wide">{label}</p>
+    <p className="text-caption text-muted-foreground font-semibold lowercase">{label}</p>
   </div>
 );
 
-// ============= CARD =============
-
+// Card component - Grid system style
 interface SketchCardProps {
   children: React.ReactNode;
   className?: string;
-  variant?: "default" | "outlined" | "sketchy";
+  variant?: "default" | "outlined" | "sticker";
 }
 
 export const SketchCard = ({ children, className, variant = "default" }: SketchCardProps) => {
-  const baseStyles = "p-4 rounded-lg";
-  
   return (
     <div
       className={cn(
-        baseStyles,
-        variant === "default" && "bg-card shadow-card border border-border",
-        variant === "outlined" && "border-2 border-ink bg-card",
-        variant === "sketchy" && "border-2 border-ink bg-card",
+        "p-4 rounded-2xl bg-card",
+        variant === "default" && "border-[2.5px] border-foreground shadow-sticker",
+        variant === "outlined" && "border-[2px] border-foreground",
+        variant === "sticker" && "border-[2.5px] border-foreground shadow-sticker",
         className
       )}
     >
@@ -481,67 +515,66 @@ export const SketchCard = ({ children, className, variant = "default" }: SketchC
   );
 };
 
-// ============= DASHED DIVIDER =============
-
+// Dashed Divider - clean dots pattern
 export const DashedDivider = ({ className }: { className?: string }) => (
-  <div className={cn("py-4", className)}>
-    <svg className="w-full h-2" viewBox="0 0 200 8" preserveAspectRatio="none">
-      <path 
-        d="M0 4C10 2 20 6 30 4C40 2 50 6 60 4C70 2 80 6 90 4C100 2 110 6 120 4C130 2 140 6 150 4C160 2 170 6 180 4C190 2 200 4 200 4" 
-        stroke="currentColor" 
-        strokeWidth="1.5" 
-        strokeDasharray="8 6"
-        fill="none"
-        className="text-border"
-      />
-    </svg>
+  <div className={cn("py-4 flex items-center justify-center gap-2", className)}>
+    {[...Array(7)].map((_, i) => (
+      <div key={i} className="w-1.5 h-1.5 rounded-full bg-border-dark" />
+    ))}
   </div>
 );
 
-// ============= STICKER DISPLAY WITH CHARACTERS =============
-
+// Sticker Display with characters
 interface StickerDisplayProps {
-  type: "star" | "trophy" | "heart" | "rocket" | "rainbow" | "flame";
+  type: "star" | "trophy" | "heart" | "rocket" | "rainbow" | "flame" | "teapot" | "clock" | "cloud" | "boba" | "leaf" | "mochi";
   label?: string;
   size?: "sm" | "md" | "lg";
   className?: string;
 }
 
-export const StickerDisplay = ({ type, label, size = "md", className }: StickerDisplayProps) => {
-  const sizeClasses = {
-    sm: "w-12 h-12",
-    md: "w-16 h-16",
-    lg: "w-24 h-24",
-  };
+export const StickerDisplay = React.forwardRef<HTMLDivElement, StickerDisplayProps>(
+  ({ type, label, size = "md", className }, ref) => {
+    const sizeClasses = {
+      sm: "w-12 h-12",
+      md: "w-16 h-16",
+      lg: "w-24 h-24",
+    };
 
-  const characters = {
-    star: <StickerStarCharacter />,
-    trophy: <StickerTrophyCharacter />,
-    heart: <StickerHeartCharacter />,
-    rocket: <StickerRocketCharacter />,
-    rainbow: <StickerRainbowCharacter />,
-    flame: <StickerFlameCharacter />,
-  };
+    const characters: Record<string, React.ReactNode> = {
+      teapot: <TeapotCharacter />,
+      clock: <WalkingClockCharacter />,
+      cloud: <SleepyCloudCharacter />,
+      boba: <BobaCupCharacter />,
+      leaf: <DancingLeafCharacter />,
+      mochi: <MochiCharacter />,
+      star: <MochiCharacter />,
+      trophy: <TeapotCharacter />,
+      heart: <BobaCupCharacter />,
+      rocket: <DancingLeafCharacter />,
+      rainbow: <SleepyCloudCharacter />,
+      flame: <WalkingClockCharacter />,
+    };
 
-  return (
-    <div className={cn("flex flex-col items-center gap-1.5 flex-shrink-0", className)}>
-      <div className={cn(sizeClasses[size], "text-foreground")}>
-        {characters[type]}
+    return (
+      <div ref={ref} className={cn("flex flex-col items-center gap-1.5 flex-shrink-0", className)}>
+        <div className={cn(sizeClasses[size], "text-foreground")}>
+          {characters[type]}
+        </div>
+        {label && (
+          <span className="text-caption text-muted-foreground text-center max-w-[80px] font-semibold lowercase">
+            {label}
+          </span>
+        )}
       </div>
-      {label && (
-        <span className="text-caption text-muted-foreground text-center max-w-[70px] font-medium">
-          {label}
-        </span>
-      )}
-    </div>
-  );
-};
+    );
+  }
+);
+StickerDisplay.displayName = "StickerDisplay";
 
-// ============= BADGE =============
-
+// Badge
 interface SketchBadgeProps {
   children: React.ReactNode;
-  variant?: "default" | "success" | "warning" | "error";
+  variant?: "default" | "success" | "warning" | "error" | "matcha" | "taro" | "mango";
   className?: string;
 }
 
@@ -549,11 +582,14 @@ export const SketchBadge = ({ children, variant = "default", className }: Sketch
   return (
     <span
       className={cn(
-        "inline-flex items-center px-2 py-0.5 text-caption font-medium rounded-full",
-        variant === "default" && "bg-secondary text-foreground border border-border",
-        variant === "success" && "bg-success/10 text-success border border-success/20",
-        variant === "warning" && "bg-accent-orange/10 text-accent-orange border border-accent-orange/20",
-        variant === "error" && "bg-destructive/10 text-destructive border border-destructive/20",
+        "inline-flex items-center px-2.5 py-1 text-caption font-semibold rounded-full border-2",
+        variant === "default" && "bg-secondary text-foreground border-foreground",
+        variant === "success" && "bg-accent/10 text-accent border-accent",
+        variant === "matcha" && "bg-accent/10 text-accent border-accent",
+        variant === "taro" && "bg-accent-purple/10 text-accent-purple border-accent-purple",
+        variant === "mango" && "bg-accent-yellow/20 text-foreground border-accent-yellow",
+        variant === "warning" && "bg-accent-yellow/20 text-foreground border-accent-yellow",
+        variant === "error" && "bg-destructive/10 text-destructive border-destructive",
         className
       )}
     >
@@ -562,8 +598,7 @@ export const SketchBadge = ({ children, variant = "default", className }: Sketch
   );
 };
 
-// ============= AVATAR =============
-
+// Avatar
 interface SketchAvatarProps {
   initials: string;
   size?: "sm" | "md" | "lg";
@@ -580,7 +615,7 @@ export const SketchAvatar = ({ initials, size = "md", className }: SketchAvatarP
   return (
     <div
       className={cn(
-        "border-2 border-ink rounded-full flex items-center justify-center bg-secondary font-display font-bold text-foreground",
+        "border-[2.5px] border-foreground rounded-full flex items-center justify-center bg-accent-yellow font-bold text-foreground",
         sizeClasses[size],
         className
       )}
@@ -590,8 +625,7 @@ export const SketchAvatar = ({ initials, size = "md", className }: SketchAvatarP
   );
 };
 
-// ============= BUTTON =============
-
+// Button
 interface SketchButtonProps {
   children: React.ReactNode;
   variant?: "primary" | "secondary" | "outline" | "ghost";
@@ -611,19 +645,19 @@ export const SketchButton = ({
   className,
   type = "button"
 }: SketchButtonProps) => {
-  const baseClasses = "inline-flex items-center justify-center font-semibold transition-all";
+  const baseClasses = "inline-flex items-center justify-center font-bold transition-all active:translate-y-0.5 active:shadow-none";
   
   const variantClasses = {
-    primary: "bg-foreground text-background hover:bg-foreground/90 border-2 border-foreground",
-    secondary: "bg-accent text-accent-foreground hover:bg-accent/90 border-2 border-accent",
-    outline: "bg-transparent text-foreground hover:bg-secondary border-2 border-ink",
+    primary: "bg-foreground text-background border-[2.5px] border-foreground shadow-sticker hover:bg-foreground/90",
+    secondary: "bg-accent text-white border-[2.5px] border-foreground shadow-sticker hover:bg-accent/90",
+    outline: "bg-card text-foreground border-[2.5px] border-foreground shadow-sticker hover:bg-secondary",
     ghost: "bg-transparent text-foreground hover:bg-secondary",
   };
 
   const sizeClasses = {
-    sm: "px-3 py-1.5 text-caption",
-    md: "px-4 py-2 text-body-md",
-    lg: "px-6 py-3 text-body-lg",
+    sm: "px-3 py-1.5 text-caption rounded-lg",
+    md: "px-4 py-2 text-body-md rounded-xl",
+    lg: "px-6 py-3 text-body-lg rounded-2xl",
   };
 
   return (
@@ -635,7 +669,6 @@ export const SketchButton = ({
         baseClasses,
         variantClasses[variant],
         sizeClasses[size],
-        "rounded-lg",
         disabled && "opacity-50 cursor-not-allowed",
         className
       )}
@@ -645,8 +678,7 @@ export const SketchButton = ({
   );
 };
 
-// ============= INPUT =============
-
+// Input
 interface SketchInputProps {
   placeholder?: string;
   value?: string;
@@ -672,9 +704,9 @@ export const SketchInput = ({
       onChange={(e) => onChange?.(e.target.value)}
       disabled={disabled}
       className={cn(
-        "w-full px-4 py-2.5 bg-input border-2 border-border text-body-md rounded-lg",
-        "placeholder:text-hint focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent",
-        "transition-colors",
+        "w-full px-4 py-3 bg-card border-[2.5px] border-foreground text-body-md rounded-xl",
+        "placeholder:text-hint focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2",
+        "transition-all",
         disabled && "opacity-50 cursor-not-allowed",
         className
       )}
@@ -682,8 +714,7 @@ export const SketchInput = ({
   );
 };
 
-// ============= EMPTY STATE =============
-
+// Empty State
 interface EmptyStateProps {
   icon?: React.ReactNode;
   illustration?: "no-tasks" | "no-people" | "no-stickers";
@@ -711,7 +742,7 @@ export const EmptyState = ({ icon, illustration, title, description, action, cla
           {icon}
         </div>
       ) : null}
-      <h3 className="text-display-sm font-display text-foreground mb-2">{title}</h3>
+      <h3 className="text-display-sm text-foreground mb-2 lowercase">{title}</h3>
       {description && (
         <p className="text-body-md text-muted-foreground mb-4 max-w-sm mx-auto">{description}</p>
       )}

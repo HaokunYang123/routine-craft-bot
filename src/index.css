@@ -1,5 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Gaegu:wght@300;400;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -7,141 +6,148 @@
 
 @layer base {
   :root {
-    /* Pure white background */
-    --background: 0 0% 100%;
-    --foreground: 0 0% 10%;
+    /* Milk Tea Shop Palette */
+    /* Off-white/Cream background */
+    --background: 60 20% 97%;
+    --foreground: 0 0% 8%;
 
-    /* Light gray secondary background */
-    --bg-secondary: 0 0% 97%;
+    /* Light cream secondary */
+    --bg-secondary: 50 15% 94%;
 
-    /* Card */
+    /* Pure white cards */
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 10%;
+    --card-foreground: 0 0% 8%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 10%;
+    --popover-foreground: 0 0% 8%;
 
-    /* Primary: dark text/ink */
-    --primary: 0 0% 10%;
+    /* Primary: Bold black */
+    --primary: 0 0% 8%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 0 0% 97%;
-    --secondary-foreground: 0 0% 10%;
+    --secondary: 50 15% 94%;
+    --secondary-foreground: 0 0% 8%;
 
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 42%;
+    --muted: 50 10% 92%;
+    --muted-foreground: 0 0% 40%;
 
-    /* Accent: muted blue #4A90A4 */
-    --accent: 195 38% 47%;
+    /* Accent: Matcha Green */
+    --accent: 150 45% 45%;
     --accent-foreground: 0 0% 100%;
 
-    /* Accent orange #E07A3A */
-    --accent-orange: 22 72% 55%;
+    /* Taro Purple accent */
+    --accent-purple: 280 35% 60%;
+    
+    /* Mango Yellow accent */
+    --accent-yellow: 45 90% 60%;
 
-    /* Success green #5BA865 */
-    --success: 127 29% 50%;
+    /* Success: Matcha green */
+    --success: 150 45% 45%;
     --success-foreground: 0 0% 100%;
 
-    /* Error red #D64545 */
-    --destructive: 0 63% 55%;
+    /* Error: Soft coral */
+    --destructive: 10 70% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Borders */
-    --border: 0 0% 88%;
-    --border-dark: 0 0% 80%;
-    --input: 0 0% 97%;
-    --ring: 195 38% 47%;
+    /* Borders - Bold black for main UI */
+    --border: 0 0% 85%;
+    --border-dark: 0 0% 8%;
+    --input: 50 15% 96%;
+    --ring: 150 45% 45%;
 
-    /* Ink colors for hand-drawn elements */
-    --ink: 0 0% 10%;
-    --ink-light: 0 0% 60%;
-    --hint: 0 0% 60%;
+    /* Ink colors */
+    --ink: 0 0% 8%;
+    --ink-light: 0 0% 50%;
+    --hint: 0 0% 55%;
 
-    /* Subtle shadows */
-    --shadow-soft: 0 1px 3px rgba(0,0,0,0.05);
-    --shadow-card: 0 2px 8px rgba(0,0,0,0.04);
+    /* Retro sticker shadow */
+    --shadow-sticker: 4px 4px 0px rgba(0,0,0,1);
+    --shadow-soft: 0 2px 8px rgba(0,0,0,0.06);
+    --shadow-card: 4px 4px 0px rgba(0,0,0,0.9);
 
-    --radius: 8px;
+    --radius: 16px;
 
     /* Sidebar */
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 0 0% 10%;
-    --sidebar-primary: 0 0% 10%;
+    --sidebar-foreground: 0 0% 8%;
+    --sidebar-primary: 0 0% 8%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 97%;
-    --sidebar-accent-foreground: 0 0% 10%;
-    --sidebar-border: 0 0% 88%;
-    --sidebar-ring: 195 38% 47%;
+    --sidebar-accent: 50 15% 94%;
+    --sidebar-accent-foreground: 0 0% 8%;
+    --sidebar-border: 0 0% 85%;
+    --sidebar-ring: 150 45% 45%;
   }
 
   .dark {
-    /* Keep same for light theme focus */
-    --background: 0 0% 100%;
-    --foreground: 0 0% 10%;
-    --bg-secondary: 0 0% 97%;
+    /* Keep same for this aesthetic */
+    --background: 60 20% 97%;
+    --foreground: 0 0% 8%;
+    --bg-secondary: 50 15% 94%;
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 10%;
+    --card-foreground: 0 0% 8%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 10%;
-    --primary: 0 0% 10%;
+    --popover-foreground: 0 0% 8%;
+    --primary: 0 0% 8%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 97%;
-    --secondary-foreground: 0 0% 10%;
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 42%;
-    --accent: 195 38% 47%;
+    --secondary: 50 15% 94%;
+    --secondary-foreground: 0 0% 8%;
+    --muted: 50 10% 92%;
+    --muted-foreground: 0 0% 40%;
+    --accent: 150 45% 45%;
     --accent-foreground: 0 0% 100%;
-    --accent-orange: 22 72% 55%;
-    --success: 127 29% 50%;
+    --accent-purple: 280 35% 60%;
+    --accent-yellow: 45 90% 60%;
+    --success: 150 45% 45%;
     --success-foreground: 0 0% 100%;
-    --destructive: 0 63% 55%;
+    --destructive: 10 70% 55%;
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 88%;
-    --border-dark: 0 0% 80%;
-    --input: 0 0% 97%;
-    --ring: 195 38% 47%;
-    --ink: 0 0% 10%;
-    --ink-light: 0 0% 60%;
-    --hint: 0 0% 60%;
+    --border: 0 0% 85%;
+    --border-dark: 0 0% 8%;
+    --input: 50 15% 96%;
+    --ring: 150 45% 45%;
+    --ink: 0 0% 8%;
+    --ink-light: 0 0% 50%;
+    --hint: 0 0% 55%;
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 0 0% 10%;
-    --sidebar-primary: 0 0% 10%;
+    --sidebar-foreground: 0 0% 8%;
+    --sidebar-primary: 0 0% 8%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 97%;
-    --sidebar-accent-foreground: 0 0% 10%;
-    --sidebar-border: 0 0% 88%;
-    --sidebar-ring: 195 38% 47%;
+    --sidebar-accent: 50 15% 94%;
+    --sidebar-accent-foreground: 0 0% 8%;
+    --sidebar-border: 0 0% 85%;
+    --sidebar-ring: 150 45% 45%;
   }
 }
 
 @layer base {
   html, body {
     @apply border-border;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Nunito', sans-serif;
   }
 
   body {
     @apply bg-background text-foreground antialiased;
   }
 
-  /* Display font for Wibble branding and headers */
+  /* Clean rounded headers - lowercase style */
   h1, h2, h3 {
-    font-family: 'Gaegu', cursive;
+    font-family: 'Nunito', sans-serif;
     font-weight: 700;
   }
 
   .font-display {
-    font-family: 'Gaegu', cursive !important;
+    font-family: 'Nunito', sans-serif !important;
+    font-weight: 700;
   }
 
   .font-display-light {
-    font-family: 'Gaegu', cursive !important;
-    font-weight: 300;
+    font-family: 'Nunito', sans-serif !important;
+    font-weight: 400;
   }
 
   .font-display-bold {
-    font-family: 'Gaegu', cursive !important;
-    font-weight: 700;
+    font-family: 'Nunito', sans-serif !important;
+    font-weight: 800;
   }
 }
 
@@ -155,6 +161,19 @@
   .stroke-ink { stroke: hsl(var(--ink)); }
   .bg-secondary-custom { background-color: hsl(var(--bg-secondary)); }
 
+  /* Accent colors */
+  .text-matcha { color: hsl(var(--accent)); }
+  .text-taro { color: hsl(var(--accent-purple)); }
+  .text-mango { color: hsl(var(--accent-yellow)); }
+  .bg-matcha { background-color: hsl(var(--accent)); }
+  .bg-taro { background-color: hsl(var(--accent-purple)); }
+  .bg-mango { background-color: hsl(var(--accent-yellow)); }
+
+  /* Retro sticker shadow */
+  .shadow-sticker {
+    box-shadow: 4px 4px 0px hsl(var(--ink));
+  }
+
   /* Safe area for mobile */
   .safe-area-pb {
     padding-bottom: env(safe-area-inset-bottom, 0);
@@ -167,30 +186,40 @@
   /* Strikethrough for completed items */
   .task-done {
     text-decoration: line-through;
-    text-decoration-thickness: 1.5px;
+    text-decoration-thickness: 2px;
     text-decoration-color: hsl(var(--ink-light));
-    opacity: 0.6;
+    opacity: 0.5;
   }
 
-  /* Wobbly checkmark animation */
-  @keyframes wobbly-check {
-    0% { transform: scale(0) rotate(-10deg); }
-    50% { transform: scale(1.2) rotate(5deg); }
-    100% { transform: scale(1) rotate(0deg); }
+  /* Smooth bounce animation */
+  @keyframes bounce-subtle {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
   }
 
-  .animate-wobbly-check {
-    animation: wobbly-check 0.3s ease-out;
+  .animate-bounce-subtle {
+    animation: bounce-subtle 2s ease-in-out infinite;
   }
 
   /* Float animation */
   @keyframes float {
     0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-2px); }
+    50% { transform: translateY(-3px); }
   }
 
   .animate-float {
     animation: float 3s ease-in-out infinite;
+  }
+
+  /* Pop animation for stickers */
+  @keyframes pop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+  }
+
+  .animate-pop {
+    animation: pop 0.3s ease-out;
   }
 
   /* Pulse subtle */

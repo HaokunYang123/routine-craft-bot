@@ -10,11 +10,11 @@ import {
 } from "@/components/ui/sketch";
 
 const navItems = [
-  { title: "Home", url: "/app", icon: SketchHome },
-  { title: "Calendar", url: "/app/calendar", icon: SketchCalendar },
-  { title: "Add", url: "/app/add", icon: SketchPlus, isCenter: true },
-  { title: "Stickers", url: "/app/stickers", icon: SketchStar },
-  { title: "Settings", url: "/app/settings", icon: SketchSettings },
+  { title: "home", url: "/app", icon: SketchHome },
+  { title: "calendar", url: "/app/calendar", icon: SketchCalendar },
+  { title: "add", url: "/app/add", icon: SketchPlus, isCenter: true },
+  { title: "stickers", url: "/app/stickers", icon: SketchStar },
+  { title: "settings", url: "/app/settings", icon: SketchSettings },
 ];
 
 export default function StudentLayout() {
@@ -23,12 +23,12 @@ export default function StudentLayout() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen flex flex-col bg-background">
-        <main className="flex-1 overflow-auto pb-20">
+        <main className="flex-1 overflow-auto pb-24">
           <Outlet />
         </main>
 
-        {/* Bottom Navigation - 44px min tap targets */}
-        <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border safe-area-pb z-50">
+        {/* Bottom Navigation - Wii channel style */}
+        <nav className="fixed bottom-0 left-0 right-0 bg-card border-t-[2.5px] border-foreground safe-area-pb z-50">
           <div className="flex items-center justify-around py-2 max-w-md mx-auto">
             {navItems.map((item) => {
               const isActive = location.pathname === item.url;
@@ -39,19 +39,19 @@ export default function StudentLayout() {
                   key={item.title}
                   to={item.url}
                   className={cn(
-                    "flex flex-col items-center justify-center min-w-[44px] min-h-[44px] gap-0.5 transition-colors",
+                    "flex flex-col items-center justify-center min-w-[48px] min-h-[48px] gap-0.5 transition-all",
                     isActive ? "text-accent" : "text-muted-foreground hover:text-foreground",
-                    item.isCenter && "relative -top-3"
+                    item.isCenter && "relative -top-4"
                   )}
                 >
                   {item.isCenter ? (
-                    <div className="w-12 h-12 bg-accent text-accent-foreground rounded-full flex items-center justify-center shadow-soft border-2 border-accent">
-                      <Icon className="w-6 h-6" />
+                    <div className="w-14 h-14 bg-accent text-white rounded-2xl flex items-center justify-center border-[2.5px] border-foreground shadow-sticker">
+                      <Icon className="w-7 h-7" />
                     </div>
                   ) : (
                     <>
-                      <Icon className={cn("w-6 h-6", isActive && "animate-float")} />
-                      <span className="text-caption font-medium">{item.title}</span>
+                      <Icon className={cn("w-6 h-6", isActive && "animate-bounce-subtle")} />
+                      <span className="text-caption font-bold lowercase">{item.title}</span>
                     </>
                   )}
                 </NavLink>
