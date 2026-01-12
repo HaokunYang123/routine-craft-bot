@@ -1,183 +1,230 @@
-@import url('https://fonts.googleapis.com/css2?family=Gaegu:wght@300;400;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Gaegu font for hand-drawn aesthetic */
+@import url('https://fonts.googleapis.com/css2?family=Gaegu:wght@300;400;700&display=swap');
+
 @layer base {
   :root {
-    /* Pure paper-like background */
-    --background: 48 30% 96%;
+    /* Warm cream/off-white background */
+    --background: 45 30% 97%;
     --foreground: 0 0% 18%;
 
-    /* Slightly warm white for cards */
-    --card: 48 40% 98%;
+    /* Clean white cards */
+    --card: 45 50% 99%;
     --card-foreground: 0 0% 18%;
 
-    --popover: 48 40% 98%;
+    --popover: 45 50% 99%;
     --popover-foreground: 0 0% 18%;
 
-    /* Muted dusty rose for accents */
-    --primary: 350 30% 60%;
+    /* Dusty pink primary */
+    --primary: 350 35% 55%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 48 20% 92%;
+    --secondary: 45 20% 94%;
     --secondary-foreground: 0 0% 18%;
 
-    --muted: 48 15% 88%;
+    --muted: 45 15% 90%;
     --muted-foreground: 0 0% 45%;
 
     /* Sage green accent */
-    --accent: 140 20% 50%;
+    --accent: 140 25% 55%;
     --accent-foreground: 0 0% 100%;
 
-    /* Warm brown for completed */
-    --completed: 30 25% 45%;
+    /* Warm brown for completed states */
+    --completed: 30 30% 45%;
     --completed-foreground: 0 0% 100%;
 
-    --destructive: 0 45% 50%;
+    --destructive: 0 50% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 48 15% 82%;
-    --input: 48 20% 92%;
-    --ring: 0 0% 18%;
+    --border: 45 20% 85%;
+    --input: 45 25% 94%;
+    --ring: 350 35% 55%;
 
-    --radius: 0px;
+    /* Generous rounding for soft aesthetic */
+    --radius: 12px;
 
-    /* Ink colors - the key to hand-drawn look */
+    /* Muted earth tones for accents */
+    --dusty-pink: 350 40% 85%;
+    --sage-green: 140 30% 80%;
+    --warm-brown: 30 25% 75%;
+    --soft-cream: 45 40% 92%;
+    --muted-blue: 200 25% 80%;
+    --light-lavender: 270 25% 85%;
+
+    /* Ink color for hand-drawn elements */
     --ink: 0 0% 18%;
-    --ink-light: 0 0% 50%;
+    --ink-light: 0 0% 40%;
+
+    /* Soft shadows - very subtle */
+    --shadow-soft: 0 2px 8px -2px rgba(45, 45, 45, 0.06);
+    --shadow-card: 0 4px 16px -4px rgba(45, 45, 45, 0.08);
 
     /* Sidebar */
-    --sidebar-background: 48 40% 98%;
+    --sidebar-background: 45 50% 99%;
     --sidebar-foreground: 0 0% 18%;
-    --sidebar-primary: 350 30% 60%;
+    --sidebar-primary: 350 35% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 48 20% 92%;
+    --sidebar-accent: 45 20% 94%;
     --sidebar-accent-foreground: 0 0% 18%;
-    --sidebar-border: 48 15% 82%;
-    --sidebar-ring: 0 0% 18%;
+    --sidebar-border: 45 20% 85%;
+    --sidebar-ring: 350 35% 55%;
   }
 
   .dark {
-    /* Keep light theme for paper aesthetic */
-    --background: 48 30% 96%;
+    /* Keep light theme for paper-like aesthetic */
+    --background: 45 30% 97%;
     --foreground: 0 0% 18%;
-    --card: 48 40% 98%;
+    --card: 45 50% 99%;
     --card-foreground: 0 0% 18%;
-    --popover: 48 40% 98%;
+    --popover: 45 50% 99%;
     --popover-foreground: 0 0% 18%;
-    --primary: 350 30% 60%;
+    --primary: 350 35% 55%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 48 20% 92%;
+    --secondary: 45 20% 94%;
     --secondary-foreground: 0 0% 18%;
-    --muted: 48 15% 88%;
+    --muted: 45 15% 90%;
     --muted-foreground: 0 0% 45%;
-    --accent: 140 20% 50%;
+    --accent: 140 25% 55%;
     --accent-foreground: 0 0% 100%;
-    --completed: 30 25% 45%;
+    --completed: 30 30% 45%;
     --completed-foreground: 0 0% 100%;
-    --destructive: 0 45% 50%;
+    --destructive: 0 50% 50%;
     --destructive-foreground: 0 0% 100%;
-    --border: 48 15% 82%;
-    --input: 48 20% 92%;
-    --ring: 0 0% 18%;
-    --sidebar-background: 48 40% 98%;
+    --border: 45 20% 85%;
+    --input: 45 25% 94%;
+    --ring: 350 35% 55%;
+    --sidebar-background: 45 50% 99%;
     --sidebar-foreground: 0 0% 18%;
-    --sidebar-primary: 350 30% 60%;
+    --sidebar-primary: 350 35% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 48 20% 92%;
+    --sidebar-accent: 45 20% 94%;
     --sidebar-accent-foreground: 0 0% 18%;
-    --sidebar-border: 48 15% 82%;
-    --sidebar-ring: 0 0% 18%;
+    --sidebar-border: 45 20% 85%;
+    --sidebar-ring: 350 35% 55%;
   }
 }
 
 @layer base {
   * {
     @apply border-border;
-  }
-
-  html, body, * {
     font-family: 'Gaegu', cursive !important;
   }
 
   body {
     @apply bg-background text-foreground antialiased;
+    background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.02'/%3E%3C/svg%3E");
   }
 
   h1, h2, h3, h4, h5, h6 {
+    @apply tracking-tight;
+    font-weight: 700;
+  }
+
+  /* Handwritten style class */
+  .font-hand {
+    font-family: 'Gaegu', cursive !important;
+  }
+
+  .font-hand-light {
+    font-family: 'Gaegu', cursive !important;
+    font-weight: 300;
+  }
+
+  .font-hand-bold {
+    font-family: 'Gaegu', cursive !important;
     font-weight: 700;
   }
 }
 
 @layer utilities {
+  /* Earth tone backgrounds */
+  .bg-dusty-pink { background-color: hsl(var(--dusty-pink)); }
+  .bg-sage-green { background-color: hsl(var(--sage-green)); }
+  .bg-warm-brown { background-color: hsl(var(--warm-brown)); }
+  .bg-soft-cream { background-color: hsl(var(--soft-cream)); }
+  .bg-muted-blue { background-color: hsl(var(--muted-blue)); }
+  .bg-light-lavender { background-color: hsl(var(--light-lavender)); }
+
   /* Ink colors */
   .text-ink { color: hsl(var(--ink)); }
   .text-ink-light { color: hsl(var(--ink-light)); }
   .border-ink { border-color: hsl(var(--ink)); }
   .border-ink-light { border-color: hsl(var(--ink-light)); }
-  .bg-ink { background-color: hsl(var(--ink)); }
 
   /* Safe area for mobile */
   .safe-area-pb {
     padding-bottom: env(safe-area-inset-bottom, 0);
   }
 
-  /* Wavy underline effect */
-  .wavy-underline {
-    text-decoration: underline;
-    text-decoration-style: wavy;
-    text-underline-offset: 4px;
+  .text-balance {
+    text-wrap: balance;
   }
 
-  /* Hand-drawn border effect via slightly varied border-radius */
-  .hand-border {
-    border-radius: 2px 4px 3px 5px;
+  /* Shadow utilities */
+  .shadow-soft {
+    box-shadow: var(--shadow-soft);
   }
 
-  /* Dashed divider like in bullet journals */
-  .dashed-line {
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+
+  /* Hand-drawn wobbly border using SVG filter */
+  .wobbly-border {
+    filter: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='wobbly'%3E%3CfeTurbulence type='turbulence' baseFrequency='0.02' numOctaves='3' result='noise' seed='1'/%3E%3CfeDisplacementMap in='SourceGraphic' in2='noise' scale='2' xChannelSelector='R' yChannelSelector='G'/%3E%3C/filter%3E%3C/svg%3E#wobbly");
+  }
+
+  /* Dashed line divider */
+  .dashed-divider {
     border-top: 2px dashed hsl(var(--ink-light));
+    opacity: 0.4;
   }
 
-  /* Dotted divider */
-  .dotted-line {
-    border-top: 2px dotted hsl(var(--ink-light));
-  }
-
-  /* Strikethrough for completed tasks */
+  /* Strikethrough for completed items */
   .task-done {
     text-decoration: line-through;
     text-decoration-thickness: 2px;
+    text-decoration-color: hsl(var(--ink-light));
+    opacity: 0.6;
   }
 
-  /* Animations */
-  @keyframes wiggle {
-    0%, 100% { transform: rotate(-2deg); }
-    50% { transform: rotate(2deg); }
+  /* Wobbly checkmark animation */
+  @keyframes wobbly-check {
+    0% { transform: scale(0) rotate(-10deg); }
+    50% { transform: scale(1.2) rotate(5deg); }
+    100% { transform: scale(1) rotate(0deg); }
   }
 
+  .animate-wobbly-check {
+    animation: wobbly-check 0.3s ease-out;
+  }
+
+  /* Writing appear animation */
+  @keyframes write-appear {
+    0% { 
+      opacity: 0; 
+      clip-path: inset(0 100% 0 0);
+    }
+    100% { 
+      opacity: 1;
+      clip-path: inset(0 0 0 0);
+    }
+  }
+
+  .animate-write {
+    animation: write-appear 0.5s ease-out;
+  }
+
+  /* Float animation for icons */
   @keyframes float {
     0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-3px); }
-  }
-
-  @keyframes check-draw {
-    0% { stroke-dashoffset: 20; }
-    100% { stroke-dashoffset: 0; }
-  }
-
-  .animate-wiggle {
-    animation: wiggle 0.5s ease-in-out;
+    50% { transform: translateY(-4px); }
   }
 
   .animate-float {
-    animation: float 2s ease-in-out infinite;
-  }
-
-  .animate-check {
-    stroke-dasharray: 20;
-    animation: check-draw 0.3s ease-out forwards;
+    animation: float 3s ease-in-out infinite;
   }
 }
