@@ -18,6 +18,9 @@ import {
   SketchAvatar,
   EmptyState,
 } from "@/components/ui/sketch";
+import SparkyNudge from "@/components/SparkyNudge";
+import MagicScheduleButton from "@/components/MagicScheduleButton";
+import { TaskBreakdownInline } from "@/components/TaskBreakdown";
 
 interface Task {
   id: string;
@@ -110,9 +113,9 @@ export default function WibblePlanner() {
   const dayName = format(today, "EEEE").toLowerCase();
 
   return (
-    <div className="p-4 md:p-6 pb-28 max-w-2xl mx-auto space-y-6">
+    <div className="p-4 md:p-6 pb-28 max-w-2xl mx-auto space-y-5">
       {/* ============= HEADER ============= */}
-      <header className="pt-4 pb-2">
+      <header className="pt-2 pb-1">
         <div className="flex items-start justify-between">
           {/* Date display */}
           <div>
@@ -121,7 +124,7 @@ export default function WibblePlanner() {
               <span className="text-4xl font-bold tracking-wide">{monthNumber}</span>
               <span className="text-4xl font-bold tracking-wide">{year}</span>
             </div>
-            <div className="mt-1">
+            <div className="mt-0.5">
               <span className="text-xl font-display text-foreground">{dayName}</span>
               {/* Wavy underline */}
               <svg className="w-20 h-2 mt-0.5" viewBox="0 0 80 8" fill="none">
@@ -139,12 +142,15 @@ export default function WibblePlanner() {
           {/* User info */}
           <div className="flex items-center gap-2">
             <span className="text-caption text-muted-foreground bg-secondary px-2 py-1 rounded-full">
-              Student
+              Student | JS
             </span>
             <SketchAvatar initials="JS" size="sm" />
           </div>
         </div>
       </header>
+
+      {/* ============= SPARKY'S SMART NUDGE ============= */}
+      <SparkyNudge />
 
       {/* ============= STATS ROW ============= */}
       <div className="grid grid-cols-3 gap-3">
@@ -177,12 +183,18 @@ export default function WibblePlanner() {
 
         <SketchProgress value={completedCount} max={totalCount || 1} showLabel={false} size="lg" />
 
+        {/* Magic Schedule Button */}
+        <MagicScheduleButton 
+          isEmpty={false}
+          onMagicPlan={() => console.log("Magic plan triggered!")} 
+          className="mt-2"
+        />
+
         <div className="space-y-2 mt-4">
           {tasks.length === 0 ? (
-            <EmptyState
-              illustration="no-tasks"
-              title="No tasks today"
-              description="You're all caught up! Check back later for new assignments."
+            <MagicScheduleButton 
+              isEmpty={true}
+              onMagicPlan={() => console.log("Magic plan triggered from empty state!")} 
             />
           ) : (
             tasks.map((task) => (
@@ -213,6 +225,10 @@ export default function WibblePlanner() {
                         {task.scheduled_time.slice(0, 5)}
                       </span>
                     </div>
+                  )}
+                  {/* Task Breakdown Button */}
+                  {!task.is_completed && (
+                    <TaskBreakdownInline taskTitle={task.title} className="mt-2" />
                   )}
                 </div>
                 {task.duration_minutes && (
