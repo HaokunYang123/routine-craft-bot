@@ -55,77 +55,83 @@ export default function Dashboard() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-4xl text-foreground">
-          welcome{displayName ? `, ${displayName}` : ""}
+        <h1 className="text-4xl font-hand text-foreground">
+          Welcome back{displayName ? `, ${displayName}` : ""}!
         </h1>
         <p className="text-muted-foreground mt-1">
-          here's your overview
+          Here's an overview of your routines and progress
         </p>
       </div>
 
       {/* Stats Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="border-2 border-foreground bg-card">
+        <Card className="bg-card shadow-card border-0 rounded-2xl">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              people
+              People
             </CardTitle>
-            <Users className="w-4 h-4 text-muted-foreground" />
+            <div className="w-8 h-8 rounded-full bg-pastel-peach flex items-center justify-center">
+              <Users className="w-4 h-4 text-foreground" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-sketch">{stats.peopleCount}</div>
+            <div className="text-3xl font-hand">{stats.peopleCount}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              athletes, students & kids
+              Athletes, students & kids
             </p>
           </CardContent>
         </Card>
 
-        <Card className="border-2 border-foreground bg-card">
+        <Card className="bg-card shadow-card border-0 rounded-2xl">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              total tasks
+              Total Tasks
             </CardTitle>
-            <ListTodo className="w-4 h-4 text-muted-foreground" />
+            <div className="w-8 h-8 rounded-full bg-pastel-mint flex items-center justify-center">
+              <ListTodo className="w-4 h-4 text-foreground" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-sketch">{stats.totalTasks}</div>
+            <div className="text-3xl font-hand">{stats.totalTasks}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              across all routines
+              Across all routines
             </p>
           </CardContent>
         </Card>
 
-        <Card className="border-2 border-foreground bg-card">
+        <Card className="bg-card shadow-card border-0 rounded-2xl">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              completed
+              Completed
             </CardTitle>
-            <CheckCircle2 className="w-4 h-4 text-accent-sage" />
+            <div className="w-8 h-8 rounded-full bg-pastel-lavender flex items-center justify-center">
+              <CheckCircle2 className="w-4 h-4 text-foreground" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-sketch">{stats.completedTasks}</div>
+            <div className="text-3xl font-hand">{stats.completedTasks}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              tasks done
+              Tasks done
             </p>
           </CardContent>
         </Card>
 
-        <Card className="border-2 border-foreground bg-card">
+        <Card className="bg-card shadow-card border-0 rounded-2xl">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              completion rate
+              Completion Rate
             </CardTitle>
-            <span className="text-sm font-sketch text-accent-sage">{completionRate}%</span>
+            <span className="text-sm font-hand text-primary">{completionRate}%</span>
           </CardHeader>
           <CardContent>
-            <div className="w-full h-2 bg-muted border border-foreground overflow-hidden">
+            <div className="w-full h-3 bg-muted rounded-full overflow-hidden">
               <div 
-                className="h-full bg-accent-sage transition-all duration-500"
+                className="h-full bg-primary rounded-full transition-all duration-500"
                 style={{ width: `${completionRate}%` }}
               />
             </div>
             <p className="text-xs text-muted-foreground mt-2">
-              overall progress
+              Overall progress
             </p>
           </CardContent>
         </Card>
@@ -133,20 +139,20 @@ export default function Dashboard() {
 
       {/* Quick Actions */}
       <div className="grid gap-4 md:grid-cols-2">
-        <Card className="border-2 border-foreground bg-card hover:bg-muted/50 transition-colors">
+        <Card className="bg-card shadow-card border-0 rounded-2xl hover:shadow-lg transition-shadow">
           <CardContent className="p-6">
             <div className="flex items-start gap-4">
-              <div className="w-12 h-12 border-2 border-foreground flex items-center justify-center">
-                <MessageSquare className="w-6 h-6" />
+              <div className="w-12 h-12 rounded-2xl bg-pastel-sky flex items-center justify-center">
+                <MessageSquare className="w-6 h-6 text-foreground" />
               </div>
               <div className="flex-1">
-                <h3 className="font-sketch text-xl text-foreground mb-1">AI assistant</h3>
+                <h3 className="font-hand text-xl text-foreground mb-1">AI Assistant</h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  generate plans, personalize routines, get suggestions
+                  Generate plans, personalize routines, and get smart suggestions
                 </p>
-                <Button variant="default" size="sm" asChild className="border-2 border-foreground">
+                <Button size="sm" className="rounded-full" asChild>
                   <Link to="/dashboard/assistant">
-                    open chat <ArrowRight className="w-4 h-4 ml-1" />
+                    Open Chat <ArrowRight className="w-4 h-4 ml-1" />
                   </Link>
                 </Button>
               </div>
@@ -154,20 +160,20 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className="border-2 border-foreground bg-card hover:bg-muted/50 transition-colors">
+        <Card className="bg-card shadow-card border-0 rounded-2xl hover:shadow-lg transition-shadow">
           <CardContent className="p-6">
             <div className="flex items-start gap-4">
-              <div className="w-12 h-12 border-2 border-foreground flex items-center justify-center bg-accent-coral/20">
-                <Plus className="w-6 h-6" />
+              <div className="w-12 h-12 rounded-2xl bg-pastel-lemon flex items-center justify-center">
+                <Plus className="w-6 h-6 text-foreground" />
               </div>
               <div className="flex-1">
-                <h3 className="font-sketch text-xl text-foreground mb-1">add a person</h3>
+                <h3 className="font-hand text-xl text-foreground mb-1">Add a Person</h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  start by adding people to create routines for
+                  Start by adding people you want to create routines for
                 </p>
-                <Button variant="outline" size="sm" asChild className="border-2 border-foreground">
+                <Button variant="outline" size="sm" className="rounded-full" asChild>
                   <Link to="/dashboard/people">
-                    add person <ArrowRight className="w-4 h-4 ml-1" />
+                    Add Person <ArrowRight className="w-4 h-4 ml-1" />
                   </Link>
                 </Button>
               </div>
