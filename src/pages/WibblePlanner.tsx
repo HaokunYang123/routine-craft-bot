@@ -4,7 +4,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { format, isToday, isTomorrow, differenceInDays } from "date-fns";
 import { cn } from "@/lib/utils";
 import {
-  SketchCard,
   SketchCheckbox,
   SketchProgress,
   DashedDivider,
@@ -15,6 +14,9 @@ import {
   SketchFlame,
   SketchRibbon,
   StickerDisplay,
+  StatCard,
+  SketchAvatar,
+  EmptyState,
 } from "@/components/ui/sketch";
 
 interface Task {
@@ -43,7 +45,6 @@ export default function WibblePlanner() {
   const fetchTasks = async () => {
     const today = format(new Date(), "yyyy-MM-dd");
     
-    // Fetch today's tasks
     const { data: todayData } = await supabase
       .from("tasks")
       .select("*")
@@ -51,7 +52,6 @@ export default function WibblePlanner() {
       .eq("due_date", today)
       .order("scheduled_time", { ascending: true });
 
-    // Fetch upcoming tasks (next 7 days)
     const { data: upcomingData } = await supabase
       .from("tasks")
       .select("*")
@@ -97,7 +97,7 @@ export default function WibblePlanner() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-2xl font-hand-bold text-ink-light animate-float">
+        <div className="text-display-sm font-display text-muted-foreground animate-pulse-subtle">
           Loading...
         </div>
       </div>
@@ -105,49 +105,48 @@ export default function WibblePlanner() {
   }
 
   return (
-    <div className="p-5 pb-28 max-w-2xl mx-auto space-y-6">
+    <div className="p-4 md:p-6 pb-28 max-w-2xl mx-auto space-y-6">
       {/* ============= HEADER ============= */}
-      <header className="pt-2">
-        <h1 className="text-3xl font-hand-bold text-ink">
-          Wibble
-        </h1>
-        <p className="text-lg font-hand text-ink-light">{formattedDate}</p>
+      <header className="flex items-start justify-between pt-2">
+        <div>
+          <h1 className="text-display-lg font-display text-foreground">
+            Wibble
+          </h1>
+          <p className="text-body-md font-medium text-muted-foreground">{formattedDate}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-caption text-muted-foreground bg-secondary px-2 py-1 rounded-full">
+            Student
+          </span>
+          <SketchAvatar initials="JS" size="sm" />
+        </div>
       </header>
 
       {/* ============= STATS ROW ============= */}
       <div className="grid grid-cols-3 gap-3">
-        {/* Progress */}
-        <div className="border-2 border-ink p-3 text-center" style={{ borderRadius: "2px" }}>
-          <div className="text-2xl font-hand-bold text-ink">{progressPercent}%</div>
-          <p className="text-xs font-hand text-ink-light">Today's Progress</p>
-        </div>
-
-        {/* Streak */}
-        <div className="border-2 border-ink p-3 text-center" style={{ borderRadius: "2px" }}>
-          <div className="flex items-center justify-center gap-1">
-            <SketchFlame className="w-5 h-5 text-ink" />
-            <span className="text-2xl font-hand-bold text-ink">{streak}</span>
-          </div>
-          <p className="text-xs font-hand text-ink-light">Day Streak</p>
-        </div>
-
-        {/* Stickers */}
-        <div className="border-2 border-ink p-3 text-center" style={{ borderRadius: "2px" }}>
-          <div className="flex items-center justify-center gap-1">
-            <SketchStar filled className="w-5 h-5 text-ink" />
-            <span className="text-2xl font-hand-bold text-ink">{totalStickers}</span>
-          </div>
-          <p className="text-xs font-hand text-ink-light">Stickers</p>
-        </div>
+        <StatCard
+          value={`${progressPercent}%`}
+          label="Progress"
+        />
+        <StatCard
+          value={streak}
+          label="Day Streak"
+          icon={<SketchFlame className="w-5 h-5 text-accent-orange" />}
+        />
+        <StatCard
+          value={totalStickers}
+          label="Stickers"
+          icon={<SketchStar filled className="w-5 h-5 text-accent-orange" />}
+        />
       </div>
 
       {/* ============= TODAY'S TASKS ============= */}
       <section>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-xl font-hand-bold text-ink uppercase tracking-widest">
+          <h2 className="text-display-sm font-display text-foreground">
             Today's Tasks
           </h2>
-          <span className="text-sm font-hand text-ink-light">
+          <span className="text-body-md font-medium text-muted-foreground">
             {completedCount}/{totalCount}
           </span>
         </div>
@@ -156,24 +155,19 @@ export default function WibblePlanner() {
 
         <div className="space-y-2 mt-4">
           {tasks.length === 0 ? (
-            <div className="text-center py-8 border-2 border-dashed border-ink/30" style={{ borderRadius: "2px" }}>
-              <SketchBook className="w-8 h-8 mx-auto text-ink-light mb-2" />
-              <p className="font-hand text-lg text-ink-light">
-                No tasks scheduled for today
-              </p>
-              <p className="font-hand text-sm text-ink-light mt-1">
-                Tap + to add a task
-              </p>
-            </div>
+            <EmptyState
+              icon={<SketchBook className="w-10 h-10" />}
+              title="No tasks today"
+              description="You're all caught up! Check back later for new assignments."
+            />
           ) : (
             tasks.map((task) => (
               <div
                 key={task.id}
                 className={cn(
-                  "flex items-start gap-3 p-3 border-2 border-ink/20 bg-card",
-                  task.is_completed && "opacity-50"
+                  "flex items-start gap-3 p-4 bg-card border border-border rounded-lg shadow-card transition-all",
+                  task.is_completed && "opacity-60"
                 )}
-                style={{ borderRadius: "2px" }}
               >
                 <SketchCheckbox
                   checked={!!task.is_completed}
@@ -182,23 +176,23 @@ export default function WibblePlanner() {
                 <div className="flex-1 min-w-0">
                   <span
                     className={cn(
-                      "font-hand text-lg text-ink block",
-                      task.is_completed && "line-through text-ink-light"
+                      "text-body-lg text-foreground block",
+                      task.is_completed && "line-through text-muted-foreground"
                     )}
                   >
                     {task.title}
                   </span>
                   {task.scheduled_time && (
-                    <div className="flex items-center gap-1 mt-0.5">
-                      <SketchClock className="w-3.5 h-3.5 text-ink-light" />
-                      <span className="text-sm font-hand text-ink-light">
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <SketchClock className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-body-md text-muted-foreground">
                         {task.scheduled_time.slice(0, 5)}
                       </span>
                     </div>
                   )}
                 </div>
                 {task.duration_minutes && (
-                  <span className="text-sm font-hand text-ink-light border border-ink/30 px-2 py-0.5 rounded-full">
+                  <span className="text-caption text-muted-foreground bg-secondary px-2 py-1 rounded-full">
                     {task.duration_minutes}m
                   </span>
                 )}
@@ -212,12 +206,12 @@ export default function WibblePlanner() {
 
       {/* ============= UPCOMING DEADLINES ============= */}
       <section>
-        <h2 className="text-xl font-hand-bold text-ink uppercase tracking-widest mb-3">
+        <h2 className="text-display-sm font-display text-foreground mb-3">
           Upcoming Deadlines
         </h2>
 
         {upcomingTasks.length === 0 ? (
-          <p className="font-hand text-ink-light text-center py-4">
+          <p className="text-body-md text-muted-foreground text-center py-4">
             No upcoming tasks
           </p>
         ) : (
@@ -225,13 +219,10 @@ export default function WibblePlanner() {
             {upcomingTasks.map((task) => (
               <div
                 key={task.id}
-                className="flex items-center justify-between p-3 border border-ink/20"
-                style={{ borderRadius: "2px" }}
+                className="flex items-center justify-between p-3 bg-card border border-border rounded-lg"
               >
-                <div className="flex-1">
-                  <span className="font-hand text-ink">{task.title}</span>
-                </div>
-                <span className="text-sm font-hand-bold text-ink bg-soft-cream px-2 py-0.5 rounded-full">
+                <span className="text-body-md text-foreground">{task.title}</span>
+                <span className="text-caption font-medium text-accent bg-accent/10 px-2 py-1 rounded-full">
                   {formatDueDate(task.due_date)}
                 </span>
               </div>
@@ -245,23 +236,21 @@ export default function WibblePlanner() {
       {/* ============= COACH FEEDBACK ============= */}
       <section>
         <div className="flex items-center gap-2 mb-3">
-          <h2 className="text-xl font-hand-bold text-ink uppercase tracking-widest">
+          <h2 className="text-display-sm font-display text-foreground">
             Coach Notes
           </h2>
-          <SketchRibbon className="w-5 h-5 text-ink" />
+          <SketchRibbon className="w-5 h-5 text-accent" />
         </div>
 
-        <div className="border-2 border-ink/20 p-4" style={{ borderRadius: "2px" }}>
+        <div className="bg-card border border-border rounded-lg p-4 shadow-card">
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 border-2 border-ink rounded-full flex items-center justify-center flex-shrink-0">
-              <span className="font-hand-bold text-ink">MS</span>
-            </div>
+            <SketchAvatar initials="MS" />
             <div className="flex-1">
-              <div className="flex items-center justify-between">
-                <span className="font-hand-bold text-ink">Ms. Smith</span>
-                <span className="text-xs font-hand text-ink-light">2 hours ago</span>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-body-md font-semibold text-foreground">Ms. Smith</span>
+                <span className="text-caption text-muted-foreground">2 hours ago</span>
               </div>
-              <p className="font-hand text-ink mt-1">
+              <p className="text-body-md text-foreground leading-relaxed">
                 Great progress on your math assignments this week! Keep up the momentum. 
                 Remember to review chapter 5 before Friday's quiz. ⭐
               </p>
@@ -269,8 +258,8 @@ export default function WibblePlanner() {
           </div>
         </div>
 
-        <div className="border border-ink/10 p-3 mt-2 bg-soft-cream" style={{ borderRadius: "2px" }}>
-          <p className="font-hand text-sm text-ink-light text-center">
+        <div className="bg-secondary rounded-lg p-3 mt-2">
+          <p className="text-caption text-muted-foreground text-center">
             Your coach can leave feedback and award stickers here
           </p>
         </div>
@@ -282,17 +271,17 @@ export default function WibblePlanner() {
       <section>
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <h2 className="text-xl font-hand-bold text-ink uppercase tracking-widest">
+            <h2 className="text-display-sm font-display text-foreground">
               Recent Stickers
             </h2>
-            <SketchTrophy className="w-5 h-5 text-ink" />
+            <SketchTrophy className="w-5 h-5 text-accent" />
           </div>
-          <button className="text-sm font-hand text-ink underline">
+          <button className="text-body-md font-medium text-accent hover:underline">
             View All
           </button>
         </div>
 
-        <div className="flex items-center gap-3 overflow-x-auto py-2">
+        <div className="flex items-center gap-4 overflow-x-auto py-2 -mx-1 px-1">
           <StickerDisplay type="star" label="5-Day Streak" />
           <StickerDisplay type="trophy" label="100% Day" />
           <StickerDisplay type="heart" label="Coach Award" />
@@ -300,7 +289,7 @@ export default function WibblePlanner() {
           <StickerDisplay type="rainbow" label="Week Done" />
         </div>
 
-        <p className="text-center text-sm font-hand text-ink-light mt-2">
+        <p className="text-center text-caption text-muted-foreground mt-3">
           Complete tasks and hit milestones to earn more stickers!
         </p>
       </section>

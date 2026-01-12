@@ -12,7 +12,7 @@ import {
 const navItems = [
   { title: "Home", url: "/app", icon: SketchHome },
   { title: "Calendar", url: "/app/calendar", icon: SketchCalendar },
-  { title: "Add", url: "/app/add", icon: SketchPlus },
+  { title: "Add", url: "/app/add", icon: SketchPlus, isCenter: true },
   { title: "Stickers", url: "/app/stickers", icon: SketchStar },
   { title: "Settings", url: "/app/settings", icon: SketchSettings },
 ];
@@ -27,31 +27,31 @@ export default function StudentLayout() {
           <Outlet />
         </main>
 
-        <nav className="fixed bottom-0 left-0 right-0 bg-card border-t-2 border-ink/20 safe-area-pb z-50">
-          <div className="flex items-center justify-around py-2">
+        {/* Bottom Navigation - 44px min tap targets */}
+        <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border safe-area-pb z-50">
+          <div className="flex items-center justify-around py-2 max-w-md mx-auto">
             {navItems.map((item) => {
               const isActive = location.pathname === item.url;
               const Icon = item.icon;
-              const isAdd = item.title === "Add";
               
               return (
                 <NavLink
                   key={item.title}
                   to={item.url}
                   className={cn(
-                    "flex flex-col items-center gap-0.5 px-4 py-1 transition-all duration-200",
-                    isActive ? "text-ink" : "text-ink-light hover:text-ink",
-                    isAdd && "relative -top-2"
+                    "flex flex-col items-center justify-center min-w-[44px] min-h-[44px] gap-0.5 transition-colors",
+                    isActive ? "text-accent" : "text-muted-foreground hover:text-foreground",
+                    item.isCenter && "relative -top-3"
                   )}
                 >
-                  {isAdd ? (
-                    <div className="w-12 h-12 border-2 border-ink bg-card rounded-full flex items-center justify-center shadow-sm">
+                  {item.isCenter ? (
+                    <div className="w-12 h-12 bg-accent text-accent-foreground rounded-full flex items-center justify-center shadow-soft border-2 border-accent">
                       <Icon className="w-6 h-6" />
                     </div>
                   ) : (
                     <>
                       <Icon className={cn("w-6 h-6", isActive && "animate-float")} />
-                      <span className="text-xs font-hand-bold">{item.title}</span>
+                      <span className="text-caption font-medium">{item.title}</span>
                     </>
                   )}
                 </NavLink>
