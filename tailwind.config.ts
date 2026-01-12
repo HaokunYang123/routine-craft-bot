@@ -14,8 +14,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Nunito', 'system-ui', 'sans-serif'],
-        sketch: ['Patrick Hand', 'cursive'],
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sketch: ['Gaegu', 'system-ui', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -42,6 +42,11 @@ export default {
         accent: {
           DEFAULT: "hsl(var(--accent))",
           foreground: "hsl(var(--accent-foreground))",
+          coral: "hsl(var(--accent-coral))",
+          sage: "hsl(var(--accent-sage))",
+          sky: "hsl(var(--accent-sky))",
+          lavender: "hsl(var(--accent-lavender))",
+          mustard: "hsl(var(--accent-mustard))",
         },
         popover: {
           DEFAULT: "hsl(var(--popover))",
@@ -50,14 +55,6 @@ export default {
         card: {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
-        },
-        pastel: {
-          pink: "hsl(var(--pastel-pink))",
-          yellow: "hsl(var(--pastel-yellow))",
-          blue: "hsl(var(--pastel-blue))",
-          mint: "hsl(var(--pastel-mint))",
-          lavender: "hsl(var(--pastel-lavender))",
-          peach: "hsl(var(--pastel-peach))",
         },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",

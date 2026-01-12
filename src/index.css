@@ -2,100 +2,98 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Child-friendly hand-drawn font */
-@import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Nunito:wght@400;500;600;700&display=swap');
+/* Clean handwritten font - Gaegu */
+@import url('https://fonts.googleapis.com/css2?family=Gaegu:wght@300;400;700&family=Inter:wght@400;500;600&display=swap');
 
 @layer base {
   :root {
-    /* Soft cream/warm white background - emotionally safe */
-    --background: 48 30% 97%;
-    --foreground: 220 20% 25%;
+    /* Clean black and white with warmth */
+    --background: 0 0% 98%;
+    --foreground: 0 0% 12%;
 
-    --card: 48 40% 99%;
-    --card-foreground: 220 20% 25%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 12%;
 
-    --popover: 48 40% 99%;
-    --popover-foreground: 220 20% 25%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 12%;
 
-    /* Soft sage green - calming primary */
-    --primary: 145 30% 55%;
-    --primary-foreground: 48 40% 99%;
+    /* Charcoal/ink black as primary */
+    --primary: 0 0% 15%;
+    --primary-foreground: 0 0% 98%;
 
-    --secondary: 48 35% 93%;
-    --secondary-foreground: 220 20% 25%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 12%;
 
-    --muted: 48 25% 90%;
-    --muted-foreground: 220 15% 50%;
+    --muted: 0 0% 94%;
+    --muted-foreground: 0 0% 45%;
 
-    /* Warm peach accent */
-    --accent: 25 85% 75%;
-    --accent-foreground: 220 20% 25%;
+    /* Warm accent - soft coral/terracotta */
+    --accent: 15 70% 65%;
+    --accent-foreground: 0 0% 12%;
 
-    --destructive: 0 60% 65%;
-    --destructive-foreground: 48 40% 99%;
+    --destructive: 0 65% 55%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 220 15% 80%;
-    --input: 48 30% 92%;
-    --ring: 145 30% 55%;
+    --border: 0 0% 88%;
+    --input: 0 0% 94%;
+    --ring: 0 0% 15%;
 
     --radius: 0px;
 
-    /* Pastel palette for decorations */
-    --pastel-pink: 350 70% 85%;
-    --pastel-yellow: 48 90% 80%;
-    --pastel-blue: 200 60% 82%;
-    --pastel-mint: 160 45% 80%;
-    --pastel-lavender: 270 50% 85%;
-    --pastel-peach: 25 85% 85%;
+    /* Minimal accent palette - used sparingly */
+    --accent-coral: 15 70% 65%;
+    --accent-sage: 145 25% 60%;
+    --accent-sky: 200 50% 70%;
+    --accent-lavender: 260 35% 70%;
+    --accent-mustard: 45 70% 60%;
 
-    /* Hand-drawn aesthetic */
-    --sketch-line: 220 20% 25%;
-    --sketch-line-light: 220 15% 70%;
+    /* Sketch line colors */
+    --sketch-line: 0 0% 15%;
+    --sketch-line-light: 0 0% 75%;
 
-    /* No shadows - flat paper cutout aesthetic */
-    --shadow-soft: none;
-    --shadow-elevated: none;
-    --shadow-glow: none;
+    /* Subtle shadows for depth */
+    --shadow-soft: 0 2px 8px -2px rgba(0, 0, 0, 0.08);
+    --shadow-elevated: 0 4px 16px -4px rgba(0, 0, 0, 0.1);
 
-    --sidebar-background: 48 40% 99%;
-    --sidebar-foreground: 220 20% 25%;
-    --sidebar-primary: 145 30% 55%;
-    --sidebar-primary-foreground: 48 40% 99%;
-    --sidebar-accent: 48 35% 93%;
-    --sidebar-accent-foreground: 220 20% 25%;
-    --sidebar-border: 220 15% 80%;
-    --sidebar-ring: 145 30% 55%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 0 0% 12%;
+    --sidebar-primary: 0 0% 15%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 0 0% 96%;
+    --sidebar-accent-foreground: 0 0% 12%;
+    --sidebar-border: 0 0% 88%;
+    --sidebar-ring: 0 0% 15%;
   }
 
   .dark {
-    /* Keep light theme for child-friendly aesthetic */
-    --background: 48 30% 97%;
-    --foreground: 220 20% 25%;
-    --card: 48 40% 99%;
-    --card-foreground: 220 20% 25%;
-    --popover: 48 40% 99%;
-    --popover-foreground: 220 20% 25%;
-    --primary: 145 30% 55%;
-    --primary-foreground: 48 40% 99%;
-    --secondary: 48 35% 93%;
-    --secondary-foreground: 220 20% 25%;
-    --muted: 48 25% 90%;
-    --muted-foreground: 220 15% 50%;
-    --accent: 25 85% 75%;
-    --accent-foreground: 220 20% 25%;
-    --destructive: 0 60% 65%;
-    --destructive-foreground: 48 40% 99%;
-    --border: 220 15% 80%;
-    --input: 48 30% 92%;
-    --ring: 145 30% 55%;
-    --sidebar-background: 48 40% 99%;
-    --sidebar-foreground: 220 20% 25%;
-    --sidebar-primary: 145 30% 55%;
-    --sidebar-primary-foreground: 48 40% 99%;
-    --sidebar-accent: 48 35% 93%;
-    --sidebar-accent-foreground: 220 20% 25%;
-    --sidebar-border: 220 15% 80%;
-    --sidebar-ring: 145 30% 55%;
+    /* Keep light theme - this is a child-friendly app */
+    --background: 0 0% 98%;
+    --foreground: 0 0% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 12%;
+    --primary: 0 0% 15%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 12%;
+    --muted: 0 0% 94%;
+    --muted-foreground: 0 0% 45%;
+    --accent: 15 70% 65%;
+    --accent-foreground: 0 0% 12%;
+    --destructive: 0 65% 55%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 88%;
+    --input: 0 0% 94%;
+    --ring: 0 0% 15%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 0 0% 12%;
+    --sidebar-primary: 0 0% 15%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 0 0% 96%;
+    --sidebar-accent-foreground: 0 0% 12%;
+    --sidebar-border: 0 0% 88%;
+    --sidebar-ring: 0 0% 15%;
   }
 }
 
@@ -106,36 +104,46 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Nunito', system-ui, sans-serif;
+    font-family: 'Inter', system-ui, sans-serif;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Patrick Hand', cursive;
-    @apply tracking-normal;
-    font-weight: 400;
+    font-family: 'Gaegu', system-ui, sans-serif;
+    @apply tracking-normal font-bold;
   }
 
-  /* Naive hand-drawn text style */
+  /* Clean handwritten style */
   .font-sketch {
-    font-family: 'Patrick Hand', cursive;
+    font-family: 'Gaegu', system-ui, sans-serif;
   }
 }
 
 @layer utilities {
-  /* Pastel backgrounds */
-  .bg-pastel-pink { background-color: hsl(var(--pastel-pink)); }
-  .bg-pastel-yellow { background-color: hsl(var(--pastel-yellow)); }
-  .bg-pastel-blue { background-color: hsl(var(--pastel-blue)); }
-  .bg-pastel-mint { background-color: hsl(var(--pastel-mint)); }
-  .bg-pastel-lavender { background-color: hsl(var(--pastel-lavender)); }
-  .bg-pastel-peach { background-color: hsl(var(--pastel-peach)); }
+  /* Accent colors - used sparingly */
+  .bg-accent-coral { background-color: hsl(var(--accent-coral)); }
+  .bg-accent-sage { background-color: hsl(var(--accent-sage)); }
+  .bg-accent-sky { background-color: hsl(var(--accent-sky)); }
+  .bg-accent-lavender { background-color: hsl(var(--accent-lavender)); }
+  .bg-accent-mustard { background-color: hsl(var(--accent-mustard)); }
 
-  .text-pastel-pink { color: hsl(var(--pastel-pink)); }
-  .text-pastel-yellow { color: hsl(var(--pastel-yellow)); }
-  .text-pastel-blue { color: hsl(var(--pastel-blue)); }
-  .text-pastel-mint { color: hsl(var(--pastel-mint)); }
-  .text-pastel-lavender { color: hsl(var(--pastel-lavender)); }
-  .text-pastel-peach { color: hsl(var(--pastel-peach)); }
+  .text-accent-coral { color: hsl(var(--accent-coral)); }
+  .text-accent-sage { color: hsl(var(--accent-sage)); }
+  .text-accent-sky { color: hsl(var(--accent-sky)); }
+  .text-accent-lavender { color: hsl(var(--accent-lavender)); }
+  .text-accent-mustard { color: hsl(var(--accent-mustard)); }
+
+  .border-accent-coral { border-color: hsl(var(--accent-coral)); }
+  .border-accent-sage { border-color: hsl(var(--accent-sage)); }
+  .border-accent-sky { border-color: hsl(var(--accent-sky)); }
+
+  /* Sketch border style */
+  .border-sketch {
+    border: 2px solid hsl(var(--sketch-line));
+  }
+
+  .border-sketch-light {
+    border: 1.5px solid hsl(var(--sketch-line-light));
+  }
 
   /* Safe area for mobile */
   .safe-area-pb {
@@ -144,5 +152,14 @@
 
   .text-balance {
     text-wrap: balance;
+  }
+
+  /* Subtle shadow utilities */
+  .shadow-soft {
+    box-shadow: var(--shadow-soft);
+  }
+
+  .shadow-elevated {
+    box-shadow: var(--shadow-elevated);
   }
 }

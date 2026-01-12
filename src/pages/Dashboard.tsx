@@ -21,7 +21,6 @@ export default function Dashboard() {
     if (!user) return;
 
     const fetchData = async () => {
-      // Fetch profile
       const { data: profile } = await supabase
         .from("profiles")
         .select("display_name")
@@ -32,7 +31,6 @@ export default function Dashboard() {
         setDisplayName(profile.display_name);
       }
 
-      // Fetch stats
       const [peopleRes, tasksRes, completedRes] = await Promise.all([
         supabase.from("people").select("id", { count: "exact", head: true }).eq("user_id", user.id),
         supabase.from("tasks").select("id", { count: "exact", head: true }).eq("user_id", user.id),
@@ -57,77 +55,77 @@ export default function Dashboard() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-foreground">
-          Welcome back{displayName ? `, ${displayName}` : ""}!
+        <h1 className="text-4xl text-foreground">
+          welcome{displayName ? `, ${displayName}` : ""}
         </h1>
         <p className="text-muted-foreground mt-1">
-          Here's an overview of your routines and progress.
+          here's your overview
         </p>
       </div>
 
       {/* Stats Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card className="border-2 border-foreground bg-card">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              People
+              people
             </CardTitle>
             <Users className="w-4 h-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.peopleCount}</div>
+            <div className="text-3xl font-sketch">{stats.peopleCount}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              Athletes, students & kids
+              athletes, students & kids
             </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-2 border-foreground bg-card">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Tasks
+              total tasks
             </CardTitle>
             <ListTodo className="w-4 h-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalTasks}</div>
+            <div className="text-3xl font-sketch">{stats.totalTasks}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              Across all routines
+              across all routines
             </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-2 border-foreground bg-card">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Completed
+              completed
             </CardTitle>
-            <CheckCircle2 className="w-4 h-4 text-primary" />
+            <CheckCircle2 className="w-4 h-4 text-accent-sage" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.completedTasks}</div>
+            <div className="text-3xl font-sketch">{stats.completedTasks}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              Tasks done
+              tasks done
             </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-2 border-foreground bg-card">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Completion Rate
+              completion rate
             </CardTitle>
-            <div className="text-xs font-medium text-primary">{completionRate}%</div>
+            <span className="text-sm font-sketch text-accent-sage">{completionRate}%</span>
           </CardHeader>
           <CardContent>
-            <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+            <div className="w-full h-2 bg-muted border border-foreground overflow-hidden">
               <div 
-                className="h-full gradient-hero rounded-full transition-all duration-500"
+                className="h-full bg-accent-sage transition-all duration-500"
                 style={{ width: `${completionRate}%` }}
               />
             </div>
             <p className="text-xs text-muted-foreground mt-2">
-              Overall progress
+              overall progress
             </p>
           </CardContent>
         </Card>
@@ -135,20 +133,20 @@ export default function Dashboard() {
 
       {/* Quick Actions */}
       <div className="grid gap-4 md:grid-cols-2">
-        <Card className="gradient-card hover:shadow-elevated transition-shadow">
+        <Card className="border-2 border-foreground bg-card hover:bg-muted/50 transition-colors">
           <CardContent className="p-6">
             <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                <MessageSquare className="w-6 h-6 text-primary" />
+              <div className="w-12 h-12 border-2 border-foreground flex items-center justify-center">
+                <MessageSquare className="w-6 h-6" />
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold text-foreground mb-1">AI Assistant</h3>
+                <h3 className="font-sketch text-xl text-foreground mb-1">AI assistant</h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Generate plans, personalize routines, and get smart suggestions.
+                  generate plans, personalize routines, get suggestions
                 </p>
-                <Button variant="hero" size="sm" asChild>
+                <Button variant="default" size="sm" asChild className="border-2 border-foreground">
                   <Link to="/dashboard/assistant">
-                    Open Chat <ArrowRight className="w-4 h-4 ml-1" />
+                    open chat <ArrowRight className="w-4 h-4 ml-1" />
                   </Link>
                 </Button>
               </div>
@@ -156,20 +154,20 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className="gradient-card hover:shadow-elevated transition-shadow">
+        <Card className="border-2 border-foreground bg-card hover:bg-muted/50 transition-colors">
           <CardContent className="p-6">
             <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center">
-                <Plus className="w-6 h-6 text-accent" />
+              <div className="w-12 h-12 border-2 border-foreground flex items-center justify-center bg-accent-coral/20">
+                <Plus className="w-6 h-6" />
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold text-foreground mb-1">Add a Person</h3>
+                <h3 className="font-sketch text-xl text-foreground mb-1">add a person</h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Start by adding people you want to create routines for.
+                  start by adding people to create routines for
                 </p>
-                <Button variant="outline" size="sm" asChild>
+                <Button variant="outline" size="sm" asChild className="border-2 border-foreground">
                   <Link to="/dashboard/people">
-                    Add Person <ArrowRight className="w-4 h-4 ml-1" />
+                    add person <ArrowRight className="w-4 h-4 ml-1" />
                   </Link>
                 </Button>
               </div>

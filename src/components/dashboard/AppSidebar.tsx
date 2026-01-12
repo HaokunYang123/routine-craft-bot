@@ -4,7 +4,6 @@ import {
   ListTodo, 
   MessageSquare, 
   BarChart3, 
-  Settings,
   LogOut,
   Zap
 } from "lucide-react";
@@ -40,21 +39,21 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
 
   return (
-    <Sidebar collapsible="icon">
-      <SidebarHeader className="p-4">
+    <Sidebar collapsible="icon" className="border-r-2 border-foreground">
+      <SidebarHeader className="p-4 border-b-2 border-foreground">
         <div className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-lg gradient-hero flex items-center justify-center shadow-soft shrink-0">
-            <Zap className="w-5 h-5 text-primary-foreground" />
+          <div className="w-9 h-9 border-2 border-foreground flex items-center justify-center shrink-0 bg-foreground text-background">
+            <Zap className="w-5 h-5" />
           </div>
           {!collapsed && (
-            <span className="text-lg font-semibold text-foreground">TaskFlow</span>
+            <span className="text-xl font-sketch text-foreground">taskflow</span>
           )}
         </div>
       </SidebarHeader>
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Menu</SidebarGroupLabel>
+          <SidebarGroupLabel className="font-sketch text-muted-foreground">menu</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map((item) => (
@@ -62,10 +61,11 @@ export function AppSidebar() {
                   <SidebarMenuButton
                     asChild
                     isActive={location.pathname === item.url}
+                    className="border-2 border-transparent data-[active=true]:border-foreground data-[active=true]:bg-muted"
                   >
                     <NavLink to={item.url} className="flex items-center gap-3">
                       <item.icon className="w-4 h-4" />
-                      <span>{item.title}</span>
+                      <span className="font-sketch">{item.title}</span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -75,15 +75,15 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-4">
+      <SidebarFooter className="p-4 border-t-2 border-foreground">
         <Button
           variant="ghost"
           size="sm"
           onClick={signOut}
-          className="w-full justify-start gap-2"
+          className="w-full justify-start gap-2 font-sketch border-2 border-transparent hover:border-foreground"
         >
           <LogOut className="w-4 h-4" />
-          {!collapsed && <span>Sign Out</span>}
+          {!collapsed && <span>sign out</span>}
         </Button>
       </SidebarFooter>
     </Sidebar>
