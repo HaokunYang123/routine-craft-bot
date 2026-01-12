@@ -2,19 +2,19 @@ import { Outlet, NavLink, useLocation } from "react-router-dom";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { cn } from "@/lib/utils";
 import {
-  SketchHome,
-  SketchCalendar,
-  SketchPlus,
-  SketchStats,
-  SketchSettings,
-} from "@/components/ui/sketch";
+  DoodleHome,
+  DoodleCalendar,
+  DoodlePlus,
+  DoodleStats,
+  DoodleUser,
+} from "@/components/ui/doodles";
 
 const navItems = [
-  { title: "Home", url: "/app", icon: SketchHome },
-  { title: "Calendar", url: "/app/calendar", icon: SketchCalendar },
-  { title: "Add", url: "/app/add", icon: SketchPlus },
-  { title: "Stats", url: "/app/stats", icon: SketchStats },
-  { title: "Settings", url: "/app/settings", icon: SketchSettings },
+  { title: "Home", url: "/app", icon: DoodleHome },
+  { title: "Calendar", url: "/app/calendar", icon: DoodleCalendar },
+  { title: "Add", url: "/app/add", icon: DoodlePlus },
+  { title: "Stats", url: "/app/stats", icon: DoodleStats },
+  { title: "Me", url: "/app/profile", icon: DoodleUser },
 ];
 
 export default function StudentLayout() {
@@ -27,34 +27,25 @@ export default function StudentLayout() {
           <Outlet />
         </main>
 
-        <nav className="fixed bottom-0 left-0 right-0 safe-area-pb z-50">
-          <div className="mx-4 mb-4">
-            <div
-              className="bg-card border-2 border-ink/15 px-2 py-2"
-              style={{ borderRadius: "14px 18px 16px 20px" }}
-            >
-              <div className="flex items-center justify-around">
-                {navItems.map((item) => {
-                  const isActive = location.pathname === item.url;
-                  const Icon = item.icon;
-                  return (
-                    <NavLink
-                      key={item.title}
-                      to={item.url}
-                      className={cn(
-                        "flex flex-col items-center gap-0.5 px-4 py-2 transition-all duration-200",
-                        isActive
-                          ? "text-ink"
-                          : "text-ink-light hover:text-ink"
-                      )}
-                    >
-                      <Icon className={cn("w-6 h-6", isActive && "animate-float")} />
-                      <span className="text-xs font-hand-bold">{item.title}</span>
-                    </NavLink>
-                  );
-                })}
-              </div>
-            </div>
+        <nav className="fixed bottom-0 left-0 right-0 safe-area-pb z-50 bg-background border-t-2 border-ink">
+          <div className="flex items-center justify-around py-2">
+            {navItems.map((item) => {
+              const isActive = location.pathname === item.url;
+              const Icon = item.icon;
+              return (
+                <NavLink
+                  key={item.title}
+                  to={item.url}
+                  className={cn(
+                    "flex flex-col items-center gap-0.5 px-3 py-1 transition-all",
+                    isActive ? "text-ink" : "text-ink-light"
+                  )}
+                >
+                  <Icon className={cn("w-6 h-6", isActive && "animate-float")} />
+                  <span className="text-xs">{item.title}</span>
+                </NavLink>
+              );
+            })}
           </div>
         </nav>
       </div>
