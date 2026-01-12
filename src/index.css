@@ -2,106 +2,100 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+/* Child-friendly hand-drawn font */
+@import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Nunito:wght@400;500;600;700&display=swap');
 
 @layer base {
   :root {
-    --background: 40 20% 98%;
-    --foreground: 200 25% 10%;
+    /* Soft cream/warm white background - emotionally safe */
+    --background: 48 30% 97%;
+    --foreground: 220 20% 25%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 200 25% 10%;
+    --card: 48 40% 99%;
+    --card-foreground: 220 20% 25%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 200 25% 10%;
+    --popover: 48 40% 99%;
+    --popover-foreground: 220 20% 25%;
 
-    --primary: 168 76% 36%;
-    --primary-foreground: 0 0% 100%;
+    /* Soft sage green - calming primary */
+    --primary: 145 30% 55%;
+    --primary-foreground: 48 40% 99%;
 
-    --secondary: 40 30% 94%;
-    --secondary-foreground: 200 25% 15%;
+    --secondary: 48 35% 93%;
+    --secondary-foreground: 220 20% 25%;
 
-    --muted: 40 15% 92%;
-    --muted-foreground: 200 10% 45%;
+    --muted: 48 25% 90%;
+    --muted-foreground: 220 15% 50%;
 
-    --accent: 32 95% 55%;
-    --accent-foreground: 0 0% 100%;
+    /* Warm peach accent */
+    --accent: 25 85% 75%;
+    --accent-foreground: 220 20% 25%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 0 60% 65%;
+    --destructive-foreground: 48 40% 99%;
 
-    --border: 40 20% 88%;
-    --input: 40 20% 88%;
-    --ring: 168 76% 36%;
+    --border: 220 15% 80%;
+    --input: 48 30% 92%;
+    --ring: 145 30% 55%;
 
-    --radius: 0.75rem;
+    --radius: 0px;
 
-    /* Custom tokens */
-    --gradient-hero: linear-gradient(135deg, hsl(168 76% 36%) 0%, hsl(180 60% 28%) 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(32 95% 55%) 0%, hsl(20 90% 50%) 100%);
-    --gradient-subtle: linear-gradient(180deg, hsl(40 20% 98%) 0%, hsl(40 25% 95%) 100%);
-    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%) 0%, hsl(40 20% 98%) 100%);
-    
-    --shadow-sm: 0 1px 2px 0 hsl(200 25% 10% / 0.03);
-    --shadow-md: 0 4px 16px -2px hsl(200 25% 10% / 0.08), 0 2px 4px -2px hsl(200 25% 10% / 0.04);
-    --shadow-lg: 0 12px 32px -4px hsl(200 25% 10% / 0.12), 0 4px 8px -2px hsl(200 25% 10% / 0.06);
-    --shadow-glow: 0 0 40px -8px hsl(168 76% 36% / 0.3);
+    /* Pastel palette for decorations */
+    --pastel-pink: 350 70% 85%;
+    --pastel-yellow: 48 90% 80%;
+    --pastel-blue: 200 60% 82%;
+    --pastel-mint: 160 45% 80%;
+    --pastel-lavender: 270 50% 85%;
+    --pastel-peach: 25 85% 85%;
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Hand-drawn aesthetic */
+    --sketch-line: 220 20% 25%;
+    --sketch-line-light: 220 15% 70%;
+
+    /* No shadows - flat paper cutout aesthetic */
+    --shadow-soft: none;
+    --shadow-elevated: none;
+    --shadow-glow: none;
+
+    --sidebar-background: 48 40% 99%;
+    --sidebar-foreground: 220 20% 25%;
+    --sidebar-primary: 145 30% 55%;
+    --sidebar-primary-foreground: 48 40% 99%;
+    --sidebar-accent: 48 35% 93%;
+    --sidebar-accent-foreground: 220 20% 25%;
+    --sidebar-border: 220 15% 80%;
+    --sidebar-ring: 145 30% 55%;
   }
 
   .dark {
-    --background: 200 25% 8%;
-    --foreground: 40 20% 95%;
-
-    --card: 200 20% 12%;
-    --card-foreground: 40 20% 95%;
-
-    --popover: 200 20% 12%;
-    --popover-foreground: 40 20% 95%;
-
-    --primary: 168 65% 45%;
-    --primary-foreground: 200 25% 8%;
-
-    --secondary: 200 15% 18%;
-    --secondary-foreground: 40 20% 90%;
-
-    --muted: 200 15% 20%;
-    --muted-foreground: 200 10% 55%;
-
-    --accent: 32 90% 50%;
-    --accent-foreground: 200 25% 8%;
-
-    --destructive: 0 70% 45%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 200 15% 20%;
-    --input: 200 15% 20%;
-    --ring: 168 65% 45%;
-
-    --gradient-hero: linear-gradient(135deg, hsl(168 65% 45%) 0%, hsl(180 50% 35%) 100%);
-    --gradient-subtle: linear-gradient(180deg, hsl(200 25% 8%) 0%, hsl(200 20% 10%) 100%);
-    --gradient-card: linear-gradient(145deg, hsl(200 20% 12%) 0%, hsl(200 20% 10%) 100%);
-    
-    --shadow-md: 0 4px 16px -2px hsl(0 0% 0% / 0.3);
-    --shadow-lg: 0 12px 32px -4px hsl(0 0% 0% / 0.4);
-    --shadow-glow: 0 0 40px -8px hsl(168 65% 45% / 0.25);
-
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Keep light theme for child-friendly aesthetic */
+    --background: 48 30% 97%;
+    --foreground: 220 20% 25%;
+    --card: 48 40% 99%;
+    --card-foreground: 220 20% 25%;
+    --popover: 48 40% 99%;
+    --popover-foreground: 220 20% 25%;
+    --primary: 145 30% 55%;
+    --primary-foreground: 48 40% 99%;
+    --secondary: 48 35% 93%;
+    --secondary-foreground: 220 20% 25%;
+    --muted: 48 25% 90%;
+    --muted-foreground: 220 15% 50%;
+    --accent: 25 85% 75%;
+    --accent-foreground: 220 20% 25%;
+    --destructive: 0 60% 65%;
+    --destructive-foreground: 48 40% 99%;
+    --border: 220 15% 80%;
+    --input: 48 30% 92%;
+    --ring: 145 30% 55%;
+    --sidebar-background: 48 40% 99%;
+    --sidebar-foreground: 220 20% 25%;
+    --sidebar-primary: 145 30% 55%;
+    --sidebar-primary-foreground: 48 40% 99%;
+    --sidebar-accent: 48 35% 93%;
+    --sidebar-accent-foreground: 220 20% 25%;
+    --sidebar-border: 220 15% 80%;
+    --sidebar-ring: 145 30% 55%;
   }
 }
 
@@ -112,45 +106,40 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: 'Nunito', system-ui, sans-serif;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-semibold tracking-tight;
+    font-family: 'Patrick Hand', cursive;
+    @apply tracking-normal;
+    font-weight: 400;
   }
 
-  code, pre {
-    font-family: 'JetBrains Mono', monospace;
+  /* Naive hand-drawn text style */
+  .font-sketch {
+    font-family: 'Patrick Hand', cursive;
   }
 }
 
 @layer utilities {
-  .gradient-hero {
-    background: var(--gradient-hero);
-  }
+  /* Pastel backgrounds */
+  .bg-pastel-pink { background-color: hsl(var(--pastel-pink)); }
+  .bg-pastel-yellow { background-color: hsl(var(--pastel-yellow)); }
+  .bg-pastel-blue { background-color: hsl(var(--pastel-blue)); }
+  .bg-pastel-mint { background-color: hsl(var(--pastel-mint)); }
+  .bg-pastel-lavender { background-color: hsl(var(--pastel-lavender)); }
+  .bg-pastel-peach { background-color: hsl(var(--pastel-peach)); }
 
-  .gradient-accent {
-    background: var(--gradient-accent);
-  }
+  .text-pastel-pink { color: hsl(var(--pastel-pink)); }
+  .text-pastel-yellow { color: hsl(var(--pastel-yellow)); }
+  .text-pastel-blue { color: hsl(var(--pastel-blue)); }
+  .text-pastel-mint { color: hsl(var(--pastel-mint)); }
+  .text-pastel-lavender { color: hsl(var(--pastel-lavender)); }
+  .text-pastel-peach { color: hsl(var(--pastel-peach)); }
 
-  .gradient-subtle {
-    background: var(--gradient-subtle);
-  }
-
-  .gradient-card {
-    background: var(--gradient-card);
-  }
-
-  .shadow-soft {
-    box-shadow: var(--shadow-md);
-  }
-
-  .shadow-elevated {
-    box-shadow: var(--shadow-lg);
-  }
-
-  .shadow-glow {
-    box-shadow: var(--shadow-glow);
+  /* Safe area for mobile */
+  .safe-area-pb {
+    padding-bottom: env(safe-area-inset-bottom, 0);
   }
 
   .text-balance {
