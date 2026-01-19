@@ -1,11 +1,12 @@
-import { 
-  LayoutDashboard, 
-  Users, 
-  ListTodo, 
-  MessageSquare, 
-  BarChart3, 
+import {
+  LayoutDashboard,
+  Users,
+  CheckSquare,
+  Sparkles,
+  BarChart,
+  Settings,
   LogOut,
-  Sparkles
+  GraduationCap
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -27,9 +28,9 @@ import { Button } from "@/components/ui/button";
 const navItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "People", url: "/dashboard/people", icon: Users },
-  { title: "Tasks", url: "/dashboard/tasks", icon: ListTodo },
-  { title: "AI Assistant", url: "/dashboard/assistant", icon: MessageSquare },
-  { title: "Progress", url: "/dashboard/progress", icon: BarChart3 },
+  { title: "Tasks", url: "/dashboard/tasks", icon: CheckSquare },
+  { title: "AI Assistant", url: "/dashboard/assistant", icon: Sparkles },
+  { title: "Progress", url: "/dashboard/progress", icon: BarChart },
 ];
 
 export function AppSidebar() {
@@ -40,14 +41,12 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border">
-      <SidebarHeader className="p-4">
-        <div className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shrink-0">
-            <Sparkles className="w-5 h-5 text-primary-foreground" />
+      <SidebarHeader className="border-b border-border/50 p-4">
+        <div className="flex items-center gap-3 px-2">
+          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary text-primary-foreground">
+            <GraduationCap className="w-5 h-5" />
           </div>
-          {!collapsed && (
-            <span className="text-xl font-hand font-bold text-foreground">TaskFlow</span>
-          )}
+          <span className="text-xl font-hand font-bold text-foreground">TeachCoachConnect</span>
         </div>
       </SidebarHeader>
 

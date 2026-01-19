@@ -45,7 +45,7 @@ export default function WibblePlanner() {
 
   const fetchTasks = async () => {
     const today = format(new Date(), "yyyy-MM-dd");
-    
+
     const { data: todayData } = await supabase
       .from("tasks")
       .select("*")
@@ -121,7 +121,7 @@ export default function WibblePlanner() {
             </div>
             <p className="text-body-lg text-muted-foreground mt-1">{dayName}</p>
           </div>
-          
+
           {/* User info */}
           <div className="flex items-center gap-2">
             <span className="text-caption font-semibold text-muted-foreground bg-secondary px-3 py-1.5 rounded-full border-2 border-foreground">
@@ -137,20 +137,26 @@ export default function WibblePlanner() {
 
       {/* ============= STATS CARDS ============= */}
       <div className="grid grid-cols-3 gap-3">
-        <StatCard
-          value={`${progressPercent}%`}
-          label="progress"
-        />
-        <StatCard
-          value={streak}
-          label="day streak"
-          icon={<SketchFlame className="w-5 h-5 text-accent-yellow" />}
-        />
-        <StatCard
-          value={totalStickers}
-          label="stickers"
-          icon={<SketchStar filled className="w-5 h-5 text-accent" />}
-        />
+        <div onClick={() => window.location.href = '/app/schedule'} className="cursor-pointer transition-transform active:scale-95">
+          <StatCard
+            value={`${progressPercent}%`}
+            label="progress"
+          />
+        </div>
+        <div className="cursor-pointer transition-transform active:scale-95">
+          <StatCard
+            value={streak}
+            label="day streak"
+            icon={<SketchFlame className="w-5 h-5 text-accent-yellow" />}
+          />
+        </div>
+        <div onClick={() => window.location.href = '/app/stickers'} className="cursor-pointer transition-transform active:scale-95">
+          <StatCard
+            value={totalStickers}
+            label="stickers"
+            icon={<SketchStar filled className="w-5 h-5 text-accent" />}
+          />
+        </div>
       </div>
 
       {/* ============= TODAY'S TASKS ============= */}
@@ -167,17 +173,17 @@ export default function WibblePlanner() {
         <SketchProgress value={completedCount} max={totalCount || 1} showLabel={false} size="lg" />
 
         {/* Magic Schedule Button */}
-        <MagicScheduleButton 
+        <MagicScheduleButton
           isEmpty={false}
-          onMagicPlan={() => console.log("Magic plan triggered!")} 
+          onMagicPlan={() => console.log("Magic plan triggered!")}
           className="mt-3"
         />
 
         <div className="space-y-2 mt-4">
           {tasks.length === 0 ? (
-            <MagicScheduleButton 
+            <MagicScheduleButton
               isEmpty={true}
-              onMagicPlan={() => console.log("Magic plan triggered from empty state!")} 
+              onMagicPlan={() => console.log("Magic plan triggered from empty state!")}
             />
           ) : (
             tasks.map((task) => (
@@ -228,31 +234,36 @@ export default function WibblePlanner() {
       <DashedDivider />
 
       {/* ============= UPCOMING DEADLINES ============= */}
-      <SketchCard variant="sticker">
-        <h2 className="text-display-sm text-foreground mb-3">
-          Upcoming Deadlines
-        </h2>
-
-        {upcomingTasks.length === 0 ? (
-          <p className="text-body-md text-muted-foreground text-center py-4">
-            no upcoming tasks
-          </p>
-        ) : (
-          <div className="space-y-2">
-            {upcomingTasks.map((task) => (
-              <div
-                key={task.id}
-                className="flex items-center justify-between p-3 bg-secondary rounded-xl border-2 border-foreground/10"
-              >
-                <span className="text-body-md text-foreground font-semibold">{task.title}</span>
-                <span className="text-caption font-bold text-accent bg-accent/10 px-2.5 py-1 rounded-full border-2 border-accent/30">
-                  {formatDueDate(task.due_date)}
-                </span>
-              </div>
-            ))}
+      <div className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => window.location.href = '/app/calendar'}>
+        <SketchCard variant="sticker">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-display-sm text-foreground">
+              Upcoming Deadlines
+            </h2>
+            <span className="text-caption font-bold text-primary">view calendar</span>
           </div>
-        )}
-      </SketchCard>
+
+          {upcomingTasks.length === 0 ? (
+            <p className="text-body-md text-muted-foreground text-center py-4">
+              no upcoming tasks
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {upcomingTasks.map((task) => (
+                <div
+                  key={task.id}
+                  className="flex items-center justify-between p-3 bg-secondary rounded-xl border-2 border-foreground/10"
+                >
+                  <span className="text-body-md text-foreground font-semibold">{task.title}</span>
+                  <span className="text-caption font-bold text-accent bg-accent/10 px-2.5 py-1 rounded-full border-2 border-accent/30">
+                    {formatDueDate(task.due_date)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </SketchCard>
+      </div>
 
       <DashedDivider />
 
@@ -274,7 +285,7 @@ export default function WibblePlanner() {
                 <span className="text-caption text-muted-foreground font-medium">2 hours ago</span>
               </div>
               <p className="text-body-md text-foreground leading-relaxed">
-                great progress on your math assignments this week! keep up the momentum. 
+                great progress on your math assignments this week! keep up the momentum.
                 remember to review chapter 5 before friday's quiz. ⭐
               </p>
             </div>

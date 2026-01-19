@@ -1,5 +1,7 @@
+import { useState, useEffect } from "react";
 import { Outlet, NavLink, useLocation } from "react-router-dom";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { CheckInModal } from "@/components/CheckInModal";
 import { cn } from "@/lib/utils";
 import {
   SketchHome,
@@ -11,17 +13,26 @@ import {
 
 const navItems = [
   { title: "home", url: "/app", icon: SketchHome },
-  { title: "calendar", url: "/app/calendar", icon: SketchCalendar },
-  { title: "add", url: "/app/add", icon: SketchPlus, isCenter: true },
+  { title: "schedule", url: "/app/schedule", icon: SketchCalendar, isCenter: true },
   { title: "stickers", url: "/app/stickers", icon: SketchStar },
   { title: "settings", url: "/app/settings", icon: SketchSettings },
 ];
 
 export default function StudentLayout() {
   const location = useLocation();
+  const [showCheckIn, setShowCheckIn] = useState(false);
+
+  // Show check-in modal when student first loads the app
+  useEffect(() => {
+    // Small delay to let the page load first
+    const timer = setTimeout(() => {
+      setShowCheckIn(true);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
-    <ProtectedRoute>
+    <ProtectedRoute requiredRole="student">
       <div className="min-h-screen flex flex-col bg-background">
         <main className="flex-1 overflow-auto pb-24">
           <Outlet />
@@ -33,7 +44,7 @@ export default function StudentLayout() {
             {navItems.map((item) => {
               const isActive = location.pathname === item.url;
               const Icon = item.icon;
-              
+
               return (
                 <NavLink
                   key={item.title}
@@ -59,7 +70,18 @@ export default function StudentLayout() {
             })}
           </div>
         </nav>
+
+        {/* Daily Check-in Modal */}
+        <CheckInModal
+          open={showCheckIn}
+          onOpenChange={setShowCheckIn}
+          onCheckInComplete={(sentiment) => {
+            // TODO: If tired/sore, trigger plan modification
+            console.log("Student checked in as:", sentiment);
+          }}
+        />
       </div>
     </ProtectedRoute>
   );
 }
+
