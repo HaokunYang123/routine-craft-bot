@@ -29,8 +29,9 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { Copy, Users, Plus, Loader2, ChevronDown, ChevronRight, Trash2, User, Mail } from "lucide-react";
+import { Copy, Users, Plus, Loader2, ChevronDown, ChevronRight, Trash2, User, Mail, UserMinus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface ClassSession {
   id: string;
@@ -156,9 +157,7 @@ export default function People() {
 
   const handleDeleteGroup = async (groupId: string, groupName: string) => {
     try {
-      // Optimistic update
-      setGroups(prev => prev.filter(g => g.id !== groupId));
-
+      // Delete from database FIRST, then update local state
       const { error } = await supabase
         .from("class_sessions" as any)
         .delete()
@@ -166,11 +165,44 @@ export default function People() {
 
       if (error) throw error;
 
+      // Only update local state after successful deletion
+      setGroups(prev => prev.filter(g => g.id !== groupId));
       toast({ title: "Group Deleted", description: `${groupName} has been removed.` });
-      // No need to fetch again if optimistic update worked, but can do it for safety
     } catch (error: any) {
+      console.error("Delete group error:", error);
       toast({ title: "Error", description: error.message, variant: "destructive" });
-      fetchData(); // Revert on error
+      // Refresh to ensure UI matches database state
+      fetchData();
+    }
+  };
+
+  const handleRemoveStudent = async (connectionId: string, studentName: string, groupId: string) => {
+    try {
+      // Delete from database FIRST
+      const { error } = await supabase
+        .from("instructor_students" as any)
+        .delete()
+        .eq("id", connectionId);
+
+      if (error) throw error;
+
+      // Only update local state after successful deletion
+      setGroups(prev => prev.map(g => {
+        if (g.id === groupId) {
+          return {
+            ...g,
+            students: g.students.filter(s => s.id !== connectionId)
+          };
+        }
+        return g;
+      }));
+
+      toast({ title: "Student Removed", description: `${studentName} has been removed from the group.` });
+    } catch (error: any) {
+      console.error("Remove student error:", error);
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      // Refresh to ensure UI matches database state
+      fetchData();
     }
   };
 
@@ -325,13 +357,46 @@ export default function People() {
                         {group.students.map((student) => (
                           <div
                             key={student.id}
-                            className="flex items-center gap-3 p-3 bg-secondary/30 rounded-lg cursor-pointer hover:bg-secondary/50 transition-colors"
-                            onClick={() => viewStudentDetails(student)}
+                            className="flex items-center justify-between gap-3 p-3 bg-secondary/30 rounded-lg hover:bg-secondary/50 transition-colors group/student"
                           >
-                            <div className="w-9 h-9 rounded-full bg-foreground/10 flex items-center justify-center text-sm font-bold">
-                              {student.display_name.substring(0, 2).toUpperCase()}
+                            <div
+                              className="flex items-center gap-3 cursor-pointer flex-1"
+                              onClick={() => viewStudentDetails(student)}
+                            >
+                              <div className="w-9 h-9 rounded-full bg-foreground/10 flex items-center justify-center text-sm font-bold">
+                                {student.display_name.substring(0, 2).toUpperCase()}
+                              </div>
+                              <span className="font-medium text-sm">{student.display_name}</span>
                             </div>
-                            <span className="font-medium text-sm">{student.display_name}</span>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 opacity-0 group-hover/student:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <UserMinus className="w-4 h-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Remove "{student.display_name}"?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This will remove the student from "{group.name}". They can rejoin using the class code.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleRemoveStudent(student.id, student.display_name, group.id)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Remove
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </div>
                         ))}
                       </div>

@@ -1,12 +1,13 @@
 /*
   AI Assistant Edge Function
   Uses Google Gemini API to provide smart features for TeachCoachConnect.
-  
+
   Actions:
   1. generate_plan: Create routine from natural language
   2. modify_plan: Adjust existing routine based on feedback
   3. refine_task: "Magic Fix" to rewrite task descriptions (encouraging, clear)
   4. summarize_progress: Generate weekly progress summary
+  5. weekly_summary: Team-wide weekly summary
 */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
@@ -20,17 +21,28 @@ const corsHeaders = {
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent";
 
+// Request timeout in milliseconds
+const REQUEST_TIMEOUT = 30000;
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const startTime = Date.now();
+  console.log("[AI-Assistant] Request received at:", new Date().toISOString());
+
   try {
-    const { action, payload } = await req.json();
+    const body = await req.json();
+    const { action, payload } = body;
+
+    console.log("[AI-Assistant] Action:", action);
+    console.log("[AI-Assistant] Payload keys:", payload ? Object.keys(payload) : "none");
 
     if (!GEMINI_API_KEY) {
-      throw new Error("GEMINI_API_KEY is not set");
+      console.error("[AI-Assistant] GEMINI_API_KEY is not configured");
+      throw new Error("AI service is not configured. Please contact support.");
     }
 
     let systemPrompt = "";
@@ -84,55 +96,83 @@ serve(async (req) => {
         throw new Error(`Unknown action: ${action}`);
     }
 
-    // Call Gemini API
-    const response = await fetch(`${API_URL}?key=${GEMINI_API_KEY}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{
-          role: "user",
-          parts: [{ text: `${systemPrompt}\n\nUser Request: ${userPrompt}` }]
-        }],
-        generationConfig: {
-          temperature: 0.7,
-        }
-      }),
-    });
+    // Call Gemini API with timeout
+    console.log("[AI-Assistant] Calling Gemini API...");
 
-    const data = await response.json();
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
 
-    if (!response.ok) {
-      console.error("Gemini API Error:", data);
-      throw new Error(data.error?.message || "Failed to call Gemini API");
-    }
+    try {
+      const response = await fetch(`${API_URL}?key=${GEMINI_API_KEY}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{
+            role: "user",
+            parts: [{ text: `${systemPrompt}\n\nUser Request: ${userPrompt}` }]
+          }],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 2048,
+          }
+        }),
+        signal: controller.signal,
+      });
 
-    const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      clearTimeout(timeoutId);
 
-    if (!generatedText) {
-      throw new Error("No response generated from AI");
-    }
+      const data = await response.json();
+      console.log("[AI-Assistant] Gemini response status:", response.status);
 
-    // Parse JSON if expected
-    let result = generatedText;
-    if (action === "generate_plan" || action === "modify_plan") {
-      try {
-        // Clean markdown code blocks if present
-        const jsonStr = generatedText.replace(/```json\n?|\n?```/g, "").trim();
-        const parsed = JSON.parse(jsonStr);
-        // Ensure we return an array of tasks directly
-        result = Array.isArray(parsed) ? parsed : (parsed.tasks || []);
-      } catch (e) {
-        console.error("Failed to parse JSON:", generatedText);
-        throw new Error("AI returned invalid JSON format");
+      if (!response.ok) {
+        console.error("[AI-Assistant] Gemini API Error:", JSON.stringify(data));
+        throw new Error(data.error?.message || `Gemini API error: ${response.status}`);
       }
-    }
 
-    return new Response(JSON.stringify({ result }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+      const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      if (!generatedText) {
+        console.error("[AI-Assistant] No text in response:", JSON.stringify(data));
+        throw new Error("AI did not generate a response. Please try again.");
+      }
+
+      console.log("[AI-Assistant] Generated text length:", generatedText.length);
+
+      // Parse JSON if expected
+      let result = generatedText;
+      if (action === "generate_plan" || action === "modify_plan") {
+        try {
+          // Clean markdown code blocks if present
+          const jsonStr = generatedText.replace(/```json\n?|\n?```/g, "").trim();
+          const parsed = JSON.parse(jsonStr);
+          // Ensure we return an array of tasks directly
+          result = Array.isArray(parsed) ? parsed : (parsed.tasks || []);
+          console.log("[AI-Assistant] Parsed", result.length, "tasks");
+        } catch (e) {
+          console.error("[AI-Assistant] Failed to parse JSON:", generatedText.substring(0, 200));
+          throw new Error("AI returned an invalid format. Please try rephrasing your request.");
+        }
+      }
+
+      const elapsed = Date.now() - startTime;
+      console.log("[AI-Assistant] Request completed in", elapsed, "ms");
+
+      return new Response(JSON.stringify({ result }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+
+    } catch (fetchError: any) {
+      clearTimeout(timeoutId);
+      if (fetchError.name === "AbortError") {
+        console.error("[AI-Assistant] Request timed out after", REQUEST_TIMEOUT, "ms");
+        throw new Error("AI request timed out. Please try again with a simpler request.");
+      }
+      throw fetchError;
+    }
 
   } catch (error: any) {
-    console.error("Error in ai-assistant:", error);
+    const elapsed = Date.now() - startTime;
+    console.error("[AI-Assistant] Error after", elapsed, "ms:", error.message);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

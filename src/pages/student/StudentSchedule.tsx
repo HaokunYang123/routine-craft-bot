@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { format, isToday, isTomorrow, parseISO } from "date-fns";
 import { InstructorsList } from "@/components/student/InstructorsList";
 import { JoinInstructor } from "@/components/student/JoinInstructor";
+import { useToast } from "@/hooks/use-toast";
 
 interface Task {
     id: string;
@@ -24,6 +25,7 @@ interface Task {
 
 export default function StudentSchedule() {
     const { user } = useAuth();
+    const { toast } = useToast();
     const [searchParams, setSearchParams] = useSearchParams();
     const [tasks, setTasks] = useState<Task[]>([]);
     const [loading, setLoading] = useState(true);
@@ -93,6 +95,39 @@ export default function StudentSchedule() {
             setSearchParams({ instructorId });
         } else {
             setSearchParams({});
+        }
+    };
+
+    const handleToggleComplete = async (taskId: string, completed: boolean) => {
+        try {
+            // Optimistic update
+            setTasks(prev => prev.map(t =>
+                t.id === taskId ? { ...t, is_completed: completed } : t
+            ));
+
+            const { error } = await supabase
+                .from("tasks")
+                .update({ is_completed: completed })
+                .eq("id", taskId);
+
+            if (error) throw error;
+
+            if (completed) {
+                toast({
+                    title: "Nice work!",
+                    description: "Task marked as complete.",
+                });
+            }
+        } catch (error: any) {
+            // Revert on error
+            setTasks(prev => prev.map(t =>
+                t.id === taskId ? { ...t, is_completed: !completed } : t
+            ));
+            toast({
+                title: "Error",
+                description: "Failed to update task.",
+                variant: "destructive",
+            });
         }
     };
 
@@ -166,22 +201,22 @@ export default function StudentSchedule() {
                         <>
                             {/* Today */}
                             {groupedTasks.today.length > 0 && (
-                                <TaskSection title="Today" tasks={groupedTasks.today} />
+                                <TaskSection title="Today" tasks={groupedTasks.today} onToggleComplete={handleToggleComplete} />
                             )}
 
                             {/* Tomorrow */}
                             {groupedTasks.tomorrow.length > 0 && (
-                                <TaskSection title="Tomorrow" tasks={groupedTasks.tomorrow} />
+                                <TaskSection title="Tomorrow" tasks={groupedTasks.tomorrow} onToggleComplete={handleToggleComplete} />
                             )}
 
                             {/* Upcoming */}
                             {groupedTasks.upcoming.length > 0 && (
-                                <TaskSection title="Upcoming" tasks={groupedTasks.upcoming} />
+                                <TaskSection title="Upcoming" tasks={groupedTasks.upcoming} onToggleComplete={handleToggleComplete} />
                             )}
 
                             {/* No Due Date */}
                             {groupedTasks.noDue.length > 0 && (
-                                <TaskSection title="No Due Date" tasks={groupedTasks.noDue} />
+                                <TaskSection title="No Due Date" tasks={groupedTasks.noDue} onToggleComplete={handleToggleComplete} />
                             )}
                         </>
                     )}
@@ -202,21 +237,33 @@ export default function StudentSchedule() {
     );
 }
 
-function TaskSection({ title, tasks }: { title: string; tasks: Task[] }) {
+interface TaskSectionProps {
+    title: string;
+    tasks: Task[];
+    onToggleComplete?: (taskId: string, completed: boolean) => void;
+}
+
+function TaskSection({ title, tasks, onToggleComplete }: TaskSectionProps) {
     return (
         <section>
             <h2 className="text-lg font-semibold mb-3">{title}</h2>
             <div className="space-y-2">
                 {tasks.map((task) => (
-                    <Card key={task.id} className={task.is_completed ? "opacity-60" : ""}>
+                    <Card
+                        key={task.id}
+                        className={`transition-all ${task.is_completed ? "opacity-60 bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800" : ""}`}
+                    >
                         <CardContent className="flex items-start gap-4 py-4">
-                            <div className="mt-1">
+                            <button
+                                onClick={() => onToggleComplete?.(task.id, !task.is_completed)}
+                                className="mt-1 focus:outline-none focus:ring-2 focus:ring-green-500 rounded-full"
+                            >
                                 {task.is_completed ? (
-                                    <CheckCircle2 className="w-5 h-5 text-success" />
+                                    <CheckCircle2 className="w-6 h-6 text-green-600" />
                                 ) : (
-                                    <div className="w-5 h-5 rounded-full border-2 border-muted-foreground" />
+                                    <div className="w-6 h-6 rounded-full border-2 border-muted-foreground hover:border-green-500 hover:bg-green-50 transition-colors" />
                                 )}
-                            </div>
+                            </button>
                             <div className="flex-1 min-w-0">
                                 <p className={`font-medium ${task.is_completed ? "line-through text-muted-foreground" : ""}`}>
                                     {task.title}
@@ -243,6 +290,15 @@ function TaskSection({ title, tasks }: { title: string; tasks: Task[] }) {
                                     )}
                                 </div>
                             </div>
+                            {!task.is_completed && (
+                                <Button
+                                    size="sm"
+                                    onClick={() => onToggleComplete?.(task.id, true)}
+                                    className="bg-green-600 hover:bg-green-700 text-white shrink-0"
+                                >
+                                    Done
+                                </Button>
+                            )}
                         </CardContent>
                     </Card>
                 ))}

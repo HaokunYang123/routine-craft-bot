@@ -7,10 +7,10 @@ import {
   LogOut,
   Menu,
   X,
+  UsersRound,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { Logo } from "@/components/ui/logo";
 import {
   Sidebar,
   SidebarContent,
@@ -36,9 +36,13 @@ const navItems = [
 
 export function CoachSidebar() {
   const location = useLocation();
-  const { signOut } = useAuth();
+  const { user, signOut } = useAuth();
   const { state, toggleSidebar } = useSidebar();
   const collapsed = state === "collapsed";
+
+  // Get user display info
+  const userEmail = user?.email || "";
+  const userInitials = userEmail.substring(0, 2).toUpperCase();
 
   return (
     <Sidebar
@@ -47,7 +51,17 @@ export function CoachSidebar() {
     >
       <SidebarHeader className="border-b border-sidebar-border p-4">
         <div className="flex items-center justify-between">
-          <Logo size={collapsed ? "sm" : "md"} showText={!collapsed} />
+          {/* TeachCoachConnect Logo */}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-cta-primary">
+              <UsersRound className="w-5 h-5 text-white" />
+            </div>
+            {!collapsed && (
+              <span className="text-lg font-bold text-foreground">
+                TeachCoachConnect
+              </span>
+            )}
+          </div>
           <Button
             variant="ghost"
             size="icon"
@@ -100,7 +114,28 @@ export function CoachSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-4 border-t border-sidebar-border">
+      <SidebarFooter className="p-4 border-t border-sidebar-border space-y-3">
+        {/* User Badge */}
+        <div
+          className={cn(
+            "flex items-center gap-3 p-2 rounded-lg bg-sidebar-accent/50",
+            collapsed && "justify-center"
+          )}
+        >
+          <div className="w-8 h-8 rounded-full bg-btn-secondary flex items-center justify-center text-white text-xs font-bold shrink-0">
+            {userInitials}
+          </div>
+          {!collapsed && (
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-muted-foreground">Logged in as</p>
+              <p className="text-sm font-medium text-foreground truncate">
+                {userEmail}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Sign Out Button */}
         <Button
           variant="ghost"
           size="sm"
