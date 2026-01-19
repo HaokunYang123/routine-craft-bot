@@ -51,19 +51,10 @@ serve(async (req) => {
     // define prompts based on action
     switch (action) {
       case "generate_plan":
-        systemPrompt = `You are an expert educational/fitness coach. Create a structured plan based on the user's request.
-        Return ONLY a valid JSON array of tasks with this structure:
-        [
-          { "title": "Task Title", "description": "Clear, encouraging instructions", "duration_minutes": 30, "day_offset": 0 }
-        ]
-
-        Rules:
-        - day_offset starts at 0 (first day) and increments for subsequent days
-        - Keep task titles concise (under 50 chars)
-        - Make descriptions actionable and encouraging
-        - Vary duration based on task complexity (5-60 minutes)
-        - Spread tasks across days appropriately`;
-        userPrompt = `Create a plan for: ${payload.request}. ${payload.context ? `Context: ${payload.context}` : ""}`;
+        systemPrompt = `You are a coach. Return ONLY a concise JSON array of 3-5 tasks:
+        [{"title":"Short Title","description":"Brief instructions","duration_minutes":15,"day_offset":0}]
+        Rules: day_offset=0 is day 1. Titles under 40 chars. Descriptions under 100 chars. Be concise.`;
+        userPrompt = `Plan for: ${payload.request}. ${payload.context ? `Context: ${payload.context}` : ""}`;
         break;
 
       case "refine_task":
@@ -72,14 +63,10 @@ serve(async (req) => {
         break;
 
       case "modify_plan":
-        systemPrompt = `You are an expert coach. Modify the existing plan based on user feedback.
-        Return ONLY a valid JSON array of the updated tasks:
-        [
-          { "title": "Task Title", "description": "Instructions", "duration_minutes": 30, "day_offset": 0 }
-        ]
-
-        Maintain the same structure. Adjust difficulty, add/remove tasks, or modify as requested.`;
-        userPrompt = `Current plan has ${payload.currentTasks.length} tasks. Feedback: "${payload.feedback}". \nCurrent Tasks: ${JSON.stringify(payload.currentTasks)}`;
+        systemPrompt = `Modify the plan based on feedback. Return ONLY a concise JSON array:
+        [{"title":"Title","description":"Instructions","duration_minutes":15,"day_offset":0}]
+        Keep titles under 40 chars, descriptions under 100 chars.`;
+        userPrompt = `Feedback: "${payload.feedback}". Tasks: ${JSON.stringify(payload.currentTasks)}`;
         break;
 
       case "summarize_progress":
@@ -113,7 +100,7 @@ serve(async (req) => {
           }],
           generationConfig: {
             temperature: 0.7,
-            maxOutputTokens: 2048,
+            maxOutputTokens: 500,
           }
         }),
         signal: controller.signal,

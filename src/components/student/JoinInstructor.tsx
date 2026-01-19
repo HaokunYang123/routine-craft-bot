@@ -63,6 +63,12 @@ export function JoinInstructor({ onSuccess }: { onSuccess?: () => void }) {
         }
     };
 
+    const handleJoinAnother = () => {
+        setJoined(false);
+        setCode("");
+        setClassName("");
+    };
+
     if (joined) {
         return (
             <Card className="border-success/50 bg-success/5">
@@ -72,6 +78,13 @@ export function JoinInstructor({ onSuccess }: { onSuccess?: () => void }) {
                     <p className="text-muted-foreground text-center mt-2">
                         You've joined {className}. Check your schedule for assignments.
                     </p>
+                    <Button
+                        variant="outline"
+                        className="mt-4"
+                        onClick={handleJoinAnother}
+                    >
+                        Join Another Group
+                    </Button>
                 </CardContent>
             </Card>
         );

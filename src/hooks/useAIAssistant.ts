@@ -22,6 +22,9 @@ interface AIResponse<T> {
     error?: string;
 }
 
+// Timeout duration in milliseconds (15 seconds)
+const AI_REQUEST_TIMEOUT = 15000;
+
 export function useAIAssistant() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -30,10 +33,16 @@ export function useAIAssistant() {
         setLoading(true);
         setError(null);
 
+        // Create abort controller for timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), AI_REQUEST_TIMEOUT);
+
         try {
             const { data, error: funcError } = await supabase.functions.invoke("ai-assistant", {
                 body,
             });
+
+            clearTimeout(timeoutId);
 
             if (funcError) {
                 throw new Error(funcError.message);
@@ -45,8 +54,19 @@ export function useAIAssistant() {
 
             return { success: true, data: data.result as T };
         } catch (err: any) {
+            clearTimeout(timeoutId);
             console.error("AI Assistant Error:", err);
-            const errorMessage = err.message || "Brainstorming... please try again.";
+
+            // Check if this was a timeout/abort error
+            let errorMessage: string;
+            if (err.name === "AbortError" || err.message?.includes("abort")) {
+                errorMessage = "AI is taking too long. Please try again with a shorter prompt.";
+            } else if (err.message?.includes("timeout") || err.message?.includes("timed out")) {
+                errorMessage = "Request timed out. Please try a simpler request.";
+            } else {
+                errorMessage = err.message || "Brainstorming... please try again.";
+            }
+
             setError(errorMessage);
             return { success: false, error: errorMessage };
         } finally {

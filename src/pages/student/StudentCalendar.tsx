@@ -32,13 +32,33 @@ export default function StudentCalendar() {
   }, [user]);
 
   const fetchTasks = async () => {
+    // First get all instructor IDs for this student
+    const { data: relationships } = await supabase
+      .from("instructor_students" as any)
+      .select("instructor_id")
+      .eq("student_id", user!.id);
+
+    if (!relationships || relationships.length === 0) {
+      setTasks([]);
+      setLoading(false);
+      return;
+    }
+
+    const instructorIds = relationships.map((r: any) => r.instructor_id);
+
+    // Fetch tasks from instructors that are assigned to this student or everyone
     const { data } = await supabase
       .from("tasks")
       .select("id, title, duration_minutes, is_completed, due_date")
-      .eq("user_id", user!.id)
+      .in("user_id", instructorIds)
       .not("due_date", "is", null);
 
-    if (data) setTasks(data);
+    // Filter: Show task only if assigned to this student or no specific assignment
+    const relevantTasks = (data || []).filter((task: any) => {
+      return !task.assigned_student_id || task.assigned_student_id === user!.id;
+    });
+
+    setTasks(relevantTasks);
     setLoading(false);
   };
 
