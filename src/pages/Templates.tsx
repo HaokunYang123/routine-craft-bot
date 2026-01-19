@@ -1,46 +1,78 @@
 import { useState } from "react";
-import { Library, Plus, Sparkles, Clock, Calendar } from "lucide-react";
+import { Library, Plus, Sparkles, Clock, Calendar, Trash2, Loader2, Edit } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { AIPlanBuilder } from "@/components/ai/AIPlanBuilder";
 import { GeneratedTask } from "@/hooks/useAIAssistant";
-import { useToast } from "@/hooks/use-toast";
-
-interface SavedTemplate {
-  id: string;
-  name: string;
-  tasks: GeneratedTask[];
-  createdAt: Date;
-}
+import { useTemplates, Template } from "@/hooks/useTemplates";
 
 export default function Templates() {
-  const { toast } = useToast();
-  const [templates, setTemplates] = useState<SavedTemplate[]>([]);
+  const { templates, loading, createTemplate, deleteTemplate } = useTemplates();
   const [activeTab, setActiveTab] = useState("create");
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [pendingTasks, setPendingTasks] = useState<GeneratedTask[]>([]);
+  const [templateName, setTemplateName] = useState("");
+  const [templateDescription, setTemplateDescription] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [previewTemplate, setPreviewTemplate] = useState<Template | null>(null);
 
   const handleSavePlan = (tasks: GeneratedTask[]) => {
-    const newTemplate: SavedTemplate = {
-      id: crypto.randomUUID(),
-      name: `Plan ${templates.length + 1}`,
-      tasks,
-      createdAt: new Date(),
-    };
+    setPendingTasks(tasks);
+    setTemplateName(`Plan ${templates.length + 1}`);
+    setTemplateDescription("");
+    setSaveDialogOpen(true);
+  };
 
-    setTemplates((prev) => [...prev, newTemplate]);
-    setActiveTab("library");
+  const handleConfirmSave = async () => {
+    if (!templateName.trim()) return;
 
-    toast({
-      title: "Plan Saved",
-      description: `${tasks.length} tasks saved to your template library.`,
-    });
+    setSaving(true);
+    const result = await createTemplate(
+      templateName.trim(),
+      templateDescription.trim(),
+      pendingTasks.map((t) => ({
+        title: t.title,
+        description: t.description,
+        duration_minutes: t.duration_minutes,
+        day_offset: t.day_offset,
+      }))
+    );
+
+    setSaving(false);
+    if (result) {
+      setSaveDialogOpen(false);
+      setPendingTasks([]);
+      setActiveTab("library");
+    }
   };
 
   return (
     <div className="space-y-6 pb-20">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-foreground">Template Library</h1>
+        <h1 className="text-3xl font-display font-bold text-foreground">Template Library</h1>
         <p className="text-muted-foreground mt-1">
           Create and manage reusable plans with AI assistance
         </p>
@@ -70,7 +102,11 @@ export default function Templates() {
         </TabsContent>
 
         <TabsContent value="library" className="mt-6">
-          {templates.length === 0 ? (
+          {loading ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : templates.length === 0 ? (
             <Card className="border-dashed border-2 border-border bg-card/50">
               <CardContent className="py-16 text-center">
                 <Library className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
@@ -95,47 +131,80 @@ export default function Templates() {
               {templates.map((template) => (
                 <Card
                   key={template.id}
-                  className="border-border hover:border-cta-primary/50 transition-all cursor-pointer"
+                  className="border-border hover:border-cta-primary/50 transition-all"
                 >
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-lg text-foreground">
-                      {template.name}
-                    </CardTitle>
+                    <div className="flex items-start justify-between">
+                      <CardTitle className="text-lg text-foreground">
+                        {template.name}
+                      </CardTitle>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Template?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will permanently delete "{template.name}" and all its tasks.
+                              This cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => deleteTemplate(template.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                    {template.description && (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {template.description}
+                      </p>
+                    )}
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <Library className="w-4 h-4" />
-                          {template.tasks.length} tasks
+                          {template.tasks?.length || 0} tasks
                         </span>
                         <span className="flex items-center gap-1">
                           <Clock className="w-4 h-4" />
-                          {template.tasks.reduce(
-                            (sum, t) => sum + t.duration_minutes,
+                          {template.tasks?.reduce(
+                            (sum, t) => sum + (t.duration_minutes || 0),
                             0
                           )}
                           m total
                         </span>
                       </div>
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Calendar className="w-3 h-3" />
-                        {Math.max(...template.tasks.map((t) => t.day_offset)) + 1}{" "}
-                        days
-                      </div>
+                      {template.tasks && template.tasks.length > 0 && (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Calendar className="w-3 h-3" />
+                          {Math.max(...template.tasks.map((t) => t.day_offset || 0)) + 1}{" "}
+                          days
+                        </div>
+                      )}
                       <div className="pt-2 flex gap-2">
                         <Button
                           variant="outline"
                           size="sm"
                           className="flex-1 border-btn-secondary/30 text-btn-secondary hover:bg-btn-secondary/10"
+                          onClick={() => setPreviewTemplate(template)}
                         >
                           Preview
-                        </Button>
-                        <Button
-                          size="sm"
-                          className="flex-1 bg-cta-primary hover:bg-cta-hover text-white"
-                        >
-                          Assign
                         </Button>
                       </div>
                     </div>
@@ -146,6 +215,89 @@ export default function Templates() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Save Template Dialog */}
+      <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Save as Template</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Template Name</Label>
+              <Input
+                value={templateName}
+                onChange={(e) => setTemplateName(e.target.value)}
+                placeholder="e.g., Morning Warmup Routine"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Description (optional)</Label>
+              <Textarea
+                value={templateDescription}
+                onChange={(e) => setTemplateDescription(e.target.value)}
+                placeholder="Brief description of this template..."
+                rows={3}
+              />
+            </div>
+            <p className="text-sm text-muted-foreground">
+              This template contains {pendingTasks.length} tasks.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSaveDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirmSave}
+              disabled={saving || !templateName.trim()}
+              className="bg-cta-primary hover:bg-cta-hover text-white"
+            >
+              {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Save Template
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Preview Template Dialog */}
+      <Dialog open={!!previewTemplate} onOpenChange={() => setPreviewTemplate(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{previewTemplate?.name}</DialogTitle>
+            {previewTemplate?.description && (
+              <p className="text-sm text-muted-foreground">{previewTemplate.description}</p>
+            )}
+          </DialogHeader>
+          <div className="py-4 space-y-3">
+            {previewTemplate?.tasks?.map((task, index) => (
+              <div
+                key={task.id || index}
+                className="p-3 bg-secondary/30 rounded-lg"
+              >
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="font-medium">{task.title}</p>
+                    {task.description && (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {task.description}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground shrink-0 ml-4">
+                    <span className="bg-secondary px-2 py-1 rounded">
+                      Day {task.day_offset + 1}
+                    </span>
+                    <span className="bg-secondary px-2 py-1 rounded">
+                      {task.duration_minutes}m
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -29,15 +29,24 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { Copy, Users, Plus, Loader2, ChevronDown, ChevronRight, Trash2, User, Mail, UserMinus } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Copy, Users, Plus, Loader2, ChevronDown, ChevronRight, Trash2, User, Mail, UserMinus, Library } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
+import { useTemplates } from "@/hooks/useTemplates";
 
 interface ClassSession {
   id: string;
   name: string;
   join_code: string;
   is_active: boolean;
+  default_template_id: string | null;
 }
 
 interface Student {
@@ -54,6 +63,7 @@ interface GroupWithStudents extends ClassSession {
 export default function People() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { templates } = useTemplates();
   const [loading, setLoading] = useState(true);
   const [groups, setGroups] = useState<GroupWithStudents[]>([]);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
@@ -65,6 +75,7 @@ export default function People() {
   // Create Dialog
   const [createOpen, setCreateOpen] = useState(false);
   const [newRosterName, setNewRosterName] = useState("");
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
@@ -135,17 +146,34 @@ export default function People() {
     try {
       const { data: code } = await supabase.rpc('generate_join_code' as any);
 
-      const { error } = await supabase.from("class_sessions" as any).insert({
+      const insertData: any = {
         coach_id: user.id,
         name: newRosterName.trim(),
         join_code: code,
         is_active: true
-      });
+      };
+
+      // Add template if selected
+      if (selectedTemplateId && selectedTemplateId !== "none") {
+        insertData.default_template_id = selectedTemplateId;
+      }
+
+      const { error } = await supabase.from("class_sessions" as any).insert(insertData);
 
       if (error) throw error;
 
-      toast({ title: "Group Created!", description: `${newRosterName} is ready.` });
+      const templateName = selectedTemplateId && selectedTemplateId !== "none"
+        ? templates.find(t => t.id === selectedTemplateId)?.name
+        : null;
+
+      toast({
+        title: "Group Created!",
+        description: templateName
+          ? `${newRosterName} is ready. New students will get "${templateName}" tasks.`
+          : `${newRosterName} is ready.`
+      });
       setNewRosterName("");
+      setSelectedTemplateId("");
       setCreateOpen(false);
       fetchData();
     } catch (error: any) {
@@ -267,6 +295,28 @@ export default function People() {
                   required
                 />
               </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Library className="w-4 h-4" />
+                  Auto-assign Template (optional)
+                </Label>
+                <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a template..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No template</SelectItem>
+                    {templates.map((template) => (
+                      <SelectItem key={template.id} value={template.id}>
+                        {template.name} ({template.tasks?.length || 0} tasks)
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Students who join will automatically receive tasks from this template.
+                </p>
+              </div>
               <DialogFooter>
                 <Button type="submit" disabled={creating} className="w-full">
                   {creating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
@@ -306,7 +356,7 @@ export default function People() {
                         )}
                         <div>
                           <CardTitle className="text-lg">{group.name}</CardTitle>
-                          <CardDescription className="flex items-center gap-2 mt-1">
+                          <CardDescription className="flex flex-wrap items-center gap-2 mt-1">
                             <Users className="w-3 h-3" />
                             {group.students.length} student{group.students.length !== 1 && "s"}
                             <span className="mx-1">•</span>
@@ -314,6 +364,15 @@ export default function People() {
                             <Button variant="ghost" size="icon" className="h-5 w-5" onClick={(e) => { e.stopPropagation(); copyCode(group.join_code); }}>
                               <Copy className="w-3 h-3" />
                             </Button>
+                            {group.default_template_id && (
+                              <>
+                                <span className="mx-1">•</span>
+                                <span className="flex items-center gap-1 text-xs bg-cta-primary/20 text-cta-primary px-2 py-0.5 rounded">
+                                  <Library className="w-3 h-3" />
+                                  {templates.find(t => t.id === group.default_template_id)?.name || "Template"}
+                                </span>
+                              </>
+                            )}
                           </CardDescription>
                         </div>
                       </div>
