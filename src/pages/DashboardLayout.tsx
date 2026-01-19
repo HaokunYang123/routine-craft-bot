@@ -6,7 +6,7 @@ import { FloatingAI } from "@/components/FloatingAI";
 
 export default function DashboardLayout() {
   return (
-    <ProtectedRoute>
+    <ProtectedRoute requiredRole="coach">
       <SidebarProvider>
         <div className="min-h-screen flex w-full">
           <AppSidebar />

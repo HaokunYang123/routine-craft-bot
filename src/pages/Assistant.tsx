@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Sparkles, Loader2, Trash2, User } from "lucide-react";
+import { Send, Sparkles, Loader2, Trash2, User, Mic, MicOff, BookOpen, Users, ListTodo } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Message {
@@ -22,6 +22,51 @@ interface Person {
   notes: string | null;
 }
 
+interface ClassSession {
+  id: string;
+  name: string;
+  join_code: string;
+}
+
+interface Task {
+  id: string;
+  title: string;
+  is_completed: boolean;
+  due_date: string | null;
+  assigned_student_id: string | null;
+}
+
+// Type for Speech Recognition (Web Speech API)
+interface SpeechRecognitionEvent extends Event {
+  results: SpeechRecognitionResultList;
+  resultIndex: number;
+}
+
+interface SpeechRecognitionResultList {
+  length: number;
+  item(index: number): SpeechRecognitionResult;
+  [index: number]: SpeechRecognitionResult;
+}
+
+interface SpeechRecognitionResult {
+  isFinal: boolean;
+  length: number;
+  item(index: number): SpeechRecognitionAlternative;
+  [index: number]: SpeechRecognitionAlternative;
+}
+
+interface SpeechRecognitionAlternative {
+  transcript: string;
+  confidence: number;
+}
+
+declare global {
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
+  }
+}
+
 export default function Assistant() {
   const { user, session } = useAuth();
   const { toast } = useToast();
@@ -29,7 +74,50 @@ export default function Assistant() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [people, setPeople] = useState<Person[]>([]);
+  const [classes, setClasses] = useState<ClassSession[]>([]);
+  const [recentTasks, setRecentTasks] = useState<Task[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Voice Recognition State
+  const [isListening, setIsListening] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(false);
+  const recognitionRef = useRef<any>(null);
+
+  useEffect(() => {
+    // Check for Speech Recognition support
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      setSpeechSupported(true);
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = false;
+      recognitionRef.current.interimResults = false;
+      recognitionRef.current.lang = "en-US";
+
+      recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
+        const transcript = event.results[0][0].transcript;
+        setInput((prev) => prev + (prev ? " " : "") + transcript);
+        setIsListening(false);
+      };
+
+      recognitionRef.current.onerror = (event: any) => {
+        console.error("Speech error:", event.error);
+        setIsListening(false);
+        if (event.error !== "aborted") {
+          toast({ title: "Voice Error", description: `Could not recognize speech: ${event.error}`, variant: "destructive" });
+        }
+      };
+
+      recognitionRef.current.onend = () => {
+        setIsListening(false);
+      };
+    }
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.abort();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -64,6 +152,49 @@ export default function Assistant() {
     if (peopleData) {
       setPeople(peopleData);
     }
+
+    // Fetch class sessions
+    const { data: classData } = await supabase
+      .from("class_sessions" as any)
+      .select("id, name, join_code")
+      .eq("coach_id", user!.id)
+      .eq("is_active", true);
+
+    if (classData) {
+      setClasses(classData);
+    }
+
+    // Fetch recent tasks (last 20)
+    const { data: taskData } = await supabase
+      .from("tasks")
+      .select("id, title, is_completed, due_date, assigned_student_id")
+      .eq("user_id", user!.id)
+      .order("created_at", { ascending: false })
+      .limit(20);
+
+    if (taskData) {
+      setRecentTasks(taskData);
+    }
+  };
+
+  const toggleListening = () => {
+    if (!speechSupported || !recognitionRef.current) {
+      toast({ title: "Not Supported", description: "Voice input is not supported in this browser.", variant: "destructive" });
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current.abort();
+      setIsListening(false);
+    } else {
+      try {
+        recognitionRef.current.start();
+        setIsListening(true);
+      } catch (error) {
+        console.error("Speech start error:", error);
+        setIsListening(false);
+      }
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -86,11 +217,15 @@ export default function Assistant() {
         content: userMessage,
       });
 
-      // Call AI function
+      // Call AI function with enhanced context
       const { data, error } = await supabase.functions.invoke("ai-chat", {
         body: {
           messages: newMessages.map((m) => ({ role: m.role, content: m.content })),
-          context: { people },
+          context: {
+            people,
+            classes,
+            recentTasks
+          },
         },
       });
 
@@ -136,6 +271,35 @@ export default function Assistant() {
     }
   };
 
+  // Dynamic suggestions based on context
+  const getSuggestions = () => {
+    const suggestions: string[] = [];
+
+    if (classes.length > 0) {
+      suggestions.push(`Summarize progress for ${classes[0].name}`);
+    }
+    if (recentTasks.length > 0) {
+      const incomplete = recentTasks.filter(t => !t.is_completed).length;
+      if (incomplete > 0) {
+        suggestions.push(`Show me the ${incomplete} incomplete tasks`);
+      }
+    }
+    if (people.length > 0) {
+      suggestions.push(`Create a weekly plan for ${people[0].name}`);
+    }
+
+    // Fallback suggestions
+    if (suggestions.length === 0) {
+      suggestions.push(
+        "Create a 4-week training plan for beginners",
+        "Build a morning routine for students",
+        "Suggest a homework schedule"
+      );
+    }
+
+    return suggestions.slice(0, 3);
+  };
+
   return (
     <div className="h-[calc(100vh-8rem)] flex flex-col">
       {/* Header */}
@@ -149,12 +313,33 @@ export default function Assistant() {
             Generate plans, get suggestions, and manage routines with AI.
           </p>
         </div>
-        {messages.length > 0 && (
-          <Button variant="ghost" size="sm" onClick={clearHistory}>
-            <Trash2 className="w-4 h-4 mr-2" />
-            Clear History
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {/* Context Indicators */}
+          {classes.length > 0 && (
+            <div className="hidden md:flex items-center gap-1 text-xs text-muted-foreground bg-secondary/50 px-2 py-1 rounded">
+              <BookOpen className="w-3 h-3" />
+              {classes.length} classes
+            </div>
+          )}
+          {people.length > 0 && (
+            <div className="hidden md:flex items-center gap-1 text-xs text-muted-foreground bg-secondary/50 px-2 py-1 rounded">
+              <Users className="w-3 h-3" />
+              {people.length} people
+            </div>
+          )}
+          {recentTasks.length > 0 && (
+            <div className="hidden md:flex items-center gap-1 text-xs text-muted-foreground bg-secondary/50 px-2 py-1 rounded">
+              <ListTodo className="w-3 h-3" />
+              {recentTasks.length} tasks
+            </div>
+          )}
+          {messages.length > 0 && (
+            <Button variant="ghost" size="sm" onClick={clearHistory}>
+              <Trash2 className="w-4 h-4 mr-2" />
+              Clear
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Chat Area */}
@@ -169,14 +354,10 @@ export default function Assistant() {
                 How can I help you today?
               </h3>
               <p className="text-muted-foreground max-w-md mb-6">
-                I can generate training plans, create study schedules, build daily routines, and give personalized suggestions.
+                I know about your {classes.length > 0 ? `${classes.length} classes, ` : ""}{people.length > 0 ? `${people.length} people, ` : ""}and can help create plans, analyze progress, or answer questions.
               </p>
               <div className="grid gap-2 w-full max-w-md">
-                {[
-                  "Create a 4-week training plan for beginners",
-                  "Build a morning routine for a 10-year-old",
-                  "Suggest homework schedule for after-school",
-                ].map((suggestion) => (
+                {getSuggestions().map((suggestion) => (
                   <button
                     key={suggestion}
                     onClick={() => setInput(suggestion)}
@@ -200,11 +381,10 @@ export default function Assistant() {
                     </div>
                   )}
                   <div
-                    className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                      message.role === "user"
+                    className={`max-w-[80%] rounded-2xl px-4 py-3 ${message.role === "user"
                         ? "bg-primary text-primary-foreground rounded-br-md"
                         : "bg-muted text-foreground rounded-bl-md"
-                    }`}
+                      }`}
                   >
                     <div className="whitespace-pre-wrap text-sm">{message.content}</div>
                   </div>
@@ -236,8 +416,8 @@ export default function Assistant() {
             <Textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask me to generate a plan, create tasks, or give suggestions..."
-              className="min-h-[52px] max-h-32 resize-none"
+              placeholder={isListening ? "Listening..." : "Ask me to generate a plan, create tasks, or give suggestions..."}
+              className={`min-h-[52px] max-h-32 resize-none transition-all ${isListening ? "ring-2 ring-accent animate-pulse" : ""}`}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
@@ -245,6 +425,19 @@ export default function Assistant() {
                 }
               }}
             />
+            {/* Voice Button */}
+            {speechSupported && (
+              <Button
+                type="button"
+                variant={isListening ? "destructive" : "outline"}
+                size="icon"
+                className={`shrink-0 h-[52px] w-[52px] transition-all ${isListening ? "animate-pulse" : ""}`}
+                onClick={toggleListening}
+                disabled={loading}
+              >
+                {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+              </Button>
+            )}
             <Button
               type="submit"
               variant="hero"

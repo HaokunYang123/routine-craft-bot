@@ -4,245 +4,382 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { Plus, User, Trash2, Loader2 } from "lucide-react";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { Copy, Users, Plus, Loader2, ChevronDown, ChevronRight, Trash2, User, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-interface Person {
+interface ClassSession {
   id: string;
   name: string;
-  type: string;
-  age: number | null;
-  notes: string | null;
-  created_at: string;
+  join_code: string;
+  is_active: boolean;
+}
+
+interface Student {
+  id: string;
+  student_id: string;
+  display_name: string;
+  email: string;
+}
+
+interface GroupWithStudents extends ClassSession {
+  students: Student[];
 }
 
 export default function People() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [people, setPeople] = useState<Person[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [groups, setGroups] = useState<GroupWithStudents[]>([]);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
-  // Form state
-  const [name, setName] = useState("");
-  const [type, setType] = useState<string>("athlete");
-  const [age, setAge] = useState("");
-  const [notes, setNotes] = useState("");
+  // Selected student for detail view
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [studentGroups, setStudentGroups] = useState<string[]>([]);
+
+  // Create Dialog
+  const [createOpen, setCreateOpen] = useState(false);
+  const [newRosterName, setNewRosterName] = useState("");
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     if (!user) return;
-    fetchPeople();
+    fetchData();
   }, [user]);
 
-  const fetchPeople = async () => {
-    const { data, error } = await supabase
-      .from("people")
-      .select("*")
-      .eq("user_id", user!.id)
-      .order("created_at", { ascending: false });
+  const fetchData = async () => {
+    try {
+      // Fetch all class sessions
+      const { data: sessionsData, error: sessionsError } = await supabase
+        .from("class_sessions" as any)
+        .select("*")
+        .eq("coach_id", user!.id)
+        .eq("is_active", true)
+        .order("created_at", { ascending: false });
 
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
-      setPeople(data || []);
+      if (sessionsError) throw sessionsError;
+
+      // For each session, get students
+      const groupsWithStudents = await Promise.all(
+        (sessionsData || []).map(async (session: any) => {
+          const { data: connections } = await supabase
+            .from("instructor_students" as any)
+            .select("id, student_id")
+            .eq("class_session_id", session.id);
+
+          let students: Student[] = [];
+
+          if (connections && connections.length > 0) {
+            const studentIds = connections.map((c: any) => c.student_id);
+            const { data: profiles } = await supabase
+              .from("profiles")
+              .select("user_id, display_name")
+              .in("user_id", studentIds);
+
+            students = connections.map((conn: any) => {
+              const profile = profiles?.find((p: any) => p.user_id === conn.student_id);
+              return {
+                id: conn.id,
+                student_id: conn.student_id,
+                display_name: profile?.display_name || "Student",
+                email: ""
+              };
+            });
+          }
+
+          return {
+            ...session,
+            students
+          };
+        })
+      );
+
+      setGroups(groupsWithStudents);
+    } catch (error: any) {
+      console.error("Error fetching data:", error);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleCreateRoster = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !name.trim()) return;
+    if (!user || !newRosterName.trim()) return;
+    setCreating(true);
 
-    setSaving(true);
-    const { error } = await supabase.from("people").insert({
-      user_id: user.id,
-      name: name.trim(),
-      type,
-      age: age ? parseInt(age) : null,
-      notes: notes.trim() || null,
-    });
+    try {
+      const { data: code } = await supabase.rpc('generate_join_code' as any);
 
-    if (error) {
+      const { error } = await supabase.from("class_sessions" as any).insert({
+        coach_id: user.id,
+        name: newRosterName.trim(),
+        join_code: code,
+        is_active: true
+      });
+
+      if (error) throw error;
+
+      toast({ title: "Group Created!", description: `${newRosterName} is ready.` });
+      setNewRosterName("");
+      setCreateOpen(false);
+      fetchData();
+    } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Success", description: `${name} has been added.` });
-      setName("");
-      setType("athlete");
-      setAge("");
-      setNotes("");
-      setDialogOpen(false);
-      fetchPeople();
-    }
-    setSaving(false);
-  };
-
-  const handleDelete = async (id: string, personName: string) => {
-    const { error } = await supabase.from("people").delete().eq("id", id);
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Deleted", description: `${personName} has been removed.` });
-      fetchPeople();
+    } finally {
+      setCreating(false);
     }
   };
 
-  const typeLabels: Record<string, string> = {
-    athlete: "Athlete",
-    student: "Student",
-    child: "Child",
-    other: "Other",
+  const handleDeleteGroup = async (groupId: string, groupName: string) => {
+    try {
+      // Optimistic update
+      setGroups(prev => prev.filter(g => g.id !== groupId));
+
+      const { error } = await supabase
+        .from("class_sessions" as any)
+        .delete()
+        .eq("id", groupId);
+
+      if (error) throw error;
+
+      toast({ title: "Group Deleted", description: `${groupName} has been removed.` });
+      // No need to fetch again if optimistic update worked, but can do it for safety
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      fetchData(); // Revert on error
+    }
+  };
+
+  const toggleGroup = (groupId: string) => {
+    const newExpanded = new Set(expandedGroups);
+    if (newExpanded.has(groupId)) {
+      newExpanded.delete(groupId);
+    } else {
+      newExpanded.add(groupId);
+    }
+    setExpandedGroups(newExpanded);
+  };
+
+  const copyCode = (code: string) => {
+    navigator.clipboard.writeText(code);
+    toast({ title: "Copied!", description: "Join code copied." });
+  };
+
+  const viewStudentDetails = async (student: Student) => {
+    setSelectedStudent(student);
+
+    // Find all groups this student belongs to
+    const studentGroupNames = groups
+      .filter(g => g.students.some(s => s.student_id === student.student_id))
+      .map(g => g.name);
+    setStudentGroups(studentGroupNames);
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        <Loader2 className="w-8 h-8 animate-spin text-foreground" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-20">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">People</h1>
-          <p className="text-muted-foreground">
-            Manage the people you create routines for.
-          </p>
+          <h1 className="text-3xl font-display font-bold text-foreground">People</h1>
+          <p className="text-muted-foreground">View your groups and students.</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
-            <Button variant="hero">
+            <Button>
               <Plus className="w-4 h-4 mr-2" />
-              Add Person
+              New Group
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add a New Person</DialogTitle>
+              <DialogTitle>Create New Group</DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleCreateRoster} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Name *</Label>
+                <Label>Group Name</Label>
                 <Input
-                  id="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Enter name"
+                  value={newRosterName}
+                  onChange={(e) => setNewRosterName(e.target.value)}
+                  placeholder="e.g. Period 1, Varsity Team"
                   required
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="type">Type</Label>
-                <Select value={type} onValueChange={setType}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="athlete">Athlete</SelectItem>
-                    <SelectItem value="student">Student</SelectItem>
-                    <SelectItem value="child">Child</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="age">Age</Label>
-                <Input
-                  id="age"
-                  type="number"
-                  value={age}
-                  onChange={(e) => setAge(e.target.value)}
-                  placeholder="Enter age"
-                  min="1"
-                  max="120"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="notes">Notes</Label>
-                <Textarea
-                  id="notes"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Goals, skill level, special considerations..."
-                  rows={3}
-                />
-              </div>
-              <Button type="submit" variant="hero" className="w-full" disabled={saving}>
-                {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                Add Person
-              </Button>
+              <DialogFooter>
+                <Button type="submit" disabled={creating} className="w-full">
+                  {creating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  Create Group
+                </Button>
+              </DialogFooter>
             </form>
           </DialogContent>
         </Dialog>
       </div>
 
-      {people.length === 0 ? (
-        <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <User className="w-12 h-12 text-muted-foreground mb-4" />
-            <h3 className="font-medium text-foreground mb-1">No people yet</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Add athletes, students, or kids to start creating routines.
-            </p>
-            <Button variant="outline" onClick={() => setDialogOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Your First Person
-            </Button>
-          </CardContent>
-        </Card>
+      {groups.length === 0 ? (
+        <div className="text-center py-16 border-2 border-dashed rounded-xl bg-secondary/20">
+          <Users className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-xl font-medium mb-2">No Groups Yet</h3>
+          <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+            Create a group and share the code with students to get started.
+          </p>
+          <Button size="lg" onClick={() => setCreateOpen(true)}>
+            <Plus className="w-5 h-5 mr-2" />
+            Create Your First Group
+          </Button>
+        </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {people.map((person) => (
-            <Card key={person.id} className="hover:shadow-soft transition-shadow">
-              <CardHeader className="flex flex-row items-start justify-between pb-2">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <User className="w-5 h-5 text-primary" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-base">{person.name}</CardTitle>
-                    <p className="text-xs text-muted-foreground">
-                      {typeLabels[person.type]}
-                      {person.age && ` • ${person.age} years old`}
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-muted-foreground hover:text-destructive"
-                  onClick={() => handleDelete(person.id, person.name)}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </CardHeader>
-              {person.notes && (
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">{person.notes}</p>
-                </CardContent>
-              )}
+        <div className="space-y-4">
+          {groups.map((group) => (
+            <Card key={group.id}>
+              <Collapsible open={expandedGroups.has(group.id)} onOpenChange={() => toggleGroup(group.id)}>
+                <CollapsibleTrigger asChild>
+                  <CardHeader className="cursor-pointer hover:bg-secondary/30 transition-colors rounded-t-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        {expandedGroups.has(group.id) ? (
+                          <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                        ) : (
+                          <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                        )}
+                        <div>
+                          <CardTitle className="text-lg">{group.name}</CardTitle>
+                          <CardDescription className="flex items-center gap-2 mt-1">
+                            <Users className="w-3 h-3" />
+                            {group.students.length} student{group.students.length !== 1 && "s"}
+                            <span className="mx-1">•</span>
+                            <span className="font-mono text-xs bg-secondary px-2 py-0.5 rounded">{group.join_code}</span>
+                            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={(e) => { e.stopPropagation(); copyCode(group.join_code); }}>
+                              <Copy className="w-3 h-3" />
+                            </Button>
+                          </CardDescription>
+                        </div>
+                      </div>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive" onClick={(e) => e.stopPropagation()}>
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete "{group.name}"?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will remove the group and disconnect all {group.students.length} students from it.
+                              <br /><br />
+                              <strong>This cannot be undone.</strong>
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDeleteGroup(group.id, group.name)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="pt-0">
+                    {group.students.length === 0 ? (
+                      <p className="text-muted-foreground text-center py-4 text-sm">
+                        No students yet. Share the code: <strong className="font-mono">{group.join_code}</strong>
+                      </p>
+                    ) : (
+                      <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
+                        {group.students.map((student) => (
+                          <div
+                            key={student.id}
+                            className="flex items-center gap-3 p-3 bg-secondary/30 rounded-lg cursor-pointer hover:bg-secondary/50 transition-colors"
+                            onClick={() => viewStudentDetails(student)}
+                          >
+                            <div className="w-9 h-9 rounded-full bg-foreground/10 flex items-center justify-center text-sm font-bold">
+                              {student.display_name.substring(0, 2).toUpperCase()}
+                            </div>
+                            <span className="font-medium text-sm">{student.display_name}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </CollapsibleContent>
+              </Collapsible>
             </Card>
           ))}
         </div>
       )}
+
+      {/* Student Detail Modal */}
+      <Dialog open={!!selectedStudent} onOpenChange={() => setSelectedStudent(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-foreground/10 flex items-center justify-center text-lg font-bold">
+                {selectedStudent?.display_name.substring(0, 2).toUpperCase()}
+              </div>
+              {selectedStudent?.display_name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="flex items-center gap-3 text-sm">
+              <User className="w-4 h-4 text-muted-foreground" />
+              <span className="text-muted-foreground">Name:</span>
+              <span>{selectedStudent?.display_name}</span>
+            </div>
+            {selectedStudent?.email && (
+              <div className="flex items-center gap-3 text-sm">
+                <Mail className="w-4 h-4 text-muted-foreground" />
+                <span className="text-muted-foreground">Email:</span>
+                <span>{selectedStudent.email}</span>
+              </div>
+            )}
+            <div className="flex items-start gap-3 text-sm">
+              <Users className="w-4 h-4 text-muted-foreground mt-0.5" />
+              <span className="text-muted-foreground">Groups:</span>
+              <div className="flex flex-wrap gap-1">
+                {studentGroups.map((groupName, i) => (
+                  <span key={i} className="bg-secondary px-2 py-0.5 rounded text-xs">{groupName}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

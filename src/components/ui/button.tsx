@@ -9,14 +9,14 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-[var(--shadow-md)] hover:shadow-[var(--shadow-lg)]",
+        default: "bg-foreground text-background hover:bg-foreground/90 shadow-md",
         destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-        outline: "border border-input bg-background hover:bg-secondary hover:text-secondary-foreground",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-secondary hover:text-secondary-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
-        hero: "gradient-hero text-primary-foreground shadow-lg hover:shadow-[var(--shadow-glow)] hover:scale-[1.02] active:scale-[0.98]",
-        accent: "gradient-accent text-accent-foreground shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]",
+        outline: "border-2 border-foreground bg-background text-foreground hover:bg-foreground hover:text-background",
+        secondary: "bg-secondary text-foreground border border-border hover:bg-secondary/80",
+        ghost: "hover:bg-secondary hover:text-foreground",
+        link: "text-foreground underline-offset-4 hover:underline",
+        hero: "bg-foreground text-background shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]",
+        accent: "bg-accent text-accent-foreground shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]",
       },
       size: {
         default: "h-10 px-4 py-2",
@@ -35,7 +35,7 @@ const buttonVariants = cva(
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
+  VariantProps<typeof buttonVariants> {
   asChild?: boolean;
 }
 
