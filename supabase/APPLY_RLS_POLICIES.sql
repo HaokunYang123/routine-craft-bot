@@ -5,6 +5,60 @@
 -- Paste this entire file and click "Run"
 -- =====================================================
 
+-- =====================================================
+-- SECURE DELETE FUNCTIONS (bypass RLS, validate ownership)
+-- =====================================================
+
+-- Delete a class session (coaches only)
+CREATE OR REPLACE FUNCTION public.delete_class_session(p_session_id UUID)
+RETURNS JSON AS $$
+DECLARE
+  v_coach_id UUID := auth.uid();
+  v_session RECORD;
+BEGIN
+  -- Check if session exists and belongs to this coach
+  SELECT * INTO v_session FROM class_sessions WHERE id = p_session_id;
+
+  IF NOT FOUND THEN
+    RETURN json_build_object('success', false, 'error', 'Class not found');
+  END IF;
+
+  IF v_session.coach_id != v_coach_id THEN
+    RETURN json_build_object('success', false, 'error', 'You do not own this class');
+  END IF;
+
+  -- Delete the session (cascade will handle instructor_students)
+  DELETE FROM class_sessions WHERE id = p_session_id;
+
+  RETURN json_build_object('success', true, 'message', 'Class deleted');
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- Remove a student from a class (coaches only)
+CREATE OR REPLACE FUNCTION public.remove_student_from_class(p_connection_id UUID)
+RETURNS JSON AS $$
+DECLARE
+  v_coach_id UUID := auth.uid();
+  v_connection RECORD;
+BEGIN
+  -- Check if connection exists
+  SELECT * INTO v_connection FROM instructor_students WHERE id = p_connection_id;
+
+  IF NOT FOUND THEN
+    RETURN json_build_object('success', false, 'error', 'Connection not found');
+  END IF;
+
+  IF v_connection.instructor_id != v_coach_id THEN
+    RETURN json_build_object('success', false, 'error', 'You do not own this connection');
+  END IF;
+
+  -- Delete the connection
+  DELETE FROM instructor_students WHERE id = p_connection_id;
+
+  RETURN json_build_object('success', true, 'message', 'Student removed');
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
 -- PREREQUISITE: Add class_session_id to instructor_students if missing
 -- This enables multi-group support (students can join multiple groups from same coach)
 DO $$

@@ -1,113 +1,74 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const SYSTEM_PROMPT = `You are the AI assistant built into TaskFlow, a Learning Management System (LMS) for coaches, teachers, and parents. Your job is to help users manage their classes, students, tasks, and routines.
+const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent";
 
-**Your capabilities:**
+const SYSTEM_PROMPT = `You are the AI assistant for TeachCoachConnect, a task management platform for coaches, teachers, and students. Be helpful, direct, and concise. Skip preamble. Use bullet points for clarity.
 
-1. **Generate Plans** — Create complete training plans, study schedules, or daily routines from natural language requests. When asked "Build me a 4-week beginner training plan", produce structured, actionable task lists with realistic timing.
+You can help with:
+- Creating training plans and study schedules
+- Managing classes and groups
+- Tracking student progress
+- Drafting tasks and notes
 
-2. **Manage Classes/Groups** — You know about the user's classes. You can summarize class progress, suggest tasks for specific groups, or compare completion rates across classes.
-
-3. **Track Student Progress** — Analyze completion data per student or group. Highlight who's on track, who's behind, and suggest interventions.
-
-4. **Create Tasks** — Help draft tasks for students. Format them clearly with title, description, and suggested due dates. If the user says "create a task for Period 1 to practice free throws", you produce a ready-to-use task.
-
-5. **Summarize Activity** — Generate weekly summaries. Highlight completed tasks, pending items, and patterns worth noting.
-
-6. **Notes & Communication** — Draft notes to send to students or groups. Keep them professional, encouraging, and concise.
-
-**Your tone:**
-
-Be helpful, direct, and warm. You're talking to busy educators who don't have time for fluff. Skip the preamble. Give them what they asked for. When making suggestions, be concise and confident but not pushy.
-
-**Response Format:**
-
-- Use bullet points or numbered lists for clarity.
-- When creating tasks, format as:
-  • **Task:** [Title]
-  • **Description:** [Details]
-  • **Due:** [Suggested date/timing]
-- When summarizing, use short paragraphs with key metrics bolded.
-
-**Constraints:**
-
-- Never generate tasks that are unsafe, inappropriate, or unrealistic
-- Keep individual tasks completable in under 60 minutes
-- Default to encouraging language in task descriptions
-- When unsure about context, ask one clarifying question rather than guessing wrong
-- Reference specific class or student names from the context when relevant`;
+Keep responses brief and actionable. When creating tasks, format as:
+- **Task:** [Title]
+- **Description:** [Details]
+- **Due:** [Suggested timing]`;
 
 serve(async (req) => {
+  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { messages, context } = await req.json();
+    const { messages, systemPrompt } = await req.json();
 
-    // Build context-aware system message
-    let systemMessage = SYSTEM_PROMPT;
-
-    // Add classes context
-    if (context?.classes?.length > 0) {
-      systemMessage += `\n\n**User's Classes:**\n`;
-      context.classes.forEach((c: any) => {
-        systemMessage += `- ${c.name} (Code: ${c.join_code})\n`;
-      });
+    if (!GEMINI_API_KEY) {
+      throw new Error("AI service is not configured");
     }
 
-    // Add people context
-    if (context?.people?.length > 0) {
-      systemMessage += `\n\n**People in the user's account:**\n`;
-      context.people.forEach((p: any) => {
-        systemMessage += `- ${p.name} (${p.type}${p.age ? `, age ${p.age}` : ""}${p.notes ? `: ${p.notes}` : ""})\n`;
-      });
+    // Build conversation for Gemini
+    const conversationHistory = messages.map((m: any) => ({
+      role: m.role === "user" ? "user" : "model",
+      parts: [{ text: m.content }],
+    }));
+
+    // Prepend system prompt to first user message
+    const fullSystemPrompt = systemPrompt || SYSTEM_PROMPT;
+    if (conversationHistory.length > 0 && conversationHistory[0].role === "user") {
+      conversationHistory[0].parts[0].text = `${fullSystemPrompt}\n\nUser: ${conversationHistory[0].parts[0].text}`;
     }
 
-    // Add recent tasks context
-    if (context?.recentTasks?.length > 0) {
-      const completed = context.recentTasks.filter((t: any) => t.is_completed).length;
-      const pending = context.recentTasks.length - completed;
-      systemMessage += `\n\n**Recent Tasks (last 20):**\n`;
-      systemMessage += `- Completed: ${completed}\n`;
-      systemMessage += `- Pending: ${pending}\n`;
-
-      // List a few pending tasks for context
-      const pendingTasks = context.recentTasks.filter((t: any) => !t.is_completed).slice(0, 5);
-      if (pendingTasks.length > 0) {
-        systemMessage += `- Sample pending: ${pendingTasks.map((t: any) => t.title).join(", ")}\n`;
-      }
-    }
-
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch(`${API_URL}?key=${GEMINI_API_KEY}`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: systemMessage },
-          ...messages,
-        ],
+        contents: conversationHistory,
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 500,
+        },
       }),
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`AI API error: ${error}`);
+      const errorData = await response.text();
+      console.error("Gemini API error:", errorData);
+      throw new Error("AI service temporarily unavailable");
     }
 
     const data = await response.json();
-    const assistantMessage = data.choices?.[0]?.message?.content || "I couldn't generate a response. Please try again.";
+    const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text || "I couldn't generate a response. Please try again.";
 
-    return new Response(JSON.stringify({ message: assistantMessage }), {
+    return new Response(JSON.stringify({ response: generatedText }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: any) {

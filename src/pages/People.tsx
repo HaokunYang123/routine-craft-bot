@@ -185,13 +185,17 @@ export default function People() {
 
   const handleDeleteGroup = async (groupId: string, groupName: string) => {
     try {
-      // Delete from database FIRST, then update local state
-      const { error } = await supabase
-        .from("class_sessions" as any)
-        .delete()
-        .eq("id", groupId);
+      // Use RPC function for reliable deletion (bypasses RLS issues)
+      const { data, error } = await supabase.rpc("delete_class_session" as any, {
+        p_session_id: groupId,
+      });
 
       if (error) throw error;
+
+      const result = data as { success: boolean; error?: string };
+      if (!result.success) {
+        throw new Error(result.error || "Failed to delete class");
+      }
 
       // Only update local state after successful deletion
       setGroups(prev => prev.filter(g => g.id !== groupId));
@@ -206,13 +210,17 @@ export default function People() {
 
   const handleRemoveStudent = async (connectionId: string, studentName: string, groupId: string) => {
     try {
-      // Delete from database FIRST
-      const { error } = await supabase
-        .from("instructor_students" as any)
-        .delete()
-        .eq("id", connectionId);
+      // Use RPC function for reliable deletion (bypasses RLS issues)
+      const { data, error } = await supabase.rpc("remove_student_from_class" as any, {
+        p_connection_id: connectionId,
+      });
 
       if (error) throw error;
+
+      const result = data as { success: boolean; error?: string };
+      if (!result.success) {
+        throw new Error(result.error || "Failed to remove student");
+      }
 
       // Only update local state after successful deletion
       setGroups(prev => prev.map(g => {

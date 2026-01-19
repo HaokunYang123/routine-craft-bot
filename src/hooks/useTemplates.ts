@@ -45,7 +45,16 @@ export function useTemplates() {
         .eq("coach_id", user.id)
         .order("created_at", { ascending: false });
 
-      if (templatesError) throw templatesError;
+      // If table doesn't exist yet, just return empty array (no error toast)
+      if (templatesError) {
+        if (templatesError.code === "PGRST205" || templatesError.message?.includes("not find")) {
+          console.log("Templates table not yet created - run the SQL migration");
+          setTemplates([]);
+          setLoading(false);
+          return;
+        }
+        throw templatesError;
+      }
 
       // Fetch tasks for each template
       const templatesWithTasks = await Promise.all(
