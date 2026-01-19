@@ -88,6 +88,15 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        // Coach Dashboard Design System
+        "cta-primary": "#3E7E10",
+        "cta-hover": "#2d5e0b",
+        "btn-secondary": "#0E4B7B",
+        "btn-secondary-hover": "#09365a",
+        urgent: "#CB3D0A",
+        "background-main": "#222325",
+        "text-main": "#FFFFFF",
+        "text-muted-custom": "#D1D5DB",
       },
       borderRadius: {
         lg: "var(--radius)",

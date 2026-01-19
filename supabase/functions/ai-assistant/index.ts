@@ -18,7 +18,7 @@ const corsHeaders = {
 };
 
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent";
+const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent";
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -39,35 +39,45 @@ serve(async (req) => {
     // define prompts based on action
     switch (action) {
       case "generate_plan":
-        systemPrompt = `You are an expert educational coach. Create a structured plan based on the user's request.
-        Return ONLY valid JSON with this structure:
-        {
-          "name": "Plan Name",
-          "description": "Brief description",
-          "tasks": [
-            { "title": "Task Title", "description": "Clear instructions", "day_of_week": "monday", "duration_minutes": 30 }
-          ]
-        }`;
-        userPrompt = `Create a plan for: ${payload.request}. Context: ${payload.context || "None"}`;
+        systemPrompt = `You are an expert educational/fitness coach. Create a structured plan based on the user's request.
+        Return ONLY a valid JSON array of tasks with this structure:
+        [
+          { "title": "Task Title", "description": "Clear, encouraging instructions", "duration_minutes": 30, "day_offset": 0 }
+        ]
+
+        Rules:
+        - day_offset starts at 0 (first day) and increments for subsequent days
+        - Keep task titles concise (under 50 chars)
+        - Make descriptions actionable and encouraging
+        - Vary duration based on task complexity (5-60 minutes)
+        - Spread tasks across days appropriately`;
+        userPrompt = `Create a plan for: ${payload.request}. ${payload.context ? `Context: ${payload.context}` : ""}`;
         break;
 
       case "refine_task":
-        systemPrompt = `You are a helpful teacher. Rewrite the task description to be more encouraging, clear, and actionable for a student. Keep it concise. Return ONLY the rewritten text, no quotes or existing text.`;
+        systemPrompt = `You are a helpful teacher. Rewrite the task description to be more encouraging, clear, and actionable for a student. Keep it concise (under 200 characters). Return ONLY the rewritten text, no quotes.`;
         userPrompt = `Rewrite this task description: "${payload.description}"`;
         break;
 
       case "modify_plan":
         systemPrompt = `You are an expert coach. Modify the existing plan based on user feedback.
-        Return ONLY valid JSON with the updated list of tasks only:
+        Return ONLY a valid JSON array of the updated tasks:
         [
-          { "title": "Task Title", "description": "Instructions", "day_of_week": "monday", "duration_minutes": 30 }
-        ]`;
-        userPrompt = `Current plan has ${payload.currentTasks.length} tasks. Feedback: "${payload.feedback}". \nTasks: ${JSON.stringify(payload.currentTasks)}`;
+          { "title": "Task Title", "description": "Instructions", "duration_minutes": 30, "day_offset": 0 }
+        ]
+
+        Maintain the same structure. Adjust difficulty, add/remove tasks, or modify as requested.`;
+        userPrompt = `Current plan has ${payload.currentTasks.length} tasks. Feedback: "${payload.feedback}". \nCurrent Tasks: ${JSON.stringify(payload.currentTasks)}`;
         break;
 
       case "summarize_progress":
-        systemPrompt = `You are a supportive coach. Summarize the student's weekly progress. Be encouraging but honest. Highlight achievements. Keep it under 100 words.`;
-        userPrompt = `Student Name: ${payload.studentName}. Completed ${payload.completedCount} out of ${payload.totalCount} tasks. Logs: ${JSON.stringify(payload.logs)}`;
+        systemPrompt = `You are a supportive coach. Summarize the student's weekly progress in 2-3 sentences. Be encouraging but honest. Highlight specific achievements or areas needing attention.`;
+        userPrompt = `Student: ${payload.studentName}. Completed ${payload.completedCount} of ${payload.totalCount} tasks. Recent logs: ${JSON.stringify(payload.logs?.slice(-5) || [])}`;
+        break;
+
+      case "weekly_summary":
+        systemPrompt = `You are an analytics coach. Analyze the team's weekly performance data and provide a brief 3-sentence summary. Mention who excelled (80%+ completion), who needs support (<50%), and overall trends.`;
+        userPrompt = `Team completion data: ${JSON.stringify(payload.completionData)}`;
         break;
 
       default:
@@ -108,7 +118,9 @@ serve(async (req) => {
       try {
         // Clean markdown code blocks if present
         const jsonStr = generatedText.replace(/```json\n?|\n?```/g, "").trim();
-        result = JSON.parse(jsonStr);
+        const parsed = JSON.parse(jsonStr);
+        // Ensure we return an array of tasks directly
+        result = Array.isArray(parsed) ? parsed : (parsed.tasks || []);
       } catch (e) {
         console.error("Failed to parse JSON:", generatedText);
         throw new Error("AI returned invalid JSON format");

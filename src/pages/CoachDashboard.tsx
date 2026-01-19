@@ -18,18 +18,12 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogFooter
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Users,
-  Plus,
-  BookOpen,
-  Loader2,
-  TrendingUp,
-  CheckCircle2
-} from "lucide-react";
+import { Users, Plus, BookOpen, Loader2 } from "lucide-react";
+import { OverviewWidgets } from "@/components/dashboard/OverviewWidgets";
 
 interface ClassSession {
   id: string;
@@ -46,11 +40,20 @@ interface GroupWithStats extends ClassSession {
   completion_rate: number;
 }
 
+interface StudentStatus {
+  id: string;
+  name: string;
+  completionRate: number;
+  totalTasks: number;
+  completedTasks: number;
+}
+
 export default function CoachDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [groups, setGroups] = useState<GroupWithStats[]>([]);
+  const [students, setStudents] = useState<StudentStatus[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Create Class State
@@ -75,61 +78,82 @@ export default function CoachDashboard() {
 
       if (sessionsError) throw sessionsError;
 
+      // Collect all student stats across all groups
+      const allStudentStats: StudentStatus[] = [];
+
       // 2. For each session, get stats
       const groupsWithStats = await Promise.all(
         (sessionsData || []).map(async (session: any) => {
-          // Count students
-          const { count: studentCount } = await supabase
-            .from("instructor_students" as any)
-            .select("id", { count: "exact", head: true })
-            .eq("class_session_id", session.id);
-
-          // Get student IDs for this group
+          // Get student connections with profile info
           const { data: connections } = await supabase
             .from("instructor_students" as any)
-            .select("student_id")
+            .select("student_id, profiles:student_id(id, full_name, email)")
             .eq("class_session_id", session.id);
 
           let totalTasks = 0;
           let completedTasks = 0;
 
           if (connections && connections.length > 0) {
-            const studentIds = connections.map((c: any) => c.student_id);
+            // Get individual student stats
+            for (const conn of connections) {
+              const studentId = conn.student_id;
+              const profile = conn.profiles as any;
 
-            // Count all tasks assigned to students in this group
-            const { count: totalCount } = await supabase
-              .from("tasks")
-              .select("id", { count: "exact", head: true })
-              .eq("user_id", user!.id)
-              .in("assigned_student_id", studentIds);
+              // Get tasks for this student
+              const { count: studentTotal } = await supabase
+                .from("tasks")
+                .select("id", { count: "exact", head: true })
+                .eq("user_id", user!.id)
+                .eq("assigned_student_id", studentId);
 
-            const { count: completedCount } = await supabase
-              .from("tasks")
-              .select("id", { count: "exact", head: true })
-              .eq("user_id", user!.id)
-              .in("assigned_student_id", studentIds)
-              .eq("is_completed", true);
+              const { count: studentCompleted } = await supabase
+                .from("tasks")
+                .select("id", { count: "exact", head: true })
+                .eq("user_id", user!.id)
+                .eq("assigned_student_id", studentId)
+                .eq("is_completed", true);
 
-            totalTasks = totalCount || 0;
-            completedTasks = completedCount || 0;
+              const sTotal = studentTotal || 0;
+              const sCompleted = studentCompleted || 0;
+
+              totalTasks += sTotal;
+              completedTasks += sCompleted;
+
+              // Add to student stats if they have tasks
+              if (sTotal > 0) {
+                allStudentStats.push({
+                  id: studentId,
+                  name: profile?.full_name || profile?.email || "Unknown",
+                  totalTasks: sTotal,
+                  completedTasks: sCompleted,
+                  completionRate: Math.round((sCompleted / sTotal) * 100),
+                });
+              }
+            }
           }
 
-          const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+          const completionRate =
+            totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
           return {
             ...session,
-            student_count: studentCount || 0,
+            student_count: connections?.length || 0,
             total_tasks: totalTasks,
             completed_tasks: completedTasks,
-            completion_rate: completionRate
+            completion_rate: completionRate,
           };
         })
       );
 
       setGroups(groupsWithStats);
+      setStudents(allStudentStats);
     } catch (error: any) {
       console.error("Error fetching data:", error);
-      toast({ title: "Error", description: "Failed to load groups.", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Failed to load groups.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -163,51 +187,61 @@ export default function CoachDashboard() {
     }
   };
 
-  // Calculate weighted overall stats: (Total Completed across ALL groups / Total Assigned across ALL groups)
-  const totalStudents = groups.reduce((sum, g) => sum + g.student_count, 0);
-  const totalTasks = groups.reduce((sum, g) => sum + g.total_tasks, 0);
-  const totalCompleted = groups.reduce((sum, g) => sum + g.completed_tasks, 0);
-  const overallCompletion = totalTasks > 0 ? Math.round((totalCompleted / totalTasks) * 100) : 0;
+  // Calculate weighted overall stats
+  const totalStudentsCount = groups.reduce((sum, g) => sum + g.student_count, 0);
+  const totalTasksCount = groups.reduce((sum, g) => sum + g.total_tasks, 0);
+  const totalCompletedCount = groups.reduce((sum, g) => sum + g.completed_tasks, 0);
+  const overallCompletion =
+    totalTasksCount > 0
+      ? Math.round((totalCompletedCount / totalTasksCount) * 100)
+      : 0;
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-foreground" />
+        <Loader2 className="w-8 h-8 animate-spin text-cta-primary" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 pb-20">
+    <div className="space-y-8 pb-20">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-display font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground">Overview of your classes and progress.</p>
+          <h1 className="text-3xl font-bold text-foreground">Overview</h1>
+          <p className="text-muted-foreground mt-1">
+            Track your classes and student progress
+          </p>
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button className="bg-cta-primary hover:bg-cta-hover text-white">
               <Plus className="w-4 h-4 mr-2" />
               New Class
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="bg-card border-border">
             <DialogHeader>
-              <DialogTitle>Create New Class</DialogTitle>
+              <DialogTitle className="text-foreground">Create New Class</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleCreateClass} className="space-y-4">
               <div className="space-y-2">
-                <Label>Class Name</Label>
+                <Label className="text-foreground">Class Name</Label>
                 <Input
                   value={newClassName}
                   onChange={(e) => setNewClassName(e.target.value)}
                   placeholder="e.g. Period 1, Varsity Team"
                   required
+                  className="bg-input border-border text-foreground"
                 />
               </div>
               <DialogFooter>
-                <Button type="submit" disabled={creating} className="w-full">
+                <Button
+                  type="submit"
+                  disabled={creating}
+                  className="w-full bg-cta-primary hover:bg-cta-hover text-white"
+                >
                   {creating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                   Create Class
                 </Button>
@@ -217,73 +251,31 @@ export default function CoachDashboard() {
         </Dialog>
       </div>
 
-      {/* Overall Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-4 pb-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-accent/10 rounded-lg">
-                <BookOpen className="w-5 h-5 text-accent" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{groups.length}</p>
-                <p className="text-xs text-muted-foreground">Classes</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4 pb-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-accent/10 rounded-lg">
-                <Users className="w-5 h-5 text-accent" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{totalStudents}</p>
-                <p className="text-xs text-muted-foreground">Students</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4 pb-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-accent/10 rounded-lg">
-                <CheckCircle2 className="w-5 h-5 text-accent" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{totalCompleted}/{totalTasks}</p>
-                <p className="text-xs text-muted-foreground">Tasks Done</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-accent/5 border-accent/20">
-          <CardContent className="pt-4 pb-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-accent/20 rounded-lg">
-                <TrendingUp className="w-5 h-5 text-accent" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{overallCompletion}%</p>
-                <p className="text-xs text-muted-foreground">Overall Completion</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Overview Widgets */}
+      <OverviewWidgets
+        students={students}
+        totalClasses={groups.length}
+        totalStudents={totalStudentsCount}
+        totalTasks={totalTasksCount}
+        completedTasks={totalCompletedCount}
+        overallCompletion={overallCompletion}
+      />
 
       {/* Classes Grid */}
       <div>
-        <h2 className="text-lg font-semibold mb-4">Your Classes</h2>
+        <h2 className="text-xl font-semibold mb-4 text-foreground">Your Classes</h2>
         {groups.length === 0 ? (
-          <div className="text-center py-16 border-2 border-dashed rounded-xl bg-secondary/20">
+          <div className="text-center py-16 border-2 border-dashed border-border rounded-xl bg-card/50">
             <BookOpen className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-xl font-medium mb-2">No Classes Yet</h3>
+            <h3 className="text-xl font-medium mb-2 text-foreground">No Classes Yet</h3>
             <p className="text-muted-foreground mb-6 max-w-md mx-auto">
               Create your first class to start tracking student progress.
             </p>
-            <Button size="lg" onClick={() => setCreateOpen(true)}>
+            <Button
+              size="lg"
+              onClick={() => setCreateOpen(true)}
+              className="bg-cta-primary hover:bg-cta-hover text-white"
+            >
               <Plus className="w-5 h-5 mr-2" />
               Create Your First Class
             </Button>
@@ -293,25 +285,36 @@ export default function CoachDashboard() {
             {groups.map((group) => (
               <Card
                 key={group.id}
-                className="cursor-pointer hover:shadow-lg transition-all hover:border-accent/50 group"
+                className="cursor-pointer hover:shadow-lg transition-all border-border hover:border-cta-primary/50 group bg-card"
                 onClick={() => navigate(`/dashboard/group/${group.id}`)}
               >
                 <CardHeader className="pb-2">
                   <div className="flex justify-between items-start">
                     <div>
-                      <CardTitle className="text-lg group-hover:text-accent transition-colors">{group.name}</CardTitle>
-                      <CardDescription className="flex items-center gap-1">
+                      <CardTitle className="text-lg text-foreground group-hover:text-cta-primary transition-colors">
+                        {group.name}
+                      </CardTitle>
+                      <CardDescription className="flex items-center gap-1 text-muted-foreground">
                         <Users className="w-3 h-3" />
-                        {group.student_count} student{group.student_count !== 1 && "s"}
+                        {group.student_count} student
+                        {group.student_count !== 1 && "s"}
                       </CardDescription>
                     </div>
                     {group.student_count > 0 && group.total_tasks > 0 && (
-                      <div className={`px-2 py-1 rounded text-xs font-bold ${group.completion_rate >= 80 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                        group.completion_rate >= 50 ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
-                          'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                        }`}>
-                        {group.completion_rate >= 80 ? 'On Track' :
-                          group.completion_rate >= 50 ? 'Moderate' : 'Behind'}
+                      <div
+                        className={`px-2 py-1 rounded text-xs font-bold ${
+                          group.completion_rate >= 80
+                            ? "bg-cta-primary/20 text-cta-primary"
+                            : group.completion_rate >= 50
+                            ? "bg-yellow-500/20 text-yellow-500"
+                            : "bg-urgent/20 text-urgent"
+                        }`}
+                      >
+                        {group.completion_rate >= 80
+                          ? "On Track"
+                          : group.completion_rate >= 50
+                          ? "Moderate"
+                          : "Behind"}
                       </div>
                     )}
                   </div>
@@ -322,15 +325,19 @@ export default function CoachDashboard() {
                     <div>
                       <div className="flex justify-between text-sm mb-1">
                         <span className="text-muted-foreground">Completion</span>
-                        <span className="font-medium">{group.completion_rate}%</span>
+                        <span className="font-medium text-foreground">
+                          {group.completion_rate}%
+                        </span>
                       </div>
                       <Progress value={group.completion_rate} className="h-2" />
                     </div>
 
                     {/* Join Code */}
-                    <div className="flex items-center justify-between bg-secondary/50 p-2 rounded-md">
+                    <div className="flex items-center justify-between bg-muted/30 p-2 rounded-md">
                       <span className="text-xs text-muted-foreground">Code:</span>
-                      <span className="font-mono font-bold text-sm">{group.join_code}</span>
+                      <span className="font-mono font-bold text-sm text-foreground">
+                        {group.join_code}
+                      </span>
                     </div>
                   </div>
                 </CardContent>
