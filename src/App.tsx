@@ -6,12 +6,15 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import DashboardLayout from "./pages/DashboardLayout";
-import Dashboard from "./pages/Dashboard";
+import CoachDashboard from "./pages/CoachDashboard";
 import People from "./pages/People";
 import Tasks from "./pages/Tasks";
 import Assistant from "./pages/Assistant";
 import Progress from "./pages/Progress";
 import GroupDetail from "./pages/GroupDetail";
+import Templates from "./pages/Templates";
+import CoachCalendar from "./pages/CoachCalendar";
+import CoachSettings from "./pages/CoachSettings";
 import StudentLayout from "./pages/student/StudentLayout";
 import StudentCalendar from "./pages/student/StudentCalendar";
 import StudentSchedule from "./pages/student/StudentSchedule";
@@ -20,7 +23,6 @@ import StudentPrivacy from "./pages/student/StudentPrivacy";
 import StudentHelp from "./pages/student/StudentHelp";
 import WibblePlanner from "./pages/WibblePlanner";
 import StickerBook from "./pages/student/StickerBook";
-import CoachDashboard from "./pages/CoachDashboard";
 import PolygonShowcase from "./pages/PolygonShowcase";
 
 const queryClient = new QueryClient();
@@ -38,8 +40,11 @@ const App = () => (
           <Route path="/login/student" element={<Index />} />
           {/* Teacher/Coach Dashboard */}
           <Route path="/dashboard" element={<DashboardLayout />}>
-            <Route index element={<Dashboard />} />
+            <Route index element={<CoachDashboard />} />
+            <Route path="calendar" element={<CoachCalendar />} />
             <Route path="people" element={<People />} />
+            <Route path="templates" element={<Templates />} />
+            <Route path="settings" element={<CoachSettings />} />
             <Route path="tasks" element={<Tasks />} />
             <Route path="assistant" element={<Assistant />} />
             <Route path="progress" element={<Progress />} />
@@ -55,7 +60,6 @@ const App = () => (
             <Route path="privacy" element={<StudentPrivacy />} />
             <Route path="help" element={<StudentHelp />} />
           </Route>
-          <Route path="/coach" element={<CoachDashboard />} />
           <Route path="/ui" element={<PolygonShowcase />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

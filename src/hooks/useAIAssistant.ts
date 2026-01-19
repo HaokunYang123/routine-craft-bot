@@ -95,6 +95,16 @@ export function useAIAssistant() {
         return response;
     }, [callAIAssistant]);
 
+    // Generate weekly summary for all students
+    const generateWeeklySummary = useCallback(async (
+        completionData: CompletionDataItem[]
+    ): Promise<AIResponse<string>> => {
+        return callAIAssistant<string>({
+            action: "weekly_summary",
+            payload: { completionData }
+        });
+    }, [callAIAssistant]);
+
     return {
         loading,
         error,
@@ -102,5 +112,6 @@ export function useAIAssistant() {
         modifyPlan,
         summarizeProgress,
         refineTask,
+        generateWeeklySummary,
     };
 }
