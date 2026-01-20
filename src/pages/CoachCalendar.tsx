@@ -17,6 +17,7 @@ import {
   Circle,
   Users,
   Pencil,
+  AlertTriangle,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import {
   Collapsible,
@@ -542,6 +544,7 @@ function DaySheetContent({
   const [editingTask, setEditingTask] = useState<ScheduledTask | null>(null);
   const [editForm, setEditForm] = useState({ name: "", description: "", durationMinutes: "" });
   const [saving, setSaving] = useState(false);
+  const [resetCompleted, setResetCompleted] = useState(false);
 
   const toggleGroup = (groupId: string) => {
     setExpandedGroups((prev) => {
@@ -587,18 +590,45 @@ function DaySheetContent({
       description: task.description || "",
       durationMinutes: task.durationMinutes?.toString() || "",
     });
+    setResetCompleted(false);
   };
 
   const handleSaveEdit = async () => {
     if (!editingTask || !editForm.name.trim()) return;
+
+    // If task is completed and user hasn't acknowledged the warning, don't save
+    const isCompleted = editingTask.status === "completed";
+    if (isCompleted && !resetCompleted) {
+      toast({
+        title: "Confirmation Required",
+        description: "Please confirm you want to reset this completed task.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSaving(true);
 
     try {
-      const updates: { name: string; description: string | null; duration_minutes: number | null } = {
+      const updates: {
+        name: string;
+        description: string | null;
+        duration_minutes: number | null;
+        is_customized: boolean;
+        status?: string;
+        completed_at?: string | null;
+      } = {
         name: editForm.name.trim(),
         description: editForm.description.trim() || null,
         duration_minutes: editForm.durationMinutes ? parseInt(editForm.durationMinutes) : null,
+        is_customized: true, // Mark as customized to prevent template overwrites
       };
+
+      // If task was completed and user confirmed reset, change status back to pending
+      if (isCompleted && resetCompleted) {
+        updates.status = "pending";
+        updates.completed_at = null;
+      }
 
       const { error } = await supabase
         .from("task_instances")
@@ -609,7 +639,9 @@ function DaySheetContent({
 
       toast({
         title: "Task Updated",
-        description: "This instance has been updated. The original template is unchanged.",
+        description: isCompleted && resetCompleted
+          ? "Task reset to pending. The student will need to complete it again."
+          : "This instance has been updated. The original template is unchanged.",
       });
       setEditingTask(null);
       onRefresh();
@@ -883,6 +915,35 @@ function DaySheetContent({
             <p className="text-sm text-muted-foreground">
               Changes will only apply to this instance. The original template will not be modified.
             </p>
+
+            {/* Warning for completed tasks */}
+            {editingTask?.status === "completed" && (
+              <div className="flex items-start gap-3 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
+                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                    This task is already completed
+                  </p>
+                  <p className="text-xs text-amber-700 dark:text-amber-300">
+                    Editing will reset this task to pending. The student will need to complete it again.
+                  </p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Checkbox
+                      id="sheet-reset-confirm"
+                      checked={resetCompleted}
+                      onCheckedChange={(checked) => setResetCompleted(checked === true)}
+                    />
+                    <Label
+                      htmlFor="sheet-reset-confirm"
+                      className="text-sm text-amber-800 dark:text-amber-200 cursor-pointer"
+                    >
+                      I understand, reset to pending
+                    </Label>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="sheet-edit-name">Task Name</Label>
               <Input
@@ -920,7 +981,7 @@ function DaySheetContent({
             </Button>
             <Button
               onClick={handleSaveEdit}
-              disabled={saving || !editForm.name.trim()}
+              disabled={saving || !editForm.name.trim() || (editingTask?.status === "completed" && !resetCompleted)}
               className="bg-cta-primary hover:bg-cta-hover text-white"
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
@@ -1106,6 +1167,7 @@ function TaskList({
   const [editingTask, setEditingTask] = useState<ScheduledTask | null>(null);
   const [editForm, setEditForm] = useState({ name: "", description: "", durationMinutes: "" });
   const [saving, setSaving] = useState(false);
+  const [resetCompleted, setResetCompleted] = useState(false);
 
   const toggleTaskExpanded = (taskId: string) => {
     setExpandedTasks((prev) => {
@@ -1127,18 +1189,45 @@ function TaskList({
       description: task.description || "",
       durationMinutes: task.durationMinutes?.toString() || "",
     });
+    setResetCompleted(false);
   };
 
   const handleSaveEdit = async () => {
     if (!editingTask || !editForm.name.trim()) return;
+
+    // If task is completed and user hasn't acknowledged the warning, don't save
+    const isCompleted = editingTask.status === "completed";
+    if (isCompleted && !resetCompleted) {
+      toast({
+        title: "Confirmation Required",
+        description: "Please confirm you want to reset this completed task.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSaving(true);
 
     try {
-      const updates: { name: string; description: string | null; duration_minutes: number | null } = {
+      const updates: {
+        name: string;
+        description: string | null;
+        duration_minutes: number | null;
+        is_customized: boolean;
+        status?: string;
+        completed_at?: string | null;
+      } = {
         name: editForm.name.trim(),
         description: editForm.description.trim() || null,
         duration_minutes: editForm.durationMinutes ? parseInt(editForm.durationMinutes) : null,
+        is_customized: true, // Mark as customized to prevent template overwrites
       };
+
+      // If task was completed and user confirmed reset, change status back to pending
+      if (isCompleted && resetCompleted) {
+        updates.status = "pending";
+        updates.completed_at = null;
+      }
 
       const { error } = await supabase
         .from("task_instances")
@@ -1149,7 +1238,9 @@ function TaskList({
 
       toast({
         title: "Task Updated",
-        description: "This instance has been updated. The original template is unchanged.",
+        description: isCompleted && resetCompleted
+          ? "Task reset to pending. The student will need to complete it again."
+          : "This instance has been updated. The original template is unchanged.",
       });
       setEditingTask(null);
       onRefresh();
@@ -1343,6 +1434,35 @@ function TaskList({
             <p className="text-sm text-muted-foreground">
               Changes will only apply to this instance. The original template will not be modified.
             </p>
+
+            {/* Warning for completed tasks */}
+            {editingTask?.status === "completed" && (
+              <div className="flex items-start gap-3 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
+                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                    This task is already completed
+                  </p>
+                  <p className="text-xs text-amber-700 dark:text-amber-300">
+                    Editing will reset this task to pending. The student will need to complete it again.
+                  </p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Checkbox
+                      id="list-reset-confirm"
+                      checked={resetCompleted}
+                      onCheckedChange={(checked) => setResetCompleted(checked === true)}
+                    />
+                    <Label
+                      htmlFor="list-reset-confirm"
+                      className="text-sm text-amber-800 dark:text-amber-200 cursor-pointer"
+                    >
+                      I understand, reset to pending
+                    </Label>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="edit-name">Task Name</Label>
               <Input
@@ -1380,7 +1500,7 @@ function TaskList({
             </Button>
             <Button
               onClick={handleSaveEdit}
-              disabled={saving || !editForm.name.trim()}
+              disabled={saving || !editForm.name.trim() || (editingTask?.status === "completed" && !resetCompleted)}
               className="bg-cta-primary hover:bg-cta-hover text-white"
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
