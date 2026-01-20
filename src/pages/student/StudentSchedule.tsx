@@ -472,7 +472,7 @@ function TaskSection({ title, tasks, onToggleComplete, isHistory = false, isOver
                     const isCompleted = task.status === "completed";
                     const isMissed = task.status === "missed";
                     const isExpanded = expandedTasks.has(task.id);
-                    const hasLongDescription = task.description && task.description.length > 100;
+                    const hasDescription = !!task.description;
 
                     return (
                         <Card
@@ -491,31 +491,6 @@ function TaskSection({ title, tasks, onToggleComplete, isHistory = false, isOver
                             }}
                         >
                             <CardContent className="py-4 px-4">
-                                {/* Header: Group & Coach info */}
-                                <div className="flex items-center gap-2 mb-2">
-                                    {task.group_name && (
-                                        <Badge
-                                            className="text-xs font-medium text-white"
-                                            style={{ backgroundColor: task.group_color || "#6366f1" }}
-                                        >
-                                            <Users className="w-3 h-3 mr-1" />
-                                            {task.group_name}
-                                        </Badge>
-                                    )}
-                                    {task.coach_name && (
-                                        <Badge variant="outline" className="text-xs">
-                                            <User className="w-3 h-3 mr-1" />
-                                            {task.coach_name}
-                                        </Badge>
-                                    )}
-                                    {task.updated_at && (
-                                        <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-                                            <MessageSquare className="w-3 h-3 mr-1" />
-                                            Updated
-                                        </Badge>
-                                    )}
-                                </div>
-
                                 {/* Coach Note - shown when coach updated the task */}
                                 {task.coach_note && (
                                     <div className="mb-3 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
@@ -548,6 +523,7 @@ function TaskSection({ title, tasks, onToggleComplete, isHistory = false, isOver
                                     </button>
 
                                     <div className="flex-1 min-w-0">
+                                        {/* Title */}
                                         <p className={cn(
                                             "font-semibold text-base",
                                             isCompleted && "line-through text-muted-foreground"
@@ -555,44 +531,18 @@ function TaskSection({ title, tasks, onToggleComplete, isHistory = false, isOver
                                             {task.name}
                                         </p>
 
-                                        {/* Description - expandable */}
-                                        {task.description && (
-                                            <Collapsible open={isExpanded} onOpenChange={() => toggleExpanded(task.id)}>
-                                                <div className={cn(
-                                                    "text-sm text-muted-foreground mt-2 whitespace-pre-wrap",
-                                                    !isExpanded && hasLongDescription && "line-clamp-2"
-                                                )}>
-                                                    {isExpanded ? task.description : task.description}
-                                                </div>
-                                                {hasLongDescription && (
-                                                    <CollapsibleTrigger asChild>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            className="mt-1 h-6 px-2 text-xs text-primary hover:text-primary"
-                                                        >
-                                                            {isExpanded ? (
-                                                                <>
-                                                                    <ChevronUp className="w-3 h-3 mr-1" />
-                                                                    Show less
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    <ChevronDown className="w-3 h-3 mr-1" />
-                                                                    Show full description
-                                                                </>
-                                                            )}
-                                                        </Button>
-                                                    </CollapsibleTrigger>
-                                                )}
-                                                <CollapsibleContent>
-                                                    {/* Content shown via the conditional above */}
-                                                </CollapsibleContent>
-                                            </Collapsible>
-                                        )}
+                                        {/* Assigned by - shown right under title */}
+                                        <p className="text-xs text-muted-foreground mt-1">
+                                            Assigned by {task.coach_name || "Coach"}
+                                            {task.group_name && (
+                                                <span className="ml-1">
+                                                    • <span style={{ color: task.group_color || "#6366f1" }}>{task.group_name}</span>
+                                                </span>
+                                            )}
+                                        </p>
 
-                                        {/* Meta info */}
-                                        <div className="flex flex-wrap items-center gap-2 mt-3">
+                                        {/* Meta info - always visible */}
+                                        <div className="flex flex-wrap items-center gap-2 mt-2">
                                             {task.duration_minutes && (
                                                 <Badge variant="secondary" className="text-xs gap-1">
                                                     <Clock className="w-3 h-3" />
@@ -603,17 +553,47 @@ function TaskSection({ title, tasks, onToggleComplete, isHistory = false, isOver
                                                 <Calendar className="w-3 h-3" />
                                                 Due: {format(parseISO(task.scheduled_date), "MMM d")}
                                             </Badge>
+                                            {task.updated_at && (
+                                                <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                                                    <MessageSquare className="w-3 h-3 mr-1" />
+                                                    Updated
+                                                </Badge>
+                                            )}
                                             {isMissed && (
                                                 <Badge variant="destructive" className="text-xs">
                                                     Missed
                                                 </Badge>
                                             )}
                                         </div>
-                                        {/* Assigned by info */}
-                                        {task.coach_name && (
-                                            <p className="text-xs text-muted-foreground mt-2">
-                                                Assigned by {task.coach_name}
-                                            </p>
+
+                                        {/* Expandable description - collapsed by default */}
+                                        {hasDescription && (
+                                            <Collapsible open={isExpanded} onOpenChange={() => toggleExpanded(task.id)}>
+                                                <CollapsibleTrigger asChild>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="mt-2 h-7 px-2 text-xs text-primary hover:text-primary"
+                                                    >
+                                                        {isExpanded ? (
+                                                            <>
+                                                                <ChevronUp className="w-3 h-3 mr-1" />
+                                                                Hide details
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <ChevronDown className="w-3 h-3 mr-1" />
+                                                                Show details
+                                                            </>
+                                                        )}
+                                                    </Button>
+                                                </CollapsibleTrigger>
+                                                <CollapsibleContent>
+                                                    <div className="text-sm text-muted-foreground mt-2 p-3 bg-muted/30 rounded-lg whitespace-pre-wrap">
+                                                        {task.description}
+                                                    </div>
+                                                </CollapsibleContent>
+                                            </Collapsible>
                                         )}
                                     </div>
 
