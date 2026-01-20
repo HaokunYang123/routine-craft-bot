@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Library, Plus, Sparkles, Clock, Calendar, Trash2, Loader2, Edit, FileEdit, Edit2, Users } from "lucide-react";
+import { Library, Plus, Sparkles, Clock, Calendar, Trash2, Loader2, Edit, FileEdit, Edit2, Users, Wand2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -26,12 +26,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import { AIPlanBuilder } from "@/components/ai/AIPlanBuilder";
 import { ManualTemplateBuilder, ManualTask } from "@/components/templates/ManualTemplateBuilder";
-import { GeneratedTask } from "@/hooks/useAIAssistant";
+import { GeneratedTask, useAIAssistant } from "@/hooks/useAIAssistant";
 import { useTemplates, Template } from "@/hooks/useTemplates";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Templates() {
   const { templates, loading, createTemplate, updateTemplate, deleteTemplate } = useTemplates();
+  const { refineTask } = useAIAssistant();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("ai");
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
@@ -46,6 +47,7 @@ export default function Templates() {
   const [editTasks, setEditTasks] = useState<Array<{ title: string; description: string; duration_minutes: number; day_offset: number }>>([]);
   const [editSaving, setEditSaving] = useState(false);
   const [manualSaving, setManualSaving] = useState(false);
+  const [polishingTaskIndex, setPolishingTaskIndex] = useState<number | null>(null);
 
   const handleSavePlan = (tasks: GeneratedTask[]) => {
     setPendingTasks(tasks);
@@ -142,6 +144,22 @@ export default function Templates() {
   const handleRemoveEditTask = (index: number) => {
     if (editTasks.length > 1) {
       setEditTasks((prev) => prev.filter((_, i) => i !== index));
+    }
+  };
+
+  const handlePolishEditTask = async (index: number) => {
+    const task = editTasks[index];
+    if (!task.description && !task.title) return;
+
+    setPolishingTaskIndex(index);
+    try {
+      const textToPolish = task.description || task.title;
+      const result = await refineTask(textToPolish);
+      if (result.success && result.data) {
+        handleEditTaskChange(index, "description", result.data);
+      }
+    } finally {
+      setPolishingTaskIndex(null);
     }
   };
 
@@ -453,12 +471,28 @@ export default function Templates() {
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
-                  <Input
-                    value={task.description}
-                    onChange={(e) => handleEditTaskChange(index, "description", e.target.value)}
-                    placeholder="Description (optional)"
-                    className="text-sm"
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      value={task.description}
+                      onChange={(e) => handleEditTaskChange(index, "description", e.target.value)}
+                      placeholder="Description (optional)"
+                      className="text-sm flex-1"
+                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handlePolishEditTask(index)}
+                      disabled={polishingTaskIndex === index || (!task.description && !task.title)}
+                      className="shrink-0 border-purple-300 text-purple-600 hover:bg-purple-50 hover:text-purple-700"
+                      title="Polish with AI - makes it clear and encouraging"
+                    >
+                      {polishingTaskIndex === index ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Wand2 className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </div>
                   <div className="flex gap-2">
                     <div className="flex items-center gap-2">
                       <Label className="text-xs whitespace-nowrap">Day</Label>

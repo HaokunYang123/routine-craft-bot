@@ -9,6 +9,7 @@ import {
   Trash2,
   Plus,
   Save,
+  Wand2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,11 +25,12 @@ interface AIPlanBuilderProps {
 }
 
 export function AIPlanBuilder({ onSavePlan, context }: AIPlanBuilderProps) {
-  const { generatePlan, modifyPlan, loading, error } = useAIAssistant();
+  const { generatePlan, modifyPlan, refineTask, loading, error } = useAIAssistant();
   const [generatedTasks, setGeneratedTasks] = useState<GeneratedTask[]>([]);
   const [modificationPrompt, setModificationPrompt] = useState("");
   const [isModifying, setIsModifying] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [polishingIndex, setPolishingIndex] = useState<number | null>(null);
 
   const handleGeneratePlan = async (prompt: string) => {
     const result = await generatePlan(prompt, context);
@@ -80,6 +82,23 @@ export function AIPlanBuilder({ onSavePlan, context }: AIPlanBuilderProps) {
   const handleSave = () => {
     if (onSavePlan && generatedTasks.length > 0) {
       onSavePlan(generatedTasks);
+    }
+  };
+
+  const handlePolishTask = async (index: number) => {
+    const task = generatedTasks[index];
+    if (!task.description && !task.title) return;
+
+    setPolishingIndex(index);
+    try {
+      // Use the task description, or title if no description
+      const textToPolish = task.description || task.title;
+      const result = await refineTask(textToPolish);
+      if (result.success && result.data) {
+        handleEditTask(index, "description", result.data);
+      }
+    } finally {
+      setPolishingIndex(null);
     }
   };
 
@@ -184,6 +203,7 @@ export function AIPlanBuilder({ onSavePlan, context }: AIPlanBuilderProps) {
                           key={task.originalIndex}
                           task={task}
                           isEditing={editingIndex === task.originalIndex}
+                          isPolishing={polishingIndex === task.originalIndex}
                           onEdit={() =>
                             setEditingIndex(
                               editingIndex === task.originalIndex
@@ -195,6 +215,7 @@ export function AIPlanBuilder({ onSavePlan, context }: AIPlanBuilderProps) {
                           onChange={(field, value) =>
                             handleEditTask(task.originalIndex, field, value)
                           }
+                          onPolish={() => handlePolishTask(task.originalIndex)}
                         />
                       ))}
                     </div>
@@ -211,12 +232,14 @@ export function AIPlanBuilder({ onSavePlan, context }: AIPlanBuilderProps) {
 interface TaskCardProps {
   task: GeneratedTask;
   isEditing: boolean;
+  isPolishing: boolean;
   onEdit: () => void;
   onDelete: () => void;
   onChange: (field: keyof GeneratedTask, value: any) => void;
+  onPolish: () => void;
 }
 
-function TaskCard({ task, isEditing, onEdit, onDelete, onChange }: TaskCardProps) {
+function TaskCard({ task, isEditing, isPolishing, onEdit, onDelete, onChange, onPolish }: TaskCardProps) {
   return (
     <div
       className={cn(
@@ -234,12 +257,28 @@ function TaskCard({ task, isEditing, onEdit, onDelete, onChange }: TaskCardProps
             placeholder="Task title"
             className="font-medium bg-card border-border"
           />
-          <Input
-            value={task.description}
-            onChange={(e) => onChange("description", e.target.value)}
-            placeholder="Description"
-            className="text-sm bg-card border-border"
-          />
+          <div className="flex gap-2">
+            <Input
+              value={task.description}
+              onChange={(e) => onChange("description", e.target.value)}
+              placeholder="Description (e.g., 'warmup stretches')"
+              className="text-sm bg-card border-border flex-1"
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onPolish}
+              disabled={isPolishing || (!task.description && !task.title)}
+              className="shrink-0 border-purple-300 text-purple-600 hover:bg-purple-50 hover:text-purple-700"
+              title="Polish with AI - makes it clear and encouraging"
+            >
+              {isPolishing ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Wand2 className="w-4 h-4" />
+              )}
+            </Button>
+          </div>
           <div className="flex gap-2">
             <div className="flex items-center gap-2 flex-1">
               <Clock className="w-4 h-4 text-muted-foreground" />
