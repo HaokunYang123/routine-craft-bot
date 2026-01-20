@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Loader2, Calendar, CheckCircle2, Clock, User, Plus, History } from "lucide-react";
+import { Loader2, Calendar, CheckCircle2, Clock, User, Plus, History, ChevronDown, ChevronUp, Users } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
 import { format, isToday, isTomorrow, parseISO, subDays, isAfter, isBefore, startOfDay, addDays } from "date-fns";
 import { InstructorsList } from "@/components/student/InstructorsList";
@@ -26,6 +27,9 @@ interface TaskInstance {
     assignee_id: string;
     assignment_id: string;
     coach_name?: string;
+    coach_id?: string;
+    group_name?: string;
+    group_color?: string;
 }
 
 export default function StudentSchedule() {
@@ -65,7 +69,7 @@ export default function StudentSchedule() {
                     status,
                     assignee_id,
                     assignment_id,
-                    assignments!inner(assigned_by)
+                    assignments!inner(assigned_by, group_id)
                 `)
                 .eq("assignee_id", user.id)
                 .gte("scheduled_date", sevenDaysAgo)
@@ -79,8 +83,9 @@ export default function StudentSchedule() {
                 return;
             }
 
-            // Get unique coach IDs from assignments
+            // Get unique coach IDs and group IDs from assignments
             const coachIds = [...new Set(instances.map((i: any) => i.assignments?.assigned_by).filter(Boolean))];
+            const groupIds = [...new Set(instances.map((i: any) => i.assignments?.group_id).filter(Boolean))];
 
             // Fetch coach profiles for display names
             let coachProfiles: Record<string, string> = {};
@@ -97,25 +102,46 @@ export default function StudentSchedule() {
                 }
             }
 
-            // Enrich tasks with coach names
-            const enrichedTasks: TaskInstance[] = instances.map((instance: any) => ({
-                id: instance.id,
-                name: instance.name,
-                description: instance.description,
-                duration_minutes: instance.duration_minutes,
-                scheduled_date: instance.scheduled_date,
-                status: instance.status,
-                assignee_id: instance.assignee_id,
-                assignment_id: instance.assignment_id,
-                coach_name: coachProfiles[instance.assignments?.assigned_by] || "Coach",
-            }));
+            // Fetch group info for names and colors
+            let groupInfo: Record<string, { name: string; color: string }> = {};
+            if (groupIds.length > 0) {
+                const { data: groups } = await supabase
+                    .from("groups")
+                    .select("id, name, color")
+                    .in("id", groupIds);
+
+                if (groups) {
+                    groups.forEach((g) => {
+                        groupInfo[g.id] = { name: g.name, color: g.color || "#6366f1" };
+                    });
+                }
+            }
+
+            // Enrich tasks with coach and group info
+            const enrichedTasks: TaskInstance[] = instances.map((instance: any) => {
+                const coachId = instance.assignments?.assigned_by;
+                const groupId = instance.assignments?.group_id;
+                const group = groupId ? groupInfo[groupId] : null;
+
+                return {
+                    id: instance.id,
+                    name: instance.name,
+                    description: instance.description,
+                    duration_minutes: instance.duration_minutes,
+                    scheduled_date: instance.scheduled_date,
+                    status: instance.status,
+                    assignee_id: instance.assignee_id,
+                    assignment_id: instance.assignment_id,
+                    coach_id: coachId,
+                    coach_name: coachProfiles[coachId] || "Coach",
+                    group_name: group?.name,
+                    group_color: group?.color || "#6366f1",
+                };
+            });
 
             // Filter by selected coach if set
             const filteredTasks = selectedCoachId
-                ? enrichedTasks.filter((t) => {
-                    const instance = instances.find((i: any) => i.id === t.id);
-                    return instance?.assignments?.assigned_by === selectedCoachId;
-                })
+                ? enrichedTasks.filter((t) => t.coach_id === selectedCoachId)
                 : enrichedTasks;
 
             setTasks(filteredTasks);
@@ -393,82 +419,155 @@ interface TaskSectionProps {
 }
 
 function TaskSection({ title, tasks, onToggleComplete, isHistory = false, fadingTasks = new Set() }: TaskSectionProps) {
+    const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
+
+    const toggleExpanded = (taskId: string) => {
+        setExpandedTasks(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(taskId)) {
+                newSet.delete(taskId);
+            } else {
+                newSet.add(taskId);
+            }
+            return newSet;
+        });
+    };
+
     return (
         <section>
             <h2 className="text-lg font-semibold mb-3">{title}</h2>
-            <div className="space-y-2">
+            <div className="space-y-3">
                 {tasks.map((task) => {
                     const isFading = fadingTasks.has(task.id);
                     const isCompleted = task.status === "completed";
                     const isMissed = task.status === "missed";
+                    const isExpanded = expandedTasks.has(task.id);
+                    const hasLongDescription = task.description && task.description.length > 100;
 
                     return (
                         <Card
                             key={task.id}
                             className={cn(
-                                "transition-all duration-500",
-                                isCompleted && "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800",
-                                isMissed && "bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800",
-                                isHistory && "opacity-50",
+                                "transition-all duration-500 overflow-hidden",
+                                isCompleted && "bg-green-50 dark:bg-green-900/10",
+                                isMissed && "bg-red-50 dark:bg-red-900/10",
+                                isHistory && "opacity-60",
                                 isFading && "opacity-0 scale-95 translate-x-4"
                             )}
+                            style={{
+                                borderLeftWidth: "4px",
+                                borderLeftColor: task.group_color || "#6366f1",
+                            }}
                         >
-                            <CardContent className="flex items-start gap-4 py-4">
-                                <button
-                                    onClick={() => onToggleComplete?.(task.id, !isCompleted)}
-                                    className="mt-1 focus:outline-none focus:ring-2 focus:ring-green-500 rounded-full"
-                                    disabled={isFading}
-                                >
-                                    {isCompleted ? (
-                                        <CheckCircle2 className="w-6 h-6 text-green-600" />
-                                    ) : (
-                                        <div className="w-6 h-6 rounded-full border-2 border-muted-foreground hover:border-green-500 hover:bg-green-50 transition-colors" />
+                            <CardContent className="py-4 px-4">
+                                {/* Header: Group & Coach info */}
+                                <div className="flex items-center gap-2 mb-2">
+                                    {task.group_name && (
+                                        <Badge
+                                            className="text-xs font-medium text-white"
+                                            style={{ backgroundColor: task.group_color || "#6366f1" }}
+                                        >
+                                            <Users className="w-3 h-3 mr-1" />
+                                            {task.group_name}
+                                        </Badge>
                                     )}
-                                </button>
-                                <div className="flex-1 min-w-0">
-                                    <p className={cn(
-                                        "font-medium",
-                                        isCompleted && "line-through text-muted-foreground"
-                                    )}>
-                                        {task.name}
-                                    </p>
-                                    {task.description && (
-                                        <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                                            {task.description}
-                                        </p>
+                                    {task.coach_name && (
+                                        <Badge variant="outline" className="text-xs">
+                                            <User className="w-3 h-3 mr-1" />
+                                            {task.coach_name}
+                                        </Badge>
                                     )}
-                                    <div className="flex flex-wrap gap-2 mt-2">
-                                        {task.coach_name && (
-                                            <Badge variant="outline" className="text-xs">
-                                                {task.coach_name}
-                                            </Badge>
-                                        )}
-                                        {task.duration_minutes && (
-                                            <Badge variant="secondary" className="text-xs gap-1">
-                                                <Clock className="w-3 h-3" />
-                                                {task.duration_minutes}m
-                                            </Badge>
-                                        )}
-                                        <span className="text-xs text-muted-foreground">
-                                            {format(parseISO(task.scheduled_date), "MMM d")}
-                                        </span>
-                                        {isMissed && (
-                                            <Badge variant="destructive" className="text-xs">
-                                                Missed
-                                            </Badge>
-                                        )}
-                                    </div>
                                 </div>
-                                {!isCompleted && !isHistory && !isMissed && (
-                                    <Button
-                                        size="sm"
-                                        onClick={() => onToggleComplete?.(task.id, true)}
-                                        className="bg-green-600 hover:bg-green-700 text-white shrink-0"
+
+                                {/* Main content */}
+                                <div className="flex items-start gap-3">
+                                    <button
+                                        onClick={() => onToggleComplete?.(task.id, !isCompleted)}
+                                        className="mt-0.5 focus:outline-none focus:ring-2 focus:ring-green-500 rounded-full shrink-0"
                                         disabled={isFading}
                                     >
-                                        Done
-                                    </Button>
-                                )}
+                                        {isCompleted ? (
+                                            <CheckCircle2 className="w-6 h-6 text-green-600" />
+                                        ) : (
+                                            <div className="w-6 h-6 rounded-full border-2 border-muted-foreground hover:border-green-500 hover:bg-green-50 transition-colors" />
+                                        )}
+                                    </button>
+
+                                    <div className="flex-1 min-w-0">
+                                        <p className={cn(
+                                            "font-semibold text-base",
+                                            isCompleted && "line-through text-muted-foreground"
+                                        )}>
+                                            {task.name}
+                                        </p>
+
+                                        {/* Description - expandable */}
+                                        {task.description && (
+                                            <Collapsible open={isExpanded} onOpenChange={() => toggleExpanded(task.id)}>
+                                                <div className={cn(
+                                                    "text-sm text-muted-foreground mt-2 whitespace-pre-wrap",
+                                                    !isExpanded && hasLongDescription && "line-clamp-2"
+                                                )}>
+                                                    {isExpanded ? task.description : task.description}
+                                                </div>
+                                                {hasLongDescription && (
+                                                    <CollapsibleTrigger asChild>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="mt-1 h-6 px-2 text-xs text-primary hover:text-primary"
+                                                        >
+                                                            {isExpanded ? (
+                                                                <>
+                                                                    <ChevronUp className="w-3 h-3 mr-1" />
+                                                                    Show less
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <ChevronDown className="w-3 h-3 mr-1" />
+                                                                    Show full description
+                                                                </>
+                                                            )}
+                                                        </Button>
+                                                    </CollapsibleTrigger>
+                                                )}
+                                                <CollapsibleContent>
+                                                    {/* Content shown via the conditional above */}
+                                                </CollapsibleContent>
+                                            </Collapsible>
+                                        )}
+
+                                        {/* Meta info */}
+                                        <div className="flex flex-wrap items-center gap-2 mt-3">
+                                            {task.duration_minutes && (
+                                                <Badge variant="secondary" className="text-xs gap-1">
+                                                    <Clock className="w-3 h-3" />
+                                                    {task.duration_minutes} min
+                                                </Badge>
+                                            )}
+                                            <span className="text-xs text-muted-foreground">
+                                                {format(parseISO(task.scheduled_date), "EEEE, MMM d")}
+                                            </span>
+                                            {isMissed && (
+                                                <Badge variant="destructive" className="text-xs">
+                                                    Missed
+                                                </Badge>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Done button */}
+                                    {!isCompleted && !isHistory && !isMissed && (
+                                        <Button
+                                            size="sm"
+                                            onClick={() => onToggleComplete?.(task.id, true)}
+                                            className="bg-green-600 hover:bg-green-700 text-white shrink-0"
+                                            disabled={isFading}
+                                        >
+                                            Done
+                                        </Button>
+                                    )}
+                                </div>
                             </CardContent>
                         </Card>
                     );
