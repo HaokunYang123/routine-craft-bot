@@ -9,7 +9,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Calendar, Clock, CheckCircle2, UserPlus, Users, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, Calendar, Clock, CheckCircle2, UserPlus, Users, ChevronDown, ChevronUp, User } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 
 interface TaskInstance {
@@ -21,6 +22,9 @@ interface TaskInstance {
   scheduled_time: string | null;
   status: "pending" | "completed" | "missed";
   student_note: string | null;
+  coach_name?: string;
+  group_name?: string;
+  group_color?: string;
 }
 
 interface ConnectedGroup {
@@ -48,6 +52,19 @@ export default function StudentHome() {
   const [joinCode, setJoinCode] = useState("");
   const [joiningGroup, setJoiningGroup] = useState(false);
   const [showConnections, setShowConnections] = useState(false);
+  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
+
+  const toggleTaskExpanded = (taskId: string) => {
+    setExpandedTasks(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(taskId)) {
+        newSet.delete(taskId);
+      } else {
+        newSet.add(taskId);
+      }
+      return newSet;
+    });
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -157,14 +174,16 @@ export default function StudentHome() {
     if (!user) return;
 
     const today = format(new Date(), "yyyy-MM-dd");
-    const tomorrow = format(new Date(Date.now() + 86400000), "yyyy-MM-dd");
     const nextWeek = format(new Date(Date.now() + 7 * 86400000), "yyyy-MM-dd");
 
     try {
-      // Fetch today's tasks
+      // Fetch today's tasks with assignment info
       const { data: todayData, error: todayError } = await supabase
         .from("task_instances")
-        .select("*")
+        .select(`
+          *,
+          assignments!inner(assigned_by, group_id)
+        `)
         .eq("assignee_id", user.id)
         .eq("scheduled_date", today)
         .order("scheduled_time", { ascending: true });
@@ -174,7 +193,10 @@ export default function StudentHome() {
       // Fetch upcoming tasks (tomorrow to next week)
       const { data: upcomingData, error: upcomingError } = await supabase
         .from("task_instances")
-        .select("*")
+        .select(`
+          *,
+          assignments!inner(assigned_by, group_id)
+        `)
         .eq("assignee_id", user.id)
         .gt("scheduled_date", today)
         .lte("scheduled_date", nextWeek)
@@ -183,8 +205,50 @@ export default function StudentHome() {
 
       if (upcomingError) throw upcomingError;
 
-      setTasks(todayData || []);
-      setUpcomingTasks(upcomingData || []);
+      // Get coach and group info
+      const allTasks = [...(todayData || []), ...(upcomingData || [])];
+      const coachIds = [...new Set(allTasks.map((t: any) => t.assignments?.assigned_by).filter(Boolean))];
+      const groupIds = [...new Set(allTasks.map((t: any) => t.assignments?.group_id).filter(Boolean))];
+
+      // Fetch coach profiles
+      let coachProfiles: Record<string, string> = {};
+      if (coachIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, display_name")
+          .in("user_id", coachIds);
+        profiles?.forEach((p) => {
+          coachProfiles[p.user_id] = p.display_name || "Coach";
+        });
+      }
+
+      // Fetch group info
+      let groupInfo: Record<string, { name: string; color: string }> = {};
+      if (groupIds.length > 0) {
+        const { data: groups } = await supabase
+          .from("groups")
+          .select("id, name, color")
+          .in("id", groupIds);
+        groups?.forEach((g) => {
+          groupInfo[g.id] = { name: g.name, color: g.color || "#6366f1" };
+        });
+      }
+
+      // Enrich tasks with coach and group info
+      const enrichTask = (task: any): TaskInstance => {
+        const coachId = task.assignments?.assigned_by;
+        const groupId = task.assignments?.group_id;
+        const group = groupId ? groupInfo[groupId] : null;
+        return {
+          ...task,
+          coach_name: coachProfiles[coachId] || "Coach",
+          group_name: group?.name,
+          group_color: group?.color,
+        };
+      };
+
+      setTasks((todayData || []).map(enrichTask));
+      setUpcomingTasks((upcomingData || []).map(enrichTask));
     } catch (error) {
       console.error("Error fetching tasks:", error);
       toast({
@@ -419,55 +483,104 @@ export default function StudentHome() {
             </div>
           ) : (
             <div className="space-y-3">
-              {tasks.map((task) => (
-                <div
-                  key={task.id}
-                  className={cn(
-                    "flex items-start gap-3 p-4 rounded-lg border transition-all",
-                    task.status === "completed"
-                      ? "bg-muted/30 border-border"
-                      : "bg-card border-border hover:border-cta-primary/30"
-                  )}
-                >
-                  <Checkbox
-                    checked={task.status === "completed"}
-                    onCheckedChange={(checked) =>
-                      toggleTaskStatus(task.id, checked as boolean)
-                    }
-                    className="mt-0.5"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p
-                      className={cn(
-                        "font-medium",
-                        task.status === "completed"
-                          ? "line-through text-muted-foreground"
-                          : "text-foreground"
-                      )}
-                    >
-                      {task.name}
-                    </p>
-                    {task.description && (
-                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                        {task.description}
-                      </p>
+              {tasks.map((task) => {
+                const isExpanded = expandedTasks.has(task.id);
+                const hasDescription = !!task.description;
+
+                return (
+                  <div
+                    key={task.id}
+                    className={cn(
+                      "p-4 rounded-lg border transition-all",
+                      task.status === "completed"
+                        ? "bg-muted/30 border-border"
+                        : "bg-card border-border hover:border-cta-primary/30"
                     )}
-                    <div className="flex items-center gap-3 mt-2">
-                      {task.scheduled_time && (
-                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Clock className="w-3 h-3" />
-                          {task.scheduled_time.slice(0, 5)}
-                        </span>
-                      )}
-                      {task.duration_minutes && (
-                        <Badge variant="secondary" className="text-xs">
-                          {task.duration_minutes} min
-                        </Badge>
-                      )}
+                    style={{
+                      borderLeftWidth: "4px",
+                      borderLeftColor: task.group_color || "#6366f1",
+                    }}
+                  >
+                    <div className="flex items-start gap-3">
+                      <Checkbox
+                        checked={task.status === "completed"}
+                        onCheckedChange={(checked) =>
+                          toggleTaskStatus(task.id, checked as boolean)
+                        }
+                        className="mt-0.5"
+                      />
+                      <div className="flex-1 min-w-0">
+                        {/* Task Title */}
+                        <p
+                          className={cn(
+                            "font-medium",
+                            task.status === "completed"
+                              ? "line-through text-muted-foreground"
+                              : "text-foreground"
+                          )}
+                        >
+                          {task.name}
+                        </p>
+
+                        {/* Assigned by - right under title */}
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Assigned by {task.coach_name || "Coach"}
+                          {task.group_name && (
+                            <span className="ml-1">
+                              • <span style={{ color: task.group_color || "#6366f1" }}>{task.group_name}</span>
+                            </span>
+                          )}
+                        </p>
+
+                        {/* Meta info */}
+                        <div className="flex items-center gap-2 mt-2">
+                          {task.scheduled_time && (
+                            <Badge variant="outline" className="text-xs gap-1">
+                              <Clock className="w-3 h-3" />
+                              {task.scheduled_time.slice(0, 5)}
+                            </Badge>
+                          )}
+                          {task.duration_minutes && (
+                            <Badge variant="secondary" className="text-xs">
+                              {task.duration_minutes} min
+                            </Badge>
+                          )}
+                        </div>
+
+                        {/* Expandable description */}
+                        {hasDescription && (
+                          <Collapsible open={isExpanded} onOpenChange={() => toggleTaskExpanded(task.id)}>
+                            <CollapsibleTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="mt-2 h-7 px-2 text-xs text-primary hover:text-primary"
+                              >
+                                {isExpanded ? (
+                                  <>
+                                    <ChevronUp className="w-3 h-3 mr-1" />
+                                    Hide details
+                                  </>
+                                ) : (
+                                  <>
+                                    <ChevronDown className="w-3 h-3 mr-1" />
+                                    Show details
+                                  </>
+                                )}
+                              </Button>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                              <div className="text-sm text-muted-foreground mt-2 p-3 bg-muted/30 rounded-lg whitespace-pre-wrap">
+                                {task.description}
+                              </div>
+                            </CollapsibleContent>
+                          </Collapsible>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
