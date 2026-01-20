@@ -122,6 +122,7 @@ export default function Tasks() {
   const [scheduleType, setScheduleType] = useState<"once" | "daily" | "weekly" | "custom">("once");
   const [scheduleDays, setScheduleDays] = useState<number[]>([]);
   const [startDate, setStartDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [dueDate, setDueDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [endDate, setEndDate] = useState(format(addDays(new Date(), 30), "yyyy-MM-dd"));
 
   // AI Enhancement State
@@ -206,6 +207,7 @@ export default function Tasks() {
     setScheduleType("once");
     setScheduleDays([]);
     setStartDate(format(new Date(), "yyyy-MM-dd"));
+    setDueDate(format(new Date(), "yyyy-MM-dd"));
     setEndDate(format(addDays(new Date(), 30), "yyyy-MM-dd"));
     setAssignDialogOpen(true);
   };
@@ -365,7 +367,8 @@ export default function Tasks() {
         assignee_id: selectedMember?.user_id,
         schedule_type: scheduleType,
         schedule_days: scheduleType === "custom" ? scheduleDays : undefined,
-        start_date: startDate,
+        // For "once" schedule, use dueDate as the start_date since that's when task is due
+        start_date: scheduleType === "once" ? dueDate : startDate,
         end_date: scheduleType !== "once" ? endDate : undefined,
         tasks: assignmentType === "custom" ? customTasksToSend : undefined,
       });
@@ -853,16 +856,17 @@ export default function Tasks() {
                   onChange={(e) => setStartDate(e.target.value)}
                 />
               </div>
-              {scheduleType !== "once" && (
-                <div className="space-y-2">
-                  <Label>End Date</Label>
-                  <Input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                  />
-                </div>
-              )}
+              <div className="space-y-2">
+                <Label>{scheduleType === "once" ? "Due Date" : "End Date"}</Label>
+                <Input
+                  type="date"
+                  value={scheduleType === "once" ? dueDate : endDate}
+                  onChange={(e) => scheduleType === "once"
+                    ? setDueDate(e.target.value)
+                    : setEndDate(e.target.value)
+                  }
+                />
+              </div>
             </div>
           </div>
 

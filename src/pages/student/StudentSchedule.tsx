@@ -599,15 +599,22 @@ function TaskSection({ title, tasks, onToggleComplete, isHistory = false, isOver
                                                     {task.duration_minutes} min
                                                 </Badge>
                                             )}
-                                            <span className="text-xs text-muted-foreground">
-                                                {format(parseISO(task.scheduled_date), "EEEE, MMM d")}
-                                            </span>
+                                            <Badge variant="outline" className="text-xs gap-1">
+                                                <Calendar className="w-3 h-3" />
+                                                Due: {format(parseISO(task.scheduled_date), "MMM d")}
+                                            </Badge>
                                             {isMissed && (
                                                 <Badge variant="destructive" className="text-xs">
                                                     Missed
                                                 </Badge>
                                             )}
                                         </div>
+                                        {/* Assigned by info */}
+                                        {task.coach_name && (
+                                            <p className="text-xs text-muted-foreground mt-2">
+                                                Assigned by {task.coach_name}
+                                            </p>
+                                        )}
                                     </div>
 
                                     {/* Done button */}
