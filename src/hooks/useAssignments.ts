@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { useToast } from "./use-toast";
-import { addDays, format, eachDayOfInterval, getDay } from "date-fns";
+import { addDays, format, eachDayOfInterval, getDay, parseISO, startOfDay } from "date-fns";
 
 export interface Assignment {
   id: string;
@@ -103,27 +103,72 @@ export function useAssignments() {
       }
 
       // Get tasks from template or use provided tasks
-      let tasks: Array<{ name: string; description?: string; duration_minutes?: number; day_offset?: number; due_date?: string }> = [];
+      let tasks: Array<{ name: string; description?: string; duration_minutes?: number; day_offset: number; due_date?: string }> = [];
 
       if (input.template_id) {
-        const { data: templateTasks } = await supabase
+        const { data: templateTasks, error: templateError } = await supabase
           .from("template_tasks")
           .select("title, description, duration_minutes, day_offset, sort_order")
           .eq("template_id", input.template_id)
           .order("sort_order", { ascending: true });
-        tasks = (templateTasks || []).map((t) => ({
-          name: t.title,
-          description: t.description,
-          duration_minutes: t.duration_minutes,
-          day_offset: t.day_offset || 0,
-        }));
+
+        if (templateError) {
+          console.error("[useAssignments] Error fetching template tasks:", templateError);
+          throw templateError;
+        }
+
+        console.log("[useAssignments] Template tasks fetched:", templateTasks?.length, "tasks");
+
+        // Map tasks and assign sequential day_offset for any null values
+        let nextDayOffset = 0;
+        tasks = (templateTasks || []).map((t, index) => {
+          // Use explicit day_offset if set, otherwise calculate based on position
+          const offset = t.day_offset !== null && t.day_offset !== undefined
+            ? t.day_offset
+            : index; // Fallback: use index as day_offset if null
+
+          // Track the max offset seen for sequential fallback
+          if (t.day_offset !== null && t.day_offset !== undefined) {
+            nextDayOffset = Math.max(nextDayOffset, t.day_offset + 1);
+          }
+
+          console.log(`[useAssignments] Task "${t.title}": db_offset=${t.day_offset}, used_offset=${offset}`);
+
+          return {
+            name: t.title,
+            description: t.description,
+            duration_minutes: t.duration_minutes,
+            day_offset: offset,
+          };
+        });
       } else if (input.tasks) {
-        tasks = input.tasks;
+        // Custom tasks without day_offset get offset 0 (all on start_date)
+        tasks = input.tasks.map((t, index) => ({
+          ...t,
+          day_offset: 0,
+        }));
       }
 
-      // Generate task instances based on schedule
-      const startDate = new Date(input.start_date);
-      const endDate = input.end_date ? new Date(input.end_date) : addDays(startDate, 30);
+      // Parse start_date properly to avoid timezone issues
+      // Using parseISO ensures we get the date in local timezone
+      // Format: "2026-01-20" -> Date object for Jan 20 in local timezone
+      const [year, month, day] = input.start_date.split('-').map(Number);
+      const startDate = new Date(year, month - 1, day); // month is 0-indexed
+
+      console.log("[useAssignments] Start date parsed:", input.start_date, "->", startDate.toISOString());
+
+      // For templates, calculate end_date based on max day_offset
+      let effectiveEndDate: Date;
+      if (input.template_id && tasks.length > 0) {
+        const maxOffset = Math.max(...tasks.map(t => t.day_offset));
+        effectiveEndDate = addDays(startDate, maxOffset);
+        console.log("[useAssignments] Template max offset:", maxOffset, "-> end date:", format(effectiveEndDate, "yyyy-MM-dd"));
+      } else if (input.end_date) {
+        const [ey, em, ed] = input.end_date.split('-').map(Number);
+        effectiveEndDate = new Date(ey, em - 1, ed);
+      } else {
+        effectiveEndDate = addDays(startDate, 30);
+      }
 
       // Create task instances for each assignee
       const taskInstances: Array<{
@@ -136,13 +181,12 @@ export function useAssignments() {
         status: string;
       }> = [];
 
-      // Check if tasks have day_offset (template-based scheduling)
-      const hasTaskOffsets = tasks.some(t => t.day_offset !== undefined && t.day_offset !== 0);
       // Check if any custom task has a specific due_date
       const hasCustomDueDates = tasks.some(t => t.due_date);
 
       if (hasCustomDueDates) {
         // Custom tasks with specific due dates: Each task uses its own due_date or falls back to start_date
+        console.log("[useAssignments] Using custom due_date path");
         for (const assigneeId of assigneeIds) {
           for (const task of tasks) {
             const taskDate = task.due_date || input.start_date;
@@ -157,28 +201,50 @@ export function useAssignments() {
             });
           }
         }
-      } else if (hasTaskOffsets || input.template_id) {
-        // Template-based: Use day_offset from each task to schedule on different days
+      } else if (input.template_id) {
+        // Template-based: ALWAYS use day_offset from each task
         // Each task gets scheduled on startDate + day_offset
+        console.log("[useAssignments] Using template day_offset path for", tasks.length, "tasks");
         for (const assigneeId of assigneeIds) {
           for (const task of tasks) {
-            const taskDate = addDays(startDate, task.day_offset || 0);
+            const taskDate = addDays(startDate, task.day_offset);
+            const scheduledDateStr = format(taskDate, "yyyy-MM-dd");
+
+            console.log(`[useAssignments] Creating instance: "${task.name}" offset=${task.day_offset} -> ${scheduledDateStr}`);
+
             taskInstances.push({
               assignment_id: assignment.id,
               assignee_id: assigneeId,
               name: task.name,
               description: task.description || null,
               duration_minutes: task.duration_minutes || null,
-              scheduled_date: format(taskDate, "yyyy-MM-dd"),
+              scheduled_date: scheduledDateStr,
+              status: "pending",
+            });
+          }
+        }
+      } else if (input.schedule_type === "once") {
+        // Single custom task(s) on start_date
+        console.log("[useAssignments] Using 'once' schedule path");
+        for (const assigneeId of assigneeIds) {
+          for (const task of tasks) {
+            taskInstances.push({
+              assignment_id: assignment.id,
+              assignee_id: assigneeId,
+              name: task.name,
+              description: task.description || null,
+              duration_minutes: task.duration_minutes || null,
+              scheduled_date: input.start_date,
               status: "pending",
             });
           }
         }
       } else {
-        // Custom tasks or recurring: Use schedule_type to determine dates
+        // Recurring schedule: Use schedule_type to determine dates
+        console.log("[useAssignments] Using recurring schedule path:", input.schedule_type);
         const scheduledDates = getScheduledDates(
           startDate,
-          endDate,
+          effectiveEndDate,
           input.schedule_type,
           input.schedule_days || []
         );
@@ -199,6 +265,8 @@ export function useAssignments() {
           }
         }
       }
+
+      console.log("[useAssignments] Total task instances to create:", taskInstances.length);
 
       if (taskInstances.length > 0) {
         const { error: instancesError } = await supabase
