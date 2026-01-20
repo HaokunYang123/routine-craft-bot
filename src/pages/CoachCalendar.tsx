@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   Circle,
   Users,
+  Pencil,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,17 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 import {
   Collapsible,
   CollapsibleContent,
@@ -520,9 +532,16 @@ function DaySheetContent({
   groupMap: Record<string, GroupInfo>;
   onRefresh: () => void;
 }) {
+  const { toast } = useToast();
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(groups.map(g => g.id)));
   // Track which members have expanded task lists (key: memberId)
   const [expandedMembers, setExpandedMembers] = useState<Set<string>>(new Set());
+  // Track which individual tasks are expanded (for descriptions)
+  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
+  // Edit dialog state
+  const [editingTask, setEditingTask] = useState<ScheduledTask | null>(null);
+  const [editForm, setEditForm] = useState({ name: "", description: "", durationMinutes: "" });
+  const [saving, setSaving] = useState(false);
 
   const toggleGroup = (groupId: string) => {
     setExpandedGroups((prev) => {
@@ -546,6 +565,64 @@ function DaySheetContent({
       }
       return newSet;
     });
+  };
+
+  const toggleTaskExpanded = (taskId: string) => {
+    setExpandedTasks((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(taskId)) {
+        newSet.delete(taskId);
+      } else {
+        newSet.add(taskId);
+      }
+      return newSet;
+    });
+  };
+
+  const openEditDialog = (task: ScheduledTask, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingTask(task);
+    setEditForm({
+      name: task.name,
+      description: task.description || "",
+      durationMinutes: task.durationMinutes?.toString() || "",
+    });
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingTask || !editForm.name.trim()) return;
+    setSaving(true);
+
+    try {
+      const updates: { name: string; description: string | null; duration_minutes: number | null } = {
+        name: editForm.name.trim(),
+        description: editForm.description.trim() || null,
+        duration_minutes: editForm.durationMinutes ? parseInt(editForm.durationMinutes) : null,
+      };
+
+      const { error } = await supabase
+        .from("task_instances")
+        .update(updates)
+        .eq("id", editingTask.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Task Updated",
+        description: "This instance has been updated. The original template is unchanged.",
+      });
+      setEditingTask(null);
+      onRefresh();
+    } catch (error: any) {
+      console.error("Error updating task:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update task",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   // Group tasks by group, then by member
@@ -594,166 +671,265 @@ function DaySheetContent({
   };
 
   return (
-    <div className="space-y-4">
-      {Object.entries(tasksByGroup).map(([groupId, group]) => {
-        const isExpanded = expandedGroups.has(groupId);
-        const allTasks = Object.values(group.members).flatMap(m => m.tasks);
-        const completedCount = allTasks.filter(t => t.status === "completed").length;
-        const totalCount = allTasks.length;
-        const completionRate = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+    <>
+      <div className="space-y-4">
+        {Object.entries(tasksByGroup).map(([groupId, group]) => {
+          const isExpanded = expandedGroups.has(groupId);
+          const allTasks = Object.values(group.members).flatMap(m => m.tasks);
+          const completedCount = allTasks.filter(t => t.status === "completed").length;
+          const totalCount = allTasks.length;
+          const completionRate = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
-        return (
-          <Collapsible
-            key={groupId}
-            open={isExpanded}
-            onOpenChange={() => toggleGroup(groupId)}
-          >
-            <CollapsibleTrigger asChild>
-              <div
-                className="flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-muted/50 transition-colors"
-                style={{ borderLeftWidth: "4px", borderLeftColor: group.color }}
-                role="button"
-                aria-expanded={isExpanded}
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    toggleGroup(groupId);
-                  }
-                }}
-              >
-                <div className="flex items-center gap-3">
-                  <Users className="w-5 h-5" style={{ color: group.color }} />
-                  <div>
-                    <h3 className="font-semibold text-foreground">{group.name}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {Object.keys(group.members).length} members • {completedCount}/{totalCount} tasks
-                    </p>
+          return (
+            <Collapsible
+              key={groupId}
+              open={isExpanded}
+              onOpenChange={() => toggleGroup(groupId)}
+            >
+              <CollapsibleTrigger asChild>
+                <div
+                  className="flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-muted/50 transition-colors"
+                  style={{ borderLeftWidth: "4px", borderLeftColor: group.color }}
+                  role="button"
+                  aria-expanded={isExpanded}
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      toggleGroup(groupId);
+                    }
+                  }}
+                >
+                  <div className="flex items-center gap-3">
+                    <Users className="w-5 h-5" style={{ color: group.color }} />
+                    <div>
+                      <h3 className="font-semibold text-foreground">{group.name}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {Object.keys(group.members).length} members • {completedCount}/{totalCount} tasks
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Badge
+                      variant={completionRate === 100 ? "default" : "secondary"}
+                      className={completionRate === 100 ? "bg-green-500/20 text-green-700" : ""}
+                    >
+                      {completionRate}%
+                    </Badge>
+                    {isExpanded ? (
+                      <ChevronUp className="w-5 h-5 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                    )}
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Badge
-                    variant={completionRate === 100 ? "default" : "secondary"}
-                    className={completionRate === 100 ? "bg-green-500/20 text-green-700" : ""}
-                  >
-                    {completionRate}%
-                  </Badge>
-                  {isExpanded ? (
-                    <ChevronUp className="w-5 h-5 text-muted-foreground" />
-                  ) : (
-                    <ChevronDown className="w-5 h-5 text-muted-foreground" />
-                  )}
-                </div>
-              </div>
-            </CollapsibleTrigger>
+              </CollapsibleTrigger>
 
-            <CollapsibleContent className="mt-2 space-y-3 pl-4">
-              {Object.entries(group.members).map(([memberId, member]) => {
-                const memberCompleted = member.tasks.filter(t => t.status === "completed").length;
-                const memberTotal = member.tasks.length;
-                const memberRate = memberTotal > 0 ? Math.round((memberCompleted / memberTotal) * 100) : 0;
-                const isMemberExpanded = expandedMembers.has(memberId);
-                const hasMoreTasks = member.tasks.length > MAX_VISIBLE_TASKS;
-                const visibleTasks = isMemberExpanded
-                  ? member.tasks
-                  : member.tasks.slice(0, MAX_VISIBLE_TASKS);
-                const hiddenCount = member.tasks.length - MAX_VISIBLE_TASKS;
+              <CollapsibleContent className="mt-2 space-y-3 pl-4">
+                {Object.entries(group.members).map(([memberId, member]) => {
+                  const memberCompleted = member.tasks.filter(t => t.status === "completed").length;
+                  const memberTotal = member.tasks.length;
+                  const memberRate = memberTotal > 0 ? Math.round((memberCompleted / memberTotal) * 100) : 0;
+                  const isMemberExpanded = expandedMembers.has(memberId);
+                  const hasMoreTasks = member.tasks.length > MAX_VISIBLE_TASKS;
+                  const visibleTasks = isMemberExpanded
+                    ? member.tasks
+                    : member.tasks.slice(0, MAX_VISIBLE_TASKS);
+                  const hiddenCount = member.tasks.length - MAX_VISIBLE_TASKS;
 
-                return (
-                  <div key={memberId} className="border rounded-lg p-3 bg-muted/20">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <div className={cn(
-                          "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium",
-                          memberRate === 100 ? "bg-green-500 text-white" :
-                          memberRate < 50 ? "bg-destructive text-white" :
-                          "bg-muted text-muted-foreground"
+                  return (
+                    <div key={memberId} className="border rounded-lg p-3 bg-muted/20">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className={cn(
+                            "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium",
+                            memberRate === 100 ? "bg-green-500 text-white" :
+                            memberRate < 50 ? "bg-destructive text-white" :
+                            "bg-muted text-muted-foreground"
+                          )}>
+                            {member.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm">{member.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {memberCompleted}/{memberTotal} complete
+                            </p>
+                          </div>
+                        </div>
+                        <span className={cn(
+                          "text-sm font-medium",
+                          memberRate === 100 && "text-green-600",
+                          memberRate < 50 && "text-destructive"
                         )}>
-                          {member.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm">{member.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {memberCompleted}/{memberTotal} complete
-                          </p>
-                        </div>
+                          {memberRate}%
+                        </span>
                       </div>
-                      <span className={cn(
-                        "text-sm font-medium",
-                        memberRate === 100 && "text-green-600",
-                        memberRate < 50 && "text-destructive"
-                      )}>
-                        {memberRate}%
-                      </span>
-                    </div>
 
-                    <div className="space-y-2">
-                      {visibleTasks.map((task) => (
-                        <div
-                          key={task.id}
-                          className={cn(
-                            "flex items-center gap-2 p-2 rounded-md text-sm",
-                            task.status === "completed" ? "bg-muted/50" : "bg-background"
-                          )}
-                        >
+                      <div className="space-y-2">
+                        {visibleTasks.map((task) => {
+                          const hasDescription = task.description && task.description.trim().length > 0;
+                          const isTaskExpanded = expandedTasks.has(task.id);
+
+                          return (
+                            <div
+                              key={task.id}
+                              className={cn(
+                                "rounded-md text-sm overflow-hidden",
+                                task.status === "completed" ? "bg-muted/50" : "bg-background"
+                              )}
+                            >
+                              <div
+                                className={cn(
+                                  "flex items-center gap-2 p-2",
+                                  hasDescription && "cursor-pointer"
+                                )}
+                                onClick={() => hasDescription && toggleTaskExpanded(task.id)}
+                              >
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleToggleComplete(
+                                      task.id,
+                                      task.status === "completed" ? "pending" : "completed"
+                                    );
+                                  }}
+                                  className="focus:outline-none focus:ring-2 focus:ring-cta-primary rounded shrink-0"
+                                  aria-label={task.status === "completed" ? "Mark as incomplete" : "Mark as complete"}
+                                >
+                                  {task.status === "completed" ? (
+                                    <CheckCircle2 className="w-4 h-4 text-green-500" />
+                                  ) : (
+                                    <Circle className="w-4 h-4 text-muted-foreground hover:text-cta-primary" />
+                                  )}
+                                </button>
+                                <span className={cn(
+                                  "flex-1 truncate",
+                                  task.status === "completed" && "line-through text-muted-foreground"
+                                )}>
+                                  {task.name}
+                                </span>
+                                {task.durationMinutes && (
+                                  <Badge variant="outline" className="text-xs shrink-0">
+                                    {task.durationMinutes}m
+                                  </Badge>
+                                )}
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 shrink-0"
+                                  onClick={(e) => openEditDialog(task, e)}
+                                  title="Edit task"
+                                >
+                                  <Pencil className="w-3 h-3 text-muted-foreground hover:text-foreground" />
+                                </Button>
+                                {hasDescription && (
+                                  <ChevronDown
+                                    className={cn(
+                                      "w-3 h-3 text-muted-foreground transition-transform shrink-0",
+                                      isTaskExpanded && "rotate-180"
+                                    )}
+                                  />
+                                )}
+                              </div>
+                              {hasDescription && isTaskExpanded && (
+                                <div className="px-2 pb-2 pt-0 ml-6 border-t border-border/30">
+                                  <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap">
+                                    {task.description}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+
+                        {/* Show more/less button */}
+                        {hasMoreTasks && (
                           <button
-                            onClick={() => handleToggleComplete(
-                              task.id,
-                              task.status === "completed" ? "pending" : "completed"
-                            )}
-                            className="focus:outline-none focus:ring-2 focus:ring-cta-primary rounded"
-                            aria-label={task.status === "completed" ? "Mark as incomplete" : "Mark as complete"}
+                            onClick={() => toggleMemberTasks(memberId)}
+                            className="w-full text-center py-2 text-xs font-medium text-cta-primary hover:text-cta-hover hover:bg-muted/50 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-cta-primary"
+                            aria-expanded={isMemberExpanded}
+                            aria-label={isMemberExpanded ? "Show less tasks" : `Show ${hiddenCount} more tasks`}
                           >
-                            {task.status === "completed" ? (
-                              <CheckCircle2 className="w-4 h-4 text-green-500" />
+                            {isMemberExpanded ? (
+                              <span className="flex items-center justify-center gap-1">
+                                <ChevronUp className="w-3 h-3" />
+                                Show less
+                              </span>
                             ) : (
-                              <Circle className="w-4 h-4 text-muted-foreground hover:text-cta-primary" />
+                              <span className="flex items-center justify-center gap-1">
+                                <ChevronDown className="w-3 h-3" />
+                                Show {hiddenCount} more task{hiddenCount > 1 ? "s" : ""}
+                              </span>
                             )}
                           </button>
-                          <span className={cn(
-                            "flex-1 truncate",
-                            task.status === "completed" && "line-through text-muted-foreground"
-                          )}>
-                            {task.name}
-                          </span>
-                          {task.durationMinutes && (
-                            <Badge variant="outline" className="text-xs shrink-0">
-                              {task.durationMinutes}m
-                            </Badge>
-                          )}
-                        </div>
-                      ))}
-
-                      {/* Show more/less button */}
-                      {hasMoreTasks && (
-                        <button
-                          onClick={() => toggleMemberTasks(memberId)}
-                          className="w-full text-center py-2 text-xs font-medium text-cta-primary hover:text-cta-hover hover:bg-muted/50 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-cta-primary"
-                          aria-expanded={isMemberExpanded}
-                          aria-label={isMemberExpanded ? "Show less tasks" : `Show ${hiddenCount} more tasks`}
-                        >
-                          {isMemberExpanded ? (
-                            <span className="flex items-center justify-center gap-1">
-                              <ChevronUp className="w-3 h-3" />
-                              Show less
-                            </span>
-                          ) : (
-                            <span className="flex items-center justify-center gap-1">
-                              <ChevronDown className="w-3 h-3" />
-                              Show {hiddenCount} more task{hiddenCount > 1 ? "s" : ""}
-                            </span>
-                          )}
-                        </button>
-                      )}
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </CollapsibleContent>
-          </Collapsible>
-        );
-      })}
-    </div>
+                  );
+                })}
+              </CollapsibleContent>
+            </Collapsible>
+          );
+        })}
+      </div>
+
+      {/* Edit Task Dialog */}
+      <Dialog open={!!editingTask} onOpenChange={(open) => !open && setEditingTask(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Task Instance</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              Changes will only apply to this instance. The original template will not be modified.
+            </p>
+            <div className="space-y-2">
+              <Label htmlFor="sheet-edit-name">Task Name</Label>
+              <Input
+                id="sheet-edit-name"
+                value={editForm.name}
+                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                placeholder="Task name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="sheet-edit-description">Description</Label>
+              <Textarea
+                id="sheet-edit-description"
+                value={editForm.description}
+                onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                placeholder="Optional description"
+                rows={3}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="sheet-edit-duration">Duration (minutes)</Label>
+              <Input
+                id="sheet-edit-duration"
+                type="number"
+                value={editForm.durationMinutes}
+                onChange={(e) => setEditForm({ ...editForm, durationMinutes: e.target.value })}
+                placeholder="e.g., 30"
+                min="1"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingTask(null)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveEdit}
+              disabled={saving || !editForm.name.trim()}
+              className="bg-cta-primary hover:bg-cta-hover text-white"
+            >
+              {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
@@ -924,7 +1100,70 @@ function TaskList({
   onRefresh: () => void;
   showDetails?: boolean;
 }) {
+  const { toast } = useToast();
   const [isExpanded, setIsExpanded] = useState(false);
+  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
+  const [editingTask, setEditingTask] = useState<ScheduledTask | null>(null);
+  const [editForm, setEditForm] = useState({ name: "", description: "", durationMinutes: "" });
+  const [saving, setSaving] = useState(false);
+
+  const toggleTaskExpanded = (taskId: string) => {
+    setExpandedTasks((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(taskId)) {
+        newSet.delete(taskId);
+      } else {
+        newSet.add(taskId);
+      }
+      return newSet;
+    });
+  };
+
+  const openEditDialog = (task: ScheduledTask, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingTask(task);
+    setEditForm({
+      name: task.name,
+      description: task.description || "",
+      durationMinutes: task.durationMinutes?.toString() || "",
+    });
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingTask || !editForm.name.trim()) return;
+    setSaving(true);
+
+    try {
+      const updates: { name: string; description: string | null; duration_minutes: number | null } = {
+        name: editForm.name.trim(),
+        description: editForm.description.trim() || null,
+        duration_minutes: editForm.durationMinutes ? parseInt(editForm.durationMinutes) : null,
+      };
+
+      const { error } = await supabase
+        .from("task_instances")
+        .update(updates)
+        .eq("id", editingTask.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Task Updated",
+        description: "This instance has been updated. The original template is unchanged.",
+      });
+      setEditingTask(null);
+      onRefresh();
+    } catch (error: any) {
+      console.error("Error updating task:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update task",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleToggleComplete = async (taskId: string, newStatus: "pending" | "completed") => {
     try {
@@ -957,109 +1196,199 @@ function TaskList({
   const hiddenCount = tasks.length - MAX_SIDEBAR_TASKS;
 
   return (
-    <div className="space-y-3">
-      {visibleTasks.map((task) => (
-        <div
-          key={task.id}
-          className={cn(
-            "p-3 rounded-lg border-l-4 transition-all",
-            task.status === "completed"
-              ? "border-border bg-muted/30"
-              : "border-border bg-card hover:bg-muted/20"
-          )}
-          style={{ borderLeftColor: task.groupColor }}
-        >
-          <div className="flex items-start gap-3">
-            <button
-              onClick={() => handleToggleComplete(
-                task.id,
-                task.status === "completed" ? "pending" : "completed"
+    <>
+      <div className="space-y-3">
+        {visibleTasks.map((task) => {
+          const isTaskExpanded = expandedTasks.has(task.id);
+          const hasDescription = task.description && task.description.trim().length > 0;
+
+          return (
+            <div
+              key={task.id}
+              className={cn(
+                "rounded-lg border-l-4 transition-all overflow-hidden",
+                task.status === "completed"
+                  ? "border-border bg-muted/30"
+                  : "border-border bg-card hover:bg-muted/20"
               )}
-              className="mt-0.5 focus:outline-none focus:ring-2 focus:ring-cta-primary rounded-full"
+              style={{ borderLeftColor: task.groupColor }}
             >
-              {task.status === "completed" ? (
-                <CheckCircle2 className="w-5 h-5 text-cta-primary" />
-              ) : (
-                <Circle className="w-5 h-5 text-muted-foreground hover:text-cta-primary transition-colors" />
-              )}
-            </button>
-
-            <div className="flex-1 min-w-0">
-              <p
+              {/* Main row: always visible */}
+              <div
                 className={cn(
-                  "font-medium",
-                  task.status === "completed"
-                    ? "text-muted-foreground line-through"
-                    : "text-foreground"
+                  "p-3 flex items-center gap-3",
+                  hasDescription && "cursor-pointer"
                 )}
+                onClick={() => hasDescription && toggleTaskExpanded(task.id)}
               >
-                {task.name}
-              </p>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleToggleComplete(
+                      task.id,
+                      task.status === "completed" ? "pending" : "completed"
+                    );
+                  }}
+                  className="focus:outline-none focus:ring-2 focus:ring-cta-primary rounded-full shrink-0"
+                >
+                  {task.status === "completed" ? (
+                    <CheckCircle2 className="w-5 h-5 text-cta-primary" />
+                  ) : (
+                    <Circle className="w-5 h-5 text-muted-foreground hover:text-cta-primary transition-colors" />
+                  )}
+                </button>
 
-              {showDetails && task.description && (
-                <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                  {task.description}
-                </p>
-              )}
-
-              <div className="flex flex-wrap items-center gap-2 mt-2 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <User className="w-3 h-3" />
-                  {task.assigneeName}
-                </span>
-                {task.durationMinutes && (
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    {task.durationMinutes}m
-                  </span>
-                )}
-                {task.groupName && (
-                  <Badge
-                    variant="outline"
-                    className="text-xs"
-                    style={{ borderColor: task.groupColor, color: task.groupColor }}
+                <div className="flex-1 min-w-0">
+                  {/* Title */}
+                  <p
+                    className={cn(
+                      "font-medium truncate",
+                      task.status === "completed"
+                        ? "text-muted-foreground line-through"
+                        : "text-foreground"
+                    )}
                   >
-                    <Users className="w-3 h-3 mr-1" />
-                    {task.groupName}
-                  </Badge>
-                )}
+                    {task.name}
+                  </p>
+
+                  {/* Source info: Group + Student - always visible */}
+                  <div className="flex flex-wrap items-center gap-2 mt-1">
+                    {task.groupName && (
+                      <Badge
+                        variant="outline"
+                        className="text-xs h-5 px-1.5"
+                        style={{ borderColor: task.groupColor, color: task.groupColor }}
+                      >
+                        <Users className="w-3 h-3 mr-1" />
+                        {task.groupName}
+                      </Badge>
+                    )}
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <User className="w-3 h-3" />
+                      {task.assigneeName}
+                    </span>
+                    {task.durationMinutes && (
+                      <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Clock className="w-3 h-3" />
+                        {task.durationMinutes}m
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Action buttons */}
+                <div className="flex items-center gap-1 shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={(e) => openEditDialog(task, e)}
+                    title="Edit task"
+                  >
+                    <Pencil className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+                  </Button>
+                  {hasDescription && (
+                    <ChevronDown
+                      className={cn(
+                        "w-4 h-4 text-muted-foreground transition-transform",
+                        isTaskExpanded && "rotate-180"
+                      )}
+                    />
+                  )}
+                </div>
               </div>
+
+              {/* Expanded description */}
+              {hasDescription && isTaskExpanded && (
+                <div className="px-3 pb-3 pt-0 ml-8 mr-3 border-t border-border/50">
+                  <p className="text-sm text-muted-foreground mt-2 whitespace-pre-wrap">
+                    {task.description}
+                  </p>
+                </div>
+              )}
             </div>
+          );
+        })}
 
-            {task.status !== "completed" && (
-              <Button
-                size="sm"
-                onClick={() => handleToggleComplete(task.id, "completed")}
-                className="bg-cta-primary hover:bg-cta-hover text-white shrink-0"
-              >
-                Done
-              </Button>
+        {/* Show more/less button for sidebar task list */}
+        {hasMoreTasks && (
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="w-full text-center py-2 text-sm font-medium text-cta-primary hover:text-cta-hover hover:bg-muted/50 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-cta-primary"
+            aria-expanded={isExpanded}
+            aria-label={isExpanded ? "Show less tasks" : `Show ${hiddenCount} more tasks`}
+          >
+            {isExpanded ? (
+              <span className="flex items-center justify-center gap-1">
+                <ChevronUp className="w-4 h-4" />
+                Show less
+              </span>
+            ) : (
+              <span className="flex items-center justify-center gap-1">
+                <ChevronDown className="w-4 h-4" />
+                Show {hiddenCount} more task{hiddenCount > 1 ? "s" : ""}
+              </span>
             )}
-          </div>
-        </div>
-      ))}
+          </button>
+        )}
+      </div>
 
-      {/* Show more/less button for sidebar task list */}
-      {hasMoreTasks && (
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="w-full text-center py-2 text-sm font-medium text-cta-primary hover:text-cta-hover hover:bg-muted/50 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-cta-primary"
-          aria-expanded={isExpanded}
-          aria-label={isExpanded ? "Show less tasks" : `Show ${hiddenCount} more tasks`}
-        >
-          {isExpanded ? (
-            <span className="flex items-center justify-center gap-1">
-              <ChevronUp className="w-4 h-4" />
-              Show less
-            </span>
-          ) : (
-            <span className="flex items-center justify-center gap-1">
-              <ChevronDown className="w-4 h-4" />
-              Show {hiddenCount} more task{hiddenCount > 1 ? "s" : ""}
-            </span>
-          )}
-        </button>
-      )}
-    </div>
+      {/* Edit Task Dialog */}
+      <Dialog open={!!editingTask} onOpenChange={(open) => !open && setEditingTask(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Task Instance</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              Changes will only apply to this instance. The original template will not be modified.
+            </p>
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Task Name</Label>
+              <Input
+                id="edit-name"
+                value={editForm.name}
+                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                placeholder="Task name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-description">Description</Label>
+              <Textarea
+                id="edit-description"
+                value={editForm.description}
+                onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                placeholder="Optional description"
+                rows={3}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-duration">Duration (minutes)</Label>
+              <Input
+                id="edit-duration"
+                type="number"
+                value={editForm.durationMinutes}
+                onChange={(e) => setEditForm({ ...editForm, durationMinutes: e.target.value })}
+                placeholder="e.g., 30"
+                min="1"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingTask(null)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveEdit}
+              disabled={saving || !editForm.name.trim()}
+              className="bg-cta-primary hover:bg-cta-hover text-white"
+            >
+              {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
