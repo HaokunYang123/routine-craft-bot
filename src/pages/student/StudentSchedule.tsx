@@ -2,102 +2,138 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Loader2, Calendar, CheckCircle2, Clock, User, Plus, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { format, isToday, isTomorrow, parseISO, subDays, isAfter, isBefore, startOfDay } from "date-fns";
+import { format, isToday, isTomorrow, parseISO, subDays, isAfter, isBefore, startOfDay, addDays } from "date-fns";
 import { InstructorsList } from "@/components/student/InstructorsList";
 import { JoinInstructor } from "@/components/student/JoinInstructor";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
-interface Task {
+// Use task_instances table - these have the correctly calculated scheduled_date
+interface TaskInstance {
     id: string;
-    title: string;
+    name: string;
     description: string | null;
     duration_minutes: number | null;
-    due_date: string | null;
-    is_completed: boolean;
-    user_id: string;
-    instructor_name?: string;
+    scheduled_date: string;
+    status: "pending" | "completed" | "missed";
+    assignee_id: string;
+    assignment_id: string;
+    coach_name?: string;
 }
 
 export default function StudentSchedule() {
     const { user } = useAuth();
     const { toast } = useToast();
     const [searchParams, setSearchParams] = useSearchParams();
-    const [tasks, setTasks] = useState<Task[]>([]);
+    const [tasks, setTasks] = useState<TaskInstance[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState("schedule");
     const [showHistory, setShowHistory] = useState(false);
     const [fadingTasks, setFadingTasks] = useState<Set<string>>(new Set());
 
-    const selectedInstructorId = searchParams.get("instructorId");
+    const selectedCoachId = searchParams.get("coachId");
 
     useEffect(() => {
         if (!user) return;
         fetchSchedule();
-    }, [user, selectedInstructorId]);
+    }, [user, selectedCoachId]);
 
     const fetchSchedule = async () => {
+        if (!user) return;
         setLoading(true);
 
-        // First get all instructor IDs for this student
-        const { data: relationships } = await supabase
-            .from("instructor_students" as any)
-            .select("instructor_id")
-            .eq("student_id", user!.id);
+        try {
+            // Fetch task_instances directly assigned to this user
+            // Include assignment data to get the coach info
+            const sevenDaysAgo = format(subDays(new Date(), 7), "yyyy-MM-dd");
 
-        if (!relationships || relationships.length === 0) {
-            setTasks([]);
+            const { data: instances, error } = await supabase
+                .from("task_instances")
+                .select(`
+                    id,
+                    name,
+                    description,
+                    duration_minutes,
+                    scheduled_date,
+                    status,
+                    assignee_id,
+                    assignment_id,
+                    assignments!inner(assigned_by)
+                `)
+                .eq("assignee_id", user.id)
+                .gte("scheduled_date", sevenDaysAgo)
+                .order("scheduled_date", { ascending: true });
+
+            if (error) throw error;
+
+            if (!instances || instances.length === 0) {
+                setTasks([]);
+                setLoading(false);
+                return;
+            }
+
+            // Get unique coach IDs from assignments
+            const coachIds = [...new Set(instances.map((i: any) => i.assignments?.assigned_by).filter(Boolean))];
+
+            // Fetch coach profiles for display names
+            let coachProfiles: Record<string, string> = {};
+            if (coachIds.length > 0) {
+                const { data: profiles } = await supabase
+                    .from("profiles")
+                    .select("user_id, display_name")
+                    .in("user_id", coachIds);
+
+                if (profiles) {
+                    profiles.forEach((p) => {
+                        coachProfiles[p.user_id] = p.display_name || "Coach";
+                    });
+                }
+            }
+
+            // Enrich tasks with coach names
+            const enrichedTasks: TaskInstance[] = instances.map((instance: any) => ({
+                id: instance.id,
+                name: instance.name,
+                description: instance.description,
+                duration_minutes: instance.duration_minutes,
+                scheduled_date: instance.scheduled_date,
+                status: instance.status,
+                assignee_id: instance.assignee_id,
+                assignment_id: instance.assignment_id,
+                coach_name: coachProfiles[instance.assignments?.assigned_by] || "Coach",
+            }));
+
+            // Filter by selected coach if set
+            const filteredTasks = selectedCoachId
+                ? enrichedTasks.filter((t) => {
+                    const instance = instances.find((i: any) => i.id === t.id);
+                    return instance?.assignments?.assigned_by === selectedCoachId;
+                })
+                : enrichedTasks;
+
+            setTasks(filteredTasks);
+        } catch (error) {
+            console.error("Error fetching schedule:", error);
+            toast({
+                title: "Error",
+                description: "Failed to load your schedule.",
+                variant: "destructive",
+            });
+        } finally {
             setLoading(false);
-            return;
         }
-
-        const instructorIds = relationships.map((r: any) => r.instructor_id);
-
-        // Filter by selected instructor if set
-        const filterIds = selectedInstructorId
-            ? [selectedInstructorId]
-            : instructorIds;
-
-        // Fetch tasks from connected instructors
-        // We get ALL tasks from my instructors, then filter by assignment in memory 
-        // OR we can add filters to the query if Supabase supports complex ORs easily here.
-        // For simplicity with this library volume, fetching and filtering is fine for MVP.
-        const { data: tasksData } = await supabase
-            .from("tasks")
-            .select("*")
-            .in("user_id", filterIds)
-            .order("due_date", { ascending: true });
-
-        // Filter: Show task only if (assigned_to ME) OR (assigned_to NULL/ALL)
-        const relevantTasks = (tasksData || []).filter((task: any) => {
-            return !task.assigned_student_id || task.assigned_student_id === user!.id;
-        });
-
-        // Get instructor names
-        const { data: profiles } = await supabase
-            .from("profiles")
-            .select("user_id, display_name")
-            .in("user_id", instructorIds);
-
-        const enrichedTasks = relevantTasks.map((task) => ({
-            ...task,
-            instructor_name: profiles?.find((p) => p.user_id === task.user_id)?.display_name || "Instructor",
-        }));
-
-        setTasks(enrichedTasks);
-        setLoading(false);
     };
 
-    const handleSelectInstructor = (instructorId: string | null) => {
-        if (instructorId) {
-            setSearchParams({ instructorId });
+    const handleSelectCoach = (coachId: string | null) => {
+        if (coachId) {
+            setSearchParams({ coachId });
         } else {
             setSearchParams({});
         }
@@ -105,14 +141,20 @@ export default function StudentSchedule() {
 
     const handleToggleComplete = async (taskId: string, completed: boolean) => {
         try {
+            const newStatus = completed ? "completed" : "pending";
+
             // Optimistic update
             setTasks(prev => prev.map(t =>
-                t.id === taskId ? { ...t, is_completed: completed } : t
+                t.id === taskId ? { ...t, status: newStatus } : t
             ));
 
+            // Update task_instances table (not tasks!)
             const { error } = await supabase
-                .from("tasks")
-                .update({ is_completed: completed })
+                .from("task_instances")
+                .update({
+                    status: newStatus,
+                    completed_at: completed ? new Date().toISOString() : null,
+                })
                 .eq("id", taskId);
 
             if (error) throw error;
@@ -137,8 +179,9 @@ export default function StudentSchedule() {
             }
         } catch (error: any) {
             // Revert on error
+            const revertStatus = completed ? "pending" : "completed";
             setTasks(prev => prev.map(t =>
-                t.id === taskId ? { ...t, is_completed: !completed } : t
+                t.id === taskId ? { ...t, status: revertStatus } : t
             ));
             setFadingTasks(prev => {
                 const newSet = new Set(prev);
@@ -155,36 +198,37 @@ export default function StudentSchedule() {
 
     // Calculate date boundaries
     const today = startOfDay(new Date());
+    const tomorrow = addDays(today, 1);
     const sevenDaysAgo = subDays(today, 7);
 
     // Filter tasks based on view mode
     const activeTasks = tasks.filter(t => {
         // If task is currently fading out, still show it
         if (fadingTasks.has(t.id)) return true;
-        // Active view: show incomplete tasks only
-        return !t.is_completed;
+        // Active view: show pending tasks only
+        return t.status === "pending";
     });
 
     const historyTasks = tasks.filter(t => {
-        // History view: show completed tasks from past 7 days
-        if (!t.is_completed) return false;
-        if (!t.due_date) return true; // Show completed tasks without due date
-        const dueDate = parseISO(t.due_date);
-        return isAfter(dueDate, sevenDaysAgo);
+        // History view: show completed/missed tasks from past 7 days
+        if (t.status === "pending") return false;
+        const scheduledDate = parseISO(t.scheduled_date);
+        return isAfter(scheduledDate, sevenDaysAgo);
     });
 
     const displayTasks = showHistory ? historyTasks : activeTasks;
 
     const groupedTasks = {
-        today: displayTasks.filter((t) => t.due_date && isToday(parseISO(t.due_date))),
-        tomorrow: displayTasks.filter((t) => t.due_date && isTomorrow(parseISO(t.due_date))),
-        upcoming: displayTasks.filter(
-            (t) => t.due_date && !isToday(parseISO(t.due_date)) && !isTomorrow(parseISO(t.due_date)) && isAfter(parseISO(t.due_date), today)
-        ),
-        past: displayTasks.filter(
-            (t) => t.due_date && isBefore(parseISO(t.due_date), today) && !isToday(parseISO(t.due_date))
-        ),
-        noDue: displayTasks.filter((t) => !t.due_date),
+        today: displayTasks.filter((t) => isToday(parseISO(t.scheduled_date))),
+        tomorrow: displayTasks.filter((t) => isTomorrow(parseISO(t.scheduled_date))),
+        upcoming: displayTasks.filter((t) => {
+            const date = parseISO(t.scheduled_date);
+            return isAfter(date, tomorrow) && !isToday(date) && !isTomorrow(date);
+        }),
+        past: displayTasks.filter((t) => {
+            const date = parseISO(t.scheduled_date);
+            return isBefore(date, today) && !isToday(date);
+        }),
     };
 
     return (
@@ -192,7 +236,7 @@ export default function StudentSchedule() {
             <header>
                 <h1 className="text-2xl font-bold">My Schedule</h1>
                 <p className="text-muted-foreground">
-                    Assignments from your instructors
+                    Your assigned tasks and routines
                 </p>
             </header>
 
@@ -216,13 +260,13 @@ export default function StudentSchedule() {
                     {/* History Toggle & Filter indicator */}
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            {selectedInstructorId && (
+                            {selectedCoachId && (
                                 <Badge
                                     variant="secondary"
                                     className="cursor-pointer"
-                                    onClick={() => handleSelectInstructor(null)}
+                                    onClick={() => handleSelectCoach(null)}
                                 >
-                                    Filtered by instructor - Click to show all
+                                    Filtered by coach - Click to show all
                                 </Badge>
                             )}
                         </div>
@@ -249,9 +293,9 @@ export default function StudentSchedule() {
                                 <div className="w-16 h-16 bg-accent/20 rounded-full flex items-center justify-center mb-4">
                                     <Plus className="w-8 h-8 text-accent" />
                                 </div>
-                                <h3 className="font-bold text-lg mb-2">Join a Group First!</h3>
+                                <h3 className="font-bold text-lg mb-2">No Tasks Yet!</h3>
                                 <p className="text-muted-foreground text-center text-sm mb-4 max-w-xs">
-                                    Ask your coach for their class code, then tap "Join Group" above to connect.
+                                    Join a group and wait for your coach to assign tasks.
                                 </p>
                                 <Button onClick={() => setActiveTab("join")} className="gap-2">
                                     <Plus className="w-4 h-4" />
@@ -321,19 +365,14 @@ export default function StudentSchedule() {
                             {groupedTasks.upcoming.length > 0 && (
                                 <TaskSection title="Upcoming" tasks={groupedTasks.upcoming} onToggleComplete={handleToggleComplete} isHistory={showHistory} fadingTasks={fadingTasks} />
                             )}
-
-                            {/* No Due Date */}
-                            {groupedTasks.noDue.length > 0 && (
-                                <TaskSection title="No Due Date" tasks={groupedTasks.noDue} onToggleComplete={handleToggleComplete} isHistory={showHistory} fadingTasks={fadingTasks} />
-                            )}
                         </>
                     )}
                 </TabsContent>
 
                 <TabsContent value="instructors" className="mt-4">
                     <InstructorsList
-                        onSelectInstructor={handleSelectInstructor}
-                        selectedInstructorId={selectedInstructorId}
+                        onSelectInstructor={handleSelectCoach}
+                        selectedInstructorId={selectedCoachId}
                     />
                 </TabsContent>
 
@@ -347,7 +386,7 @@ export default function StudentSchedule() {
 
 interface TaskSectionProps {
     title: string;
-    tasks: Task[];
+    tasks: TaskInstance[];
     onToggleComplete?: (taskId: string, completed: boolean) => void;
     isHistory?: boolean;
     fadingTasks?: Set<string>;
@@ -360,24 +399,27 @@ function TaskSection({ title, tasks, onToggleComplete, isHistory = false, fading
             <div className="space-y-2">
                 {tasks.map((task) => {
                     const isFading = fadingTasks.has(task.id);
+                    const isCompleted = task.status === "completed";
+                    const isMissed = task.status === "missed";
 
                     return (
                         <Card
                             key={task.id}
                             className={cn(
                                 "transition-all duration-500",
-                                task.is_completed && "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800",
+                                isCompleted && "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800",
+                                isMissed && "bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800",
                                 isHistory && "opacity-50",
                                 isFading && "opacity-0 scale-95 translate-x-4"
                             )}
                         >
                             <CardContent className="flex items-start gap-4 py-4">
                                 <button
-                                    onClick={() => onToggleComplete?.(task.id, !task.is_completed)}
+                                    onClick={() => onToggleComplete?.(task.id, !isCompleted)}
                                     className="mt-1 focus:outline-none focus:ring-2 focus:ring-green-500 rounded-full"
                                     disabled={isFading}
                                 >
-                                    {task.is_completed ? (
+                                    {isCompleted ? (
                                         <CheckCircle2 className="w-6 h-6 text-green-600" />
                                     ) : (
                                         <div className="w-6 h-6 rounded-full border-2 border-muted-foreground hover:border-green-500 hover:bg-green-50 transition-colors" />
@@ -386,9 +428,9 @@ function TaskSection({ title, tasks, onToggleComplete, isHistory = false, fading
                                 <div className="flex-1 min-w-0">
                                     <p className={cn(
                                         "font-medium",
-                                        task.is_completed && "line-through text-muted-foreground"
+                                        isCompleted && "line-through text-muted-foreground"
                                     )}>
-                                        {task.title}
+                                        {task.name}
                                     </p>
                                     {task.description && (
                                         <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
@@ -396,23 +438,28 @@ function TaskSection({ title, tasks, onToggleComplete, isHistory = false, fading
                                         </p>
                                     )}
                                     <div className="flex flex-wrap gap-2 mt-2">
-                                        <Badge variant="outline" className="text-xs">
-                                            {task.instructor_name}
-                                        </Badge>
+                                        {task.coach_name && (
+                                            <Badge variant="outline" className="text-xs">
+                                                {task.coach_name}
+                                            </Badge>
+                                        )}
                                         {task.duration_minutes && (
                                             <Badge variant="secondary" className="text-xs gap-1">
                                                 <Clock className="w-3 h-3" />
                                                 {task.duration_minutes}m
                                             </Badge>
                                         )}
-                                        {task.due_date && (
-                                            <span className="text-xs text-muted-foreground">
-                                                {format(parseISO(task.due_date), "MMM d")}
-                                            </span>
+                                        <span className="text-xs text-muted-foreground">
+                                            {format(parseISO(task.scheduled_date), "MMM d")}
+                                        </span>
+                                        {isMissed && (
+                                            <Badge variant="destructive" className="text-xs">
+                                                Missed
+                                            </Badge>
                                         )}
                                     </div>
                                 </div>
-                                {!task.is_completed && !isHistory && (
+                                {!isCompleted && !isHistory && !isMissed && (
                                     <Button
                                         size="sm"
                                         onClick={() => onToggleComplete?.(task.id, true)}
