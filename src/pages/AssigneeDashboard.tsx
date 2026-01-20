@@ -18,18 +18,18 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
-import { format, isToday, isTomorrow, parseISO } from "date-fns";
+import { format, parseISO } from "date-fns";
 
-interface Task {
+// Use task_instances table - these have the correctly calculated scheduled_date
+interface TaskInstance {
   id: string;
-  title: string;
+  name: string;
   description: string | null;
   duration_minutes: number | null;
   scheduled_time: string | null;
-  scheduled_date: string | null;
-  is_completed: boolean;
-  priority: string | null;
-  category: string | null;
+  scheduled_date: string;
+  status: "pending" | "completed" | "missed";
+  coach_name?: string;
 }
 
 interface CoachNote {
@@ -43,7 +43,7 @@ export default function AssigneeDashboard() {
   const { user, profile } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [tasks, setTasks] = useState<TaskInstance[]>([]);
   const [notes, setNotes] = useState<CoachNote[]>([]);
   const [streak, setStreak] = useState(0);
   const [completingTask, setCompletingTask] = useState<string | null>(null);
@@ -59,17 +59,60 @@ export default function AssigneeDashboard() {
     setLoading(true);
 
     try {
-      const today = new Date().toISOString().split("T")[0];
+      const today = format(new Date(), "yyyy-MM-dd");
 
-      // Fetch today's tasks
-      const { data: tasksData } = await supabase
-        .from("tasks")
-        .select("*")
-        .eq("assigned_student_id", user.id)
+      // Fetch today's task instances (not tasks!)
+      const { data: instances, error } = await supabase
+        .from("task_instances")
+        .select(`
+          id,
+          name,
+          description,
+          duration_minutes,
+          scheduled_time,
+          scheduled_date,
+          status,
+          assignments!inner(assigned_by)
+        `)
+        .eq("assignee_id", user.id)
         .eq("scheduled_date", today)
         .order("scheduled_time", { ascending: true });
 
-      setTasks(tasksData || []);
+      if (error) throw error;
+
+      // Get coach names
+      if (instances && instances.length > 0) {
+        const coachIds = [...new Set(instances.map((i: any) => i.assignments?.assigned_by).filter(Boolean))];
+
+        let coachProfiles: Record<string, string> = {};
+        if (coachIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from("profiles")
+            .select("user_id, display_name")
+            .in("user_id", coachIds);
+
+          if (profiles) {
+            profiles.forEach((p) => {
+              coachProfiles[p.user_id] = p.display_name || "Coach";
+            });
+          }
+        }
+
+        const enrichedTasks: TaskInstance[] = instances.map((instance: any) => ({
+          id: instance.id,
+          name: instance.name,
+          description: instance.description,
+          duration_minutes: instance.duration_minutes,
+          scheduled_time: instance.scheduled_time,
+          scheduled_date: instance.scheduled_date,
+          status: instance.status,
+          coach_name: coachProfiles[instance.assignments?.assigned_by] || "Coach",
+        }));
+
+        setTasks(enrichedTasks);
+      } else {
+        setTasks([]);
+      }
 
       // Fetch coach notes
       const { data: notesData } = await supabase
@@ -114,16 +157,19 @@ export default function AssigneeDashboard() {
     }
   };
 
-  const toggleTaskCompletion = async (task: Task) => {
+  const toggleTaskCompletion = async (task: TaskInstance) => {
     setCompletingTask(task.id);
 
     try {
-      const newStatus = !task.is_completed;
+      const isCompleted = task.status === "completed";
+      const newStatus = isCompleted ? "pending" : "completed";
+
+      // Update task_instances table (not tasks!)
       const { error } = await supabase
-        .from("tasks")
+        .from("task_instances")
         .update({
-          is_completed: newStatus,
-          completed_at: newStatus ? new Date().toISOString() : null,
+          status: newStatus,
+          completed_at: newStatus === "completed" ? new Date().toISOString() : null,
         })
         .eq("id", task.id);
 
@@ -131,14 +177,14 @@ export default function AssigneeDashboard() {
 
       setTasks((prev) =>
         prev.map((t) =>
-          t.id === task.id ? { ...t, is_completed: newStatus } : t
+          t.id === task.id ? { ...t, status: newStatus } : t
         )
       );
 
-      if (newStatus) {
+      if (newStatus === "completed") {
         toast({
           title: "Task Completed!",
-          description: `Great job completing "${task.title}"`,
+          description: `Great job completing "${task.name}"`,
         });
       }
     } catch (error: any) {
@@ -152,7 +198,7 @@ export default function AssigneeDashboard() {
     }
   };
 
-  const completedCount = tasks.filter((t) => t.is_completed).length;
+  const completedCount = tasks.filter((t) => t.status === "completed").length;
   const completionRate = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0;
 
   // Get greeting based on time of day
@@ -233,64 +279,71 @@ export default function AssigneeDashboard() {
             </div>
           ) : (
             <div className="space-y-3">
-              {tasks.map((task) => (
-                <div
-                  key={task.id}
-                  className={`flex items-start gap-3 p-4 rounded-lg border transition-all ${
-                    task.is_completed
-                      ? "border-success/30 bg-success/5"
-                      : "border-border bg-card/50 hover:border-cta-primary/30"
-                  }`}
-                >
-                  <button
-                    onClick={() => toggleTaskCompletion(task)}
-                    disabled={completingTask === task.id}
-                    className="mt-0.5 shrink-0"
+              {tasks.map((task) => {
+                const isCompleted = task.status === "completed";
+                const isMissed = task.status === "missed";
+
+                return (
+                  <div
+                    key={task.id}
+                    className={`flex items-start gap-3 p-4 rounded-lg border transition-all ${
+                      isCompleted
+                        ? "border-success/30 bg-success/5"
+                        : isMissed
+                        ? "border-destructive/30 bg-destructive/5"
+                        : "border-border bg-card/50 hover:border-cta-primary/30"
+                    }`}
                   >
-                    {completingTask === task.id ? (
-                      <Loader2 className="w-6 h-6 animate-spin text-cta-primary" />
-                    ) : task.is_completed ? (
-                      <CheckCircle2 className="w-6 h-6 text-success" />
-                    ) : (
-                      <Circle className="w-6 h-6 text-muted-foreground hover:text-cta-primary transition-colors" />
-                    )}
-                  </button>
-                  <div className="flex-1 min-w-0">
-                    <p
-                      className={`font-medium ${
-                        task.is_completed
-                          ? "line-through text-muted-foreground"
-                          : "text-foreground"
-                      }`}
+                    <button
+                      onClick={() => toggleTaskCompletion(task)}
+                      disabled={completingTask === task.id}
+                      className="mt-0.5 shrink-0"
                     >
-                      {task.title}
-                    </p>
-                    {task.description && (
-                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                        {task.description}
+                      {completingTask === task.id ? (
+                        <Loader2 className="w-6 h-6 animate-spin text-cta-primary" />
+                      ) : isCompleted ? (
+                        <CheckCircle2 className="w-6 h-6 text-success" />
+                      ) : (
+                        <Circle className="w-6 h-6 text-muted-foreground hover:text-cta-primary transition-colors" />
+                      )}
+                    </button>
+                    <div className="flex-1 min-w-0">
+                      <p
+                        className={`font-medium ${
+                          isCompleted
+                            ? "line-through text-muted-foreground"
+                            : "text-foreground"
+                        }`}
+                      >
+                        {task.name}
                       </p>
-                    )}
-                    <div className="flex items-center gap-3 mt-2">
-                      {task.scheduled_time && (
-                        <span className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {task.scheduled_time}
-                        </span>
+                      {task.description && (
+                        <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                          {task.description}
+                        </p>
                       )}
-                      {task.duration_minutes && (
-                        <span className="text-xs text-muted-foreground">
-                          {task.duration_minutes} min
-                        </span>
-                      )}
-                      {task.priority === "high" && (
-                        <Badge variant="destructive" className="text-xs">
-                          High Priority
-                        </Badge>
-                      )}
+                      <div className="flex items-center gap-3 mt-2">
+                        {task.scheduled_time && (
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {task.scheduled_time.slice(0, 5)}
+                          </span>
+                        )}
+                        {task.duration_minutes && (
+                          <span className="text-xs text-muted-foreground">
+                            {task.duration_minutes} min
+                          </span>
+                        )}
+                        {isMissed && (
+                          <Badge variant="destructive" className="text-xs">
+                            Missed
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>

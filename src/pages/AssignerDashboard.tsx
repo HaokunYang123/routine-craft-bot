@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
-import { format, subDays, startOfDay, endOfDay } from "date-fns";
+import { format } from "date-fns";
 
 interface StudentStats {
   id: string;
@@ -73,8 +73,6 @@ export default function AssignerDashboard() {
 
     try {
       const today = new Date();
-      const todayStart = startOfDay(today).toISOString();
-      const todayEnd = endOfDay(today).toISOString();
 
       // Fetch students connected to this coach
       const { data: connections } = await supabase
@@ -105,22 +103,22 @@ export default function AssignerDashboard() {
         .select("user_id, display_name")
         .in("user_id", studentIds);
 
-      // Fetch tasks for today
-      const { data: tasks } = await supabase
-        .from("tasks")
-        .select("*")
-        .in("assigned_student_id", studentIds)
-        .gte("scheduled_date", today.toISOString().split("T")[0])
-        .lte("scheduled_date", today.toISOString().split("T")[0]);
+      // Fetch task instances for today (use task_instances, not tasks!)
+      const todayStr = format(today, "yyyy-MM-dd");
+      const { data: taskInstances } = await supabase
+        .from("task_instances")
+        .select("id, assignee_id, status")
+        .in("assignee_id", studentIds)
+        .eq("scheduled_date", todayStr);
 
       // Calculate stats per student
       const studentStatsMap: Record<string, StudentStats> = {};
 
       for (const profile of profiles || []) {
-        const studentTasks = (tasks || []).filter(
-          (t) => t.assigned_student_id === profile.user_id
+        const studentTasks = (taskInstances || []).filter(
+          (t) => t.assignee_id === profile.user_id
         );
-        const completed = studentTasks.filter((t) => t.is_completed).length;
+        const completed = studentTasks.filter((t) => t.status === "completed").length;
         const total = studentTasks.length;
         const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
 
@@ -143,8 +141,8 @@ export default function AssignerDashboard() {
       const studentStatsList = Object.values(studentStatsMap);
 
       // Calculate overview stats
-      const totalTasks = (tasks || []).length;
-      const completedTasks = (tasks || []).filter((t) => t.is_completed).length;
+      const totalTasks = (taskInstances || []).length;
+      const completedTasks = (taskInstances || []).filter((t) => t.status === "completed").length;
 
       setStats({
         totalStudents: studentStatsList.length,
