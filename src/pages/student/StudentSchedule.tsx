@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Loader2, Calendar, CheckCircle2, Clock, User, Plus, History, ChevronDown, ChevronUp, Users, AlertTriangle } from "lucide-react";
+import { Loader2, Calendar, CheckCircle2, Clock, User, Plus, History, ChevronDown, ChevronUp, Users, AlertTriangle, MessageSquare } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
 import { format, isToday, isTomorrow, parseISO, subDays, isAfter, isBefore, startOfDay, addDays } from "date-fns";
@@ -30,6 +30,8 @@ interface TaskInstance {
     coach_id?: string;
     group_name?: string;
     group_color?: string;
+    coach_note?: string | null;
+    updated_at?: string | null;
 }
 
 export default function StudentSchedule() {
@@ -69,6 +71,8 @@ export default function StudentSchedule() {
                     status,
                     assignee_id,
                     assignment_id,
+                    coach_note,
+                    updated_at,
                     assignments!inner(assigned_by, group_id)
                 `)
                 .eq("assignee_id", user.id)
@@ -136,6 +140,8 @@ export default function StudentSchedule() {
                     coach_name: coachProfiles[coachId] || "Coach",
                     group_name: group?.name,
                     group_color: group?.color || "#6366f1",
+                    coach_note: instance.coach_note,
+                    updated_at: instance.updated_at,
                 };
             });
 
@@ -502,7 +508,30 @@ function TaskSection({ title, tasks, onToggleComplete, isHistory = false, isOver
                                             {task.coach_name}
                                         </Badge>
                                     )}
+                                    {task.updated_at && (
+                                        <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                                            <MessageSquare className="w-3 h-3 mr-1" />
+                                            Updated
+                                        </Badge>
+                                    )}
                                 </div>
+
+                                {/* Coach Note - shown when coach updated the task */}
+                                {task.coach_note && (
+                                    <div className="mb-3 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+                                        <div className="flex items-start gap-2">
+                                            <MessageSquare className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                                            <div>
+                                                <p className="text-xs font-medium text-blue-700 dark:text-blue-300 mb-0.5">
+                                                    Note from {task.coach_name || "Coach"}:
+                                                </p>
+                                                <p className="text-sm text-blue-800 dark:text-blue-200">
+                                                    {task.coach_note}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Main content */}
                                 <div className="flex items-start gap-3">

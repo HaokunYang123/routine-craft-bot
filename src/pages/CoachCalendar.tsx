@@ -396,6 +396,7 @@ export default function CoachCalendar() {
                 date={currentDate}
                 tasks={getTasksForDate(currentDate)}
                 onRefresh={fetchTasks}
+                userId={user?.id || ""}
               />
             ) : viewMode === "week" ? (
               <WeekView
@@ -466,7 +467,7 @@ export default function CoachCalendar() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <TaskList tasks={selectedTasks} onRefresh={fetchTasks} />
+              <TaskList tasks={selectedTasks} onRefresh={fetchTasks} userId={user?.id || ""} />
             </CardContent>
           </Card>
         )}
@@ -507,6 +508,7 @@ export default function CoachCalendar() {
                 tasks={selectedTasks}
                 groups={groups}
                 groupMap={groupMap}
+                userId={user?.id || ""}
                 onRefresh={() => {
                   fetchTasks();
                 }}
@@ -527,11 +529,13 @@ function DaySheetContent({
   tasks,
   groups,
   groupMap,
+  userId,
   onRefresh,
 }: {
   tasks: ScheduledTask[];
   groups: { id: string; name: string; color: string }[];
   groupMap: Record<string, GroupInfo>;
+  userId: string;
   onRefresh: () => void;
 }) {
   const { toast } = useToast();
@@ -542,7 +546,7 @@ function DaySheetContent({
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   // Edit dialog state
   const [editingTask, setEditingTask] = useState<ScheduledTask | null>(null);
-  const [editForm, setEditForm] = useState({ name: "", description: "", durationMinutes: "" });
+  const [editForm, setEditForm] = useState({ name: "", description: "", durationMinutes: "", coachNote: "" });
   const [saving, setSaving] = useState(false);
   const [resetCompleted, setResetCompleted] = useState(false);
 
@@ -589,6 +593,7 @@ function DaySheetContent({
       name: task.name,
       description: task.description || "",
       durationMinutes: task.durationMinutes?.toString() || "",
+      coachNote: "", // Always start with empty note for new edits
     });
     setResetCompleted(false);
   };
@@ -615,6 +620,9 @@ function DaySheetContent({
         description: string | null;
         duration_minutes: number | null;
         is_customized: boolean;
+        coach_note: string | null;
+        updated_at: string;
+        updated_by: string;
         status?: string;
         completed_at?: string | null;
       } = {
@@ -622,6 +630,9 @@ function DaySheetContent({
         description: editForm.description.trim() || null,
         duration_minutes: editForm.durationMinutes ? parseInt(editForm.durationMinutes) : null,
         is_customized: true, // Mark as customized to prevent template overwrites
+        coach_note: editForm.coachNote.trim() || null,
+        updated_at: new Date().toISOString(),
+        updated_by: userId,
       };
 
       // If task was completed and user confirmed reset, change status back to pending
@@ -974,6 +985,19 @@ function DaySheetContent({
                 min="1"
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="sheet-edit-coach-note">Note for Student (optional)</Label>
+              <Textarea
+                id="sheet-edit-coach-note"
+                value={editForm.coachNote}
+                onChange={(e) => setEditForm({ ...editForm, coachNote: e.target.value })}
+                placeholder="Explain why you made this change... (e.g., 'Increased to 3 miles because you missed yesterday')"
+                rows={2}
+              />
+              <p className="text-xs text-muted-foreground">
+                This note will be visible to the student so they understand the change.
+              </p>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingTask(null)}>
@@ -1080,10 +1104,12 @@ function DayView({
   date,
   tasks,
   onRefresh,
+  userId,
 }: {
   date: Date;
   tasks: ScheduledTask[];
   onRefresh: () => void;
+  userId: string;
 }) {
   const completedCount = tasks.filter((t) => t.status === "completed").length;
 
@@ -1134,7 +1160,7 @@ function DayView({
                   ({groupTasks.filter((t) => t.status === "completed").length}/{groupTasks.length})
                 </span>
               </div>
-              <TaskList tasks={groupTasks} onRefresh={onRefresh} showDetails />
+              <TaskList tasks={groupTasks} onRefresh={onRefresh} showDetails userId={userId} />
             </div>
           ))}
         </div>
@@ -1156,16 +1182,18 @@ function TaskList({
   tasks,
   onRefresh,
   showDetails = false,
+  userId,
 }: {
   tasks: ScheduledTask[];
   onRefresh: () => void;
   showDetails?: boolean;
+  userId: string;
 }) {
   const { toast } = useToast();
   const [isExpanded, setIsExpanded] = useState(false);
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   const [editingTask, setEditingTask] = useState<ScheduledTask | null>(null);
-  const [editForm, setEditForm] = useState({ name: "", description: "", durationMinutes: "" });
+  const [editForm, setEditForm] = useState({ name: "", description: "", durationMinutes: "", coachNote: "" });
   const [saving, setSaving] = useState(false);
   const [resetCompleted, setResetCompleted] = useState(false);
 
@@ -1188,6 +1216,7 @@ function TaskList({
       name: task.name,
       description: task.description || "",
       durationMinutes: task.durationMinutes?.toString() || "",
+      coachNote: "", // Always start with empty note for new edits
     });
     setResetCompleted(false);
   };
@@ -1214,6 +1243,9 @@ function TaskList({
         description: string | null;
         duration_minutes: number | null;
         is_customized: boolean;
+        coach_note: string | null;
+        updated_at: string;
+        updated_by: string;
         status?: string;
         completed_at?: string | null;
       } = {
@@ -1221,6 +1253,9 @@ function TaskList({
         description: editForm.description.trim() || null,
         duration_minutes: editForm.durationMinutes ? parseInt(editForm.durationMinutes) : null,
         is_customized: true, // Mark as customized to prevent template overwrites
+        coach_note: editForm.coachNote.trim() || null,
+        updated_at: new Date().toISOString(),
+        updated_by: userId,
       };
 
       // If task was completed and user confirmed reset, change status back to pending
@@ -1492,6 +1527,19 @@ function TaskList({
                 placeholder="e.g., 30"
                 min="1"
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-coach-note">Note for Student (optional)</Label>
+              <Textarea
+                id="edit-coach-note"
+                value={editForm.coachNote}
+                onChange={(e) => setEditForm({ ...editForm, coachNote: e.target.value })}
+                placeholder="Explain why you made this change... (e.g., 'Increased to 3 miles because you missed yesterday')"
+                rows={2}
+              />
+              <p className="text-xs text-muted-foreground">
+                This note will be visible to the student so they understand the change.
+              </p>
             </div>
           </div>
           <DialogFooter>
