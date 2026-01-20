@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useGroups } from "@/hooks/useGroups";
 import { useAssignments } from "@/hooks/useAssignments";
 import { GroupReviewCard, GroupData } from "@/components/groups/GroupReviewCard";
+import { StudentDetailSheet } from "@/components/dashboard/StudentDetailSheet";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -59,6 +60,10 @@ export default function CoachDashboard() {
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [generatingSummary, setGeneratingSummary] = useState(false);
   const [weeklySummary, setWeeklySummary] = useState("");
+
+  // Student Detail Sheet State
+  const [studentSheetOpen, setStudentSheetOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     if (!groupsLoading && groups.length > 0) {
@@ -162,8 +167,17 @@ export default function CoachDashboard() {
   };
 
   const handleMemberClick = (memberId: string) => {
-    // Navigate to member's detail page or open assignment dialog
-    navigate(`/dashboard/tasks?member=${memberId}`);
+    // Find the member name from groupsWithStats
+    let memberName = "Student";
+    for (const group of groupsWithStats) {
+      const member = group.members?.find((m) => m.id === memberId);
+      if (member) {
+        memberName = member.name;
+        break;
+      }
+    }
+    setSelectedStudent({ id: memberId, name: memberName });
+    setStudentSheetOpen(true);
   };
 
   if (loading || groupsLoading) {
@@ -404,6 +418,14 @@ export default function CoachDashboard() {
           </div>
         )}
       </div>
+
+      {/* Student Detail Sheet */}
+      <StudentDetailSheet
+        open={studentSheetOpen}
+        onOpenChange={setStudentSheetOpen}
+        studentId={selectedStudent?.id || null}
+        studentName={selectedStudent?.name || "Student"}
+      />
     </div>
   );
 }

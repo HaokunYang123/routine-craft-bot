@@ -94,6 +94,17 @@ Rules:
         userPrompt = `Team completion data: ${JSON.stringify(payload.completionData)}`;
         break;
 
+      case "student_recap":
+        systemPrompt = `You are a supportive coach providing a brief recap of a student's week. Write 2-3 short sentences that are:
+- Encouraging and positive
+- Specific about their achievements
+- Constructive about areas to improve (if needed)
+- Written in a friendly, conversational tone
+
+Keep the total response under 150 words.`;
+        userPrompt = `Student "${payload.studentName}" completed ${payload.completedCount} of ${payload.totalCount} tasks this week (${payload.completionRate}% completion rate). ${payload.missedCount} tasks were missed. Recent task activity: ${JSON.stringify(payload.recentTasks || [])}`;
+        break;
+
       default:
         throw new Error(`Unknown action: ${action}`);
     }

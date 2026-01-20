@@ -52,6 +52,7 @@ import {
     Check,
     UserMinus
 } from "lucide-react";
+import { subDays, format } from "date-fns";
 import { QRCodeSVG } from "qrcode.react";
 import {
     Dialog,
@@ -157,11 +158,13 @@ export default function GroupDetail() {
                     .select("user_id, display_name, email, updated_at")
                     .in("user_id", memberIds);
 
-                // Get task instances for all members in one query
+                // Get task instances for all members in one query (past 7 days only for efficiency)
+                const sevenDaysAgo = format(subDays(new Date(), 7), "yyyy-MM-dd");
                 const { data: allTaskInstances } = await supabase
                     .from("task_instances")
                     .select("id, assignee_id, status")
-                    .in("assignee_id", memberIds);
+                    .in("assignee_id", memberIds)
+                    .gte("scheduled_date", sevenDaysAgo);
 
                 // Calculate progress for each member
                 const studentsWithProgress: StudentWithProgress[] = members.map((member: any) => {

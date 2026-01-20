@@ -234,6 +234,7 @@ export function useAssignments() {
       date?: string;
       startDate?: string;
       endDate?: string;
+      includeFullHistory?: boolean; // Set to true to fetch all history, otherwise defaults to 7 days
     }
   ): Promise<TaskInstance[]> => {
     try {
@@ -249,10 +250,12 @@ export function useAssignments() {
 
       if (filters.date) {
         query = query.eq("scheduled_date", filters.date);
-      }
-
-      if (filters.startDate) {
+      } else if (filters.startDate) {
         query = query.gte("scheduled_date", filters.startDate);
+      } else if (!filters.includeFullHistory) {
+        // Default: Only fetch tasks from the past 7 days unless explicitly requesting full history
+        const sevenDaysAgo = format(addDays(new Date(), -7), "yyyy-MM-dd");
+        query = query.gte("scheduled_date", sevenDaysAgo);
       }
 
       if (filters.endDate) {
