@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Loader2, Calendar, CheckCircle2, Clock, User, Plus, History, ChevronDown, ChevronUp, Users } from "lucide-react";
+import { Loader2, Calendar, CheckCircle2, Clock, User, Plus, History, ChevronDown, ChevronUp, Users, AlertTriangle } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
 import { format, isToday, isTomorrow, parseISO, subDays, isAfter, isBefore, startOfDay, addDays } from "date-fns";
@@ -244,16 +244,23 @@ export default function StudentSchedule() {
 
     const displayTasks = showHistory ? historyTasks : activeTasks;
 
+    // Separate overdue tasks (past date + still pending) from completed history
+    const overdueTasks = tasks.filter(t => {
+        const date = parseISO(t.scheduled_date);
+        return isBefore(date, today) && !isToday(date) && t.status === "pending";
+    });
+
     const groupedTasks = {
+        overdue: overdueTasks, // Always visible if there are overdue tasks
         today: displayTasks.filter((t) => isToday(parseISO(t.scheduled_date))),
         tomorrow: displayTasks.filter((t) => isTomorrow(parseISO(t.scheduled_date))),
         upcoming: displayTasks.filter((t) => {
             const date = parseISO(t.scheduled_date);
             return isAfter(date, tomorrow) && !isToday(date) && !isTomorrow(date);
         }),
-        past: displayTasks.filter((t) => {
+        pastCompleted: displayTasks.filter((t) => {
             const date = parseISO(t.scheduled_date);
-            return isBefore(date, today) && !isToday(date);
+            return isBefore(date, today) && !isToday(date) && t.status !== "pending";
         }),
     };
 
@@ -372,9 +379,25 @@ export default function StudentSchedule() {
                                 </div>
                             )}
 
-                            {/* Past (only in history view) */}
-                            {showHistory && groupedTasks.past.length > 0 && (
-                                <TaskSection title="Past" tasks={groupedTasks.past} onToggleComplete={handleToggleComplete} isHistory fadingTasks={fadingTasks} />
+                            {/* OVERDUE - Shows first with warning styling (only in active view) */}
+                            {!showHistory && groupedTasks.overdue.length > 0 && (
+                                <section className="mb-4">
+                                    <div className="flex items-center gap-2 mb-3 text-destructive">
+                                        <AlertTriangle className="w-5 h-5" />
+                                        <h2 className="text-lg font-semibold">Overdue ({groupedTasks.overdue.length})</h2>
+                                    </div>
+                                    <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 mb-3">
+                                        <p className="text-sm text-destructive">
+                                            These tasks were due on previous days. Complete them or they'll stay here!
+                                        </p>
+                                    </div>
+                                    <TaskSection title="" tasks={groupedTasks.overdue} onToggleComplete={handleToggleComplete} isOverdue fadingTasks={fadingTasks} />
+                                </section>
+                            )}
+
+                            {/* Past completed (only in history view) */}
+                            {showHistory && groupedTasks.pastCompleted.length > 0 && (
+                                <TaskSection title="Past" tasks={groupedTasks.pastCompleted} onToggleComplete={handleToggleComplete} isHistory fadingTasks={fadingTasks} />
                             )}
 
                             {/* Today */}
@@ -415,10 +438,11 @@ interface TaskSectionProps {
     tasks: TaskInstance[];
     onToggleComplete?: (taskId: string, completed: boolean) => void;
     isHistory?: boolean;
+    isOverdue?: boolean;
     fadingTasks?: Set<string>;
 }
 
-function TaskSection({ title, tasks, onToggleComplete, isHistory = false, fadingTasks = new Set() }: TaskSectionProps) {
+function TaskSection({ title, tasks, onToggleComplete, isHistory = false, isOverdue = false, fadingTasks = new Set() }: TaskSectionProps) {
     const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
 
     const toggleExpanded = (taskId: string) => {
@@ -435,7 +459,7 @@ function TaskSection({ title, tasks, onToggleComplete, isHistory = false, fading
 
     return (
         <section>
-            <h2 className="text-lg font-semibold mb-3">{title}</h2>
+            {title && <h2 className="text-lg font-semibold mb-3">{title}</h2>}
             <div className="space-y-3">
                 {tasks.map((task) => {
                     const isFading = fadingTasks.has(task.id);
@@ -451,12 +475,13 @@ function TaskSection({ title, tasks, onToggleComplete, isHistory = false, fading
                                 "transition-all duration-500 overflow-hidden",
                                 isCompleted && "bg-green-50 dark:bg-green-900/10",
                                 isMissed && "bg-red-50 dark:bg-red-900/10",
+                                isOverdue && "bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-800 ring-1 ring-red-200 dark:ring-red-900",
                                 isHistory && "opacity-60",
                                 isFading && "opacity-0 scale-95 translate-x-4"
                             )}
                             style={{
                                 borderLeftWidth: "4px",
-                                borderLeftColor: task.group_color || "#6366f1",
+                                borderLeftColor: isOverdue ? "#ef4444" : (task.group_color || "#6366f1"),
                             }}
                         >
                             <CardContent className="py-4 px-4">

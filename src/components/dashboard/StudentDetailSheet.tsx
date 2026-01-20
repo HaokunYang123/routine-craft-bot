@@ -351,7 +351,7 @@ function TaskCard({ task, isHistory = false }: TaskCardProps) {
                 {task.description}
               </p>
             )}
-            <div className="flex items-center gap-2 mt-1.5">
+            <div className="flex flex-wrap items-center gap-2 mt-1.5">
               <Badge
                 variant={isCompleted ? "default" : isMissed ? "destructive" : "secondary"}
                 className={cn(
@@ -363,7 +363,7 @@ function TaskCard({ task, isHistory = false }: TaskCardProps) {
               </Badge>
               <span className="text-xs text-muted-foreground flex items-center gap-1">
                 <Calendar className="w-3 h-3" />
-                {format(parseISO(task.scheduled_date), "MMM d")}
+                Due: {format(parseISO(task.scheduled_date), "MMM d")}
               </span>
               {task.duration_minutes && (
                 <span className="text-xs text-muted-foreground flex items-center gap-1">
@@ -372,6 +372,12 @@ function TaskCard({ task, isHistory = false }: TaskCardProps) {
                 </span>
               )}
             </div>
+            {/* Completion timestamp - helps catch cheaters */}
+            {isHistory && task.completed_at && (
+              <div className="mt-1.5 text-xs text-muted-foreground">
+                ✓ Completed: {format(parseISO(task.completed_at), "MMM d 'at' h:mm a")}
+              </div>
+            )}
           </div>
         </div>
       </CardContent>
