@@ -66,6 +66,7 @@ interface TemplateTask {
   title: string;
   description: string | null;
   duration_minutes: number | null;
+  day_offset: number;
 }
 
 interface GroupWithMembers extends Group {
@@ -222,7 +223,7 @@ export default function Tasks() {
     try {
       const { data, error } = await supabase
         .from("template_tasks")
-        .select("id, title, description, duration_minutes")
+        .select("id, title, description, duration_minutes, day_offset")
         .eq("template_id", templateId)
         .order("order_index");
 
@@ -231,6 +232,20 @@ export default function Tasks() {
     } catch (error) {
       console.error("Error fetching template tasks:", error);
     }
+  };
+
+  // Calculate template duration in days based on max day_offset
+  const templateDurationDays = templateTasks.length > 0
+    ? Math.max(...templateTasks.map(t => t.day_offset || 0)) + 1
+    : 0;
+
+  // Calculate the end date for template based on start date and duration
+  const getTemplateEndDate = () => {
+    if (templateDurationDays === 0) return null;
+    const [year, month, day] = startDate.split('-').map(Number);
+    const start = new Date(year, month - 1, day);
+    const end = addDays(start, templateDurationDays - 1);
+    return format(end, "MMM d, yyyy");
   };
 
   const addCustomTask = () => {
@@ -361,16 +376,23 @@ export default function Tasks() {
 
     setSaving(true);
     try {
+      // Templates use their built-in day_offset for scheduling
+      // Custom tasks use the schedule type selected by user
+      const isTemplate = assignmentType === "template";
+      const effectiveScheduleType = isTemplate ? "once" : scheduleType;
+
       const result = await createAssignment({
-        template_id: assignmentType === "template" ? selectedTemplateId : undefined,
+        template_id: isTemplate ? selectedTemplateId : undefined,
         group_id: !selectedMember ? selectedGroup.id : undefined,
         assignee_id: selectedMember?.user_id,
-        schedule_type: scheduleType,
-        schedule_days: scheduleType === "custom" ? scheduleDays : undefined,
-        // For "once" schedule, use dueDate as the start_date since that's when task is due
-        start_date: scheduleType === "once" ? dueDate : startDate,
-        end_date: scheduleType !== "once" ? endDate : undefined,
-        tasks: assignmentType === "custom" ? customTasksToSend : undefined,
+        schedule_type: effectiveScheduleType,
+        schedule_days: effectiveScheduleType === "custom" ? scheduleDays : undefined,
+        // Templates: use startDate (day_offset handles task scheduling)
+        // Custom "once": use dueDate as the scheduled date
+        // Custom recurring: use startDate
+        start_date: isTemplate ? startDate : (scheduleType === "once" ? dueDate : startDate),
+        end_date: !isTemplate && scheduleType !== "once" ? endDate : undefined,
+        tasks: !isTemplate ? customTasksToSend : undefined,
       });
 
       if (result) {
@@ -805,69 +827,97 @@ export default function Tasks() {
               </div>
             )}
 
-            {/* Schedule Type */}
-            <div className="space-y-3">
-              <Label>Schedule</Label>
-              <Select
-                value={scheduleType}
-                onValueChange={(v) => setScheduleType(v as any)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {SCHEDULE_TYPES.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            {/* Schedule Type - Only show for custom tasks */}
+            {assignmentType === "custom" && (
+              <div className="space-y-3">
+                <Label>Schedule</Label>
+                <Select
+                  value={scheduleType}
+                  onValueChange={(v) => setScheduleType(v as any)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SCHEDULE_TYPES.map((type) => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
 
-              {/* Custom Days Selection */}
-              {scheduleType === "custom" && (
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {WEEKDAYS.map((day) => (
-                    <Button
-                      key={day.value}
-                      type="button"
-                      variant={scheduleDays.includes(day.value) ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => toggleScheduleDay(day.value)}
-                      className={cn(
-                        scheduleDays.includes(day.value) &&
-                          "bg-cta-primary hover:bg-cta-hover text-white"
-                      )}
-                    >
-                      {day.label}
-                    </Button>
-                  ))}
-                </div>
-              )}
-            </div>
+                {/* Custom Days Selection */}
+                {scheduleType === "custom" && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {WEEKDAYS.map((day) => (
+                      <Button
+                        key={day.value}
+                        type="button"
+                        variant={scheduleDays.includes(day.value) ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => toggleScheduleDay(day.value)}
+                        className={cn(
+                          scheduleDays.includes(day.value) &&
+                            "bg-cta-primary hover:bg-cta-hover text-white"
+                        )}
+                      >
+                        {day.label}
+                      </Button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Date Range */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Start Date</Label>
-                <Input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                />
+            {assignmentType === "template" ? (
+              /* Template: Start Date only + calculated End Date display */
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label>Start Date</Label>
+                  <Input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                  />
+                </div>
+                {templateDurationDays > 0 && (
+                  <div className="p-3 bg-muted/30 rounded-lg border border-border/50">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Calendar className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-muted-foreground">
+                        This {templateDurationDays}-day template will run until{" "}
+                        <span className="font-medium text-foreground">{getTemplateEndDate()}</span>
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="space-y-2">
-                <Label>{scheduleType === "once" ? "Due Date" : "End Date"}</Label>
-                <Input
-                  type="date"
-                  value={scheduleType === "once" ? dueDate : endDate}
-                  onChange={(e) => scheduleType === "once"
-                    ? setDueDate(e.target.value)
-                    : setEndDate(e.target.value)
-                  }
-                />
+            ) : (
+              /* Custom Tasks: Start/Due Date or Start/End Date based on schedule */
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Start Date</Label>
+                  <Input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>{scheduleType === "once" ? "Due Date" : "End Date"}</Label>
+                  <Input
+                    type="date"
+                    value={scheduleType === "once" ? dueDate : endDate}
+                    onChange={(e) => scheduleType === "once"
+                      ? setDueDate(e.target.value)
+                      : setEndDate(e.target.value)
+                    }
+                  />
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           <DialogFooter>
