@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Library, Plus, Sparkles, Clock, Calendar, Trash2, Loader2, Edit } from "lucide-react";
+import { Library, Plus, Sparkles, Clock, Calendar, Trash2, Loader2, Edit, FileEdit, Copy, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -25,18 +25,22 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { AIPlanBuilder } from "@/components/ai/AIPlanBuilder";
+import { ManualTemplateBuilder, ManualTask } from "@/components/templates/ManualTemplateBuilder";
 import { GeneratedTask } from "@/hooks/useAIAssistant";
 import { useTemplates, Template } from "@/hooks/useTemplates";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Templates() {
   const { templates, loading, createTemplate, deleteTemplate } = useTemplates();
-  const [activeTab, setActiveTab] = useState("create");
+  const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState("ai");
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [pendingTasks, setPendingTasks] = useState<GeneratedTask[]>([]);
   const [templateName, setTemplateName] = useState("");
   const [templateDescription, setTemplateDescription] = useState("");
   const [saving, setSaving] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState<Template | null>(null);
+  const [manualSaving, setManualSaving] = useState(false);
 
   const handleSavePlan = (tasks: GeneratedTask[]) => {
     setPendingTasks(tasks);
@@ -68,6 +72,43 @@ export default function Templates() {
     }
   };
 
+  const handleManualSave = async (name: string, description: string, tasks: ManualTask[]) => {
+    setManualSaving(true);
+    const result = await createTemplate(
+      name,
+      description,
+      tasks.map((t) => ({
+        title: t.title,
+        description: t.description,
+        duration_minutes: t.duration_minutes,
+        day_offset: t.day_offset,
+      }))
+    );
+    setManualSaving(false);
+    if (result) {
+      setActiveTab("library");
+    }
+  };
+
+  const handleDuplicate = async (template: Template) => {
+    const result = await createTemplate(
+      `${template.name} (Copy)`,
+      template.description || "",
+      (template.tasks || []).map((t) => ({
+        title: t.title,
+        description: t.description,
+        duration_minutes: t.duration_minutes,
+        day_offset: t.day_offset,
+      }))
+    );
+    if (result) {
+      toast({
+        title: "Template Duplicated",
+        description: `Created copy of "${template.name}"`,
+      });
+    }
+  };
+
   return (
     <div className="space-y-6 pb-20">
       {/* Header */}
@@ -82,23 +123,34 @@ export default function Templates() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="bg-muted/30">
           <TabsTrigger
-            value="create"
+            value="ai"
             className="data-[state=active]:bg-cta-primary data-[state=active]:text-white"
           >
             <Sparkles className="w-4 h-4 mr-2" />
             AI Builder
           </TabsTrigger>
           <TabsTrigger
+            value="manual"
+            className="data-[state=active]:bg-cta-primary data-[state=active]:text-white"
+          >
+            <FileEdit className="w-4 h-4 mr-2" />
+            Manual Builder
+          </TabsTrigger>
+          <TabsTrigger
             value="library"
             className="data-[state=active]:bg-cta-primary data-[state=active]:text-white"
           >
             <Library className="w-4 h-4 mr-2" />
-            My Templates ({templates.length})
+            Library ({templates.length})
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="create" className="mt-6">
+        <TabsContent value="ai" className="mt-6">
           <AIPlanBuilder onSavePlan={handleSavePlan} />
+        </TabsContent>
+
+        <TabsContent value="manual" className="mt-6">
+          <ManualTemplateBuilder onSave={handleManualSave} isSaving={manualSaving} />
         </TabsContent>
 
         <TabsContent value="library" className="mt-6">
@@ -205,6 +257,14 @@ export default function Templates() {
                           onClick={() => setPreviewTemplate(template)}
                         >
                           Preview
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDuplicate(template)}
+                          className="border-muted-foreground/30 text-muted-foreground hover:bg-muted/30"
+                        >
+                          <Copy className="w-4 h-4" />
                         </Button>
                       </div>
                     </div>

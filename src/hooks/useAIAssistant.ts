@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "./useAuth";
 
 // Types for AI Assistant actions
 export interface GeneratedTask {
@@ -7,6 +8,12 @@ export interface GeneratedTask {
     description: string;
     duration_minutes: number;
     day_offset: number;
+}
+
+export interface GeneratedPlan {
+    name: string;
+    description: string;
+    tasks: GeneratedTask[];
 }
 
 export interface CompletionDataItem {
@@ -20,12 +27,14 @@ interface AIResponse<T> {
     success: boolean;
     data?: T;
     error?: string;
+    context?: { studentCount: number; classCount: number };
 }
 
-// Timeout duration in milliseconds (15 seconds)
-const AI_REQUEST_TIMEOUT = 15000;
+// Timeout duration in milliseconds (20 seconds for more complex operations)
+const AI_REQUEST_TIMEOUT = 20000;
 
 export function useAIAssistant() {
+    const { user } = useAuth();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -39,7 +48,10 @@ export function useAIAssistant() {
 
         try {
             const { data, error: funcError } = await supabase.functions.invoke("ai-assistant", {
-                body,
+                body: {
+                    ...body,
+                    userId: user?.id, // Pass user ID for database context
+                },
             });
 
             clearTimeout(timeoutId);
@@ -52,7 +64,11 @@ export function useAIAssistant() {
                 throw new Error(data.error);
             }
 
-            return { success: true, data: data.result as T };
+            return {
+                success: true,
+                data: data.result as T,
+                context: data.context
+            };
         } catch (err: any) {
             clearTimeout(timeoutId);
             console.error("AI Assistant Error:", err);
@@ -72,17 +88,30 @@ export function useAIAssistant() {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [user?.id]);
 
     // Generate a training/study plan from natural language
-    const generatePlan = useCallback(async (request: string, context?: string): Promise<AIResponse<GeneratedTask[]>> => {
-        return callAIAssistant<GeneratedTask[]>({
+    // e.g., "make a 5-week beginner plan, 3x/week"
+    const generatePlan = useCallback(async (request: string, context?: string): Promise<AIResponse<GeneratedPlan>> => {
+        return callAIAssistant<GeneratedPlan>({
             action: "generate_plan",
             payload: { request, context }
         });
     }, [callAIAssistant]);
 
-    // Modify an existing plan with constraints
+    // Personalize a plan for a specific student
+    // e.g., "Make this plan harder for Sarah" or "adjust for knee injury"
+    const personalizePlan = useCallback(async (
+        currentTasks: GeneratedTask[],
+        modificationRequest: string
+    ): Promise<AIResponse<GeneratedTask[]>> => {
+        return callAIAssistant<GeneratedTask[]>({
+            action: "personalize_plan",
+            payload: { currentTasks, modification_request: modificationRequest }
+        });
+    }, [callAIAssistant]);
+
+    // Modify an existing plan with constraints (legacy, uses personalize internally)
     const modifyPlan = useCallback(async (
         currentTasks: GeneratedTask[],
         feedback: string
@@ -107,6 +136,7 @@ export function useAIAssistant() {
     }, [callAIAssistant]);
 
     // Refine raw task text into clear instructions
+    // e.g., "warmup stretches" -> "Do 5 minutes of dynamic stretches - arm circles, leg swings, high knees"
     const refineTask = useCallback(async (description: string): Promise<AIResponse<string>> => {
         const response = await callAIAssistant<string>({
             action: "refine_task",
@@ -116,8 +146,9 @@ export function useAIAssistant() {
     }, [callAIAssistant]);
 
     // Generate weekly summary for all students
+    // Auto-generates completion stats, what got missed, highlights
     const generateWeeklySummary = useCallback(async (
-        completionData: CompletionDataItem[]
+        completionData?: CompletionDataItem[]
     ): Promise<AIResponse<string>> => {
         return callAIAssistant<string>({
             action: "weekly_summary",
@@ -125,13 +156,23 @@ export function useAIAssistant() {
         });
     }, [callAIAssistant]);
 
+    // Chat with AI assistant (full context awareness)
+    const chat = useCallback(async (message: string): Promise<AIResponse<string>> => {
+        return callAIAssistant<string>({
+            action: "chat",
+            payload: { message }
+        });
+    }, [callAIAssistant]);
+
     return {
         loading,
         error,
         generatePlan,
+        personalizePlan,
         modifyPlan,
         summarizeProgress,
         refineTask,
         generateWeeklySummary,
+        chat,
     };
 }

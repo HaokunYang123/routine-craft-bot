@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -7,10 +7,14 @@ import {
   Users,
   BookOpen,
   Target,
+  RefreshCw,
+  Loader2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useAIAssistant } from "@/hooks/useAIAssistant";
 
 interface StudentStatus {
   id: string;
@@ -37,6 +41,10 @@ export function OverviewWidgets({
   completedTasks,
   overallCompletion,
 }: OverviewWidgetsProps) {
+  const { generateWeeklySummary, loading: aiLoading } = useAIAssistant();
+  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+
   // Filter students by status
   const { needsAttention, onTrack, moderate } = useMemo(() => {
     const needsAttention = students.filter((s) => s.completionRate < 50);
@@ -46,6 +54,32 @@ export function OverviewWidgets({
     );
     return { needsAttention, onTrack, moderate };
   }, [students]);
+
+  const fetchAISummary = async () => {
+    if (students.length === 0 || totalTasks === 0) return;
+
+    setSummaryLoading(true);
+    const completionData = students.map((s) => ({
+      name: s.name,
+      completed: s.completedTasks,
+      total: s.totalTasks,
+      streak: 0, // We could calculate this if needed
+    }));
+
+    const result = await generateWeeklySummary(completionData);
+    if (result.success && result.data) {
+      setAiSummary(result.data);
+    }
+    setSummaryLoading(false);
+  };
+
+  // Auto-fetch AI summary when students data is available
+  useEffect(() => {
+    if (students.length > 0 && totalTasks > 0 && !aiSummary) {
+      fetchAISummary();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [students.length, totalTasks]);
 
   return (
     <div className="space-y-6">
@@ -159,7 +193,7 @@ export function OverviewWidgets({
         </Card>
       </div>
 
-      {/* Weekly Highlights - AI Summary Placeholder */}
+      {/* Weekly Highlights - AI Summary */}
       <Card className="border-btn-secondary/30">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-lg">
@@ -167,31 +201,57 @@ export function OverviewWidgets({
               <Sparkles className="w-5 h-5 text-btn-secondary" />
             </div>
             <span className="text-foreground">Weekly Highlights</span>
-            <span className="ml-auto text-xs bg-btn-secondary/20 text-btn-secondary px-2 py-1 rounded-full">
-              AI Summary
-            </span>
+            <div className="ml-auto flex items-center gap-2">
+              <span className="text-xs bg-btn-secondary/20 text-btn-secondary px-2 py-1 rounded-full">
+                AI Summary
+              </span>
+              {totalStudents > 0 && totalTasks > 0 && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={fetchAISummary}
+                  disabled={summaryLoading}
+                  className="h-7 px-2"
+                >
+                  {summaryLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-4 h-4" />
+                  )}
+                </Button>
+              )}
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="bg-muted/30 rounded-lg p-4 border border-border/50">
-            <p className="text-muted-foreground text-sm leading-relaxed">
-              {totalStudents === 0 ? (
-                "Add students to your classes to see AI-generated weekly summaries of their progress."
-              ) : totalTasks === 0 ? (
-                "Assign tasks to your students to generate weekly progress summaries."
-              ) : (
-                <>
-                  <span className="text-foreground font-medium">This week: </span>
-                  {overallCompletion >= 80 ? (
-                    `Great progress! ${onTrack.length} students are exceeding expectations with ${overallCompletion}% overall completion.`
-                  ) : overallCompletion >= 50 ? (
-                    `Moderate progress with ${overallCompletion}% completion. ${needsAttention.length} students may need extra support.`
-                  ) : (
-                    `${needsAttention.length} students need attention. Consider reaching out to those below 50% completion.`
-                  )}
-                </>
-              )}
-            </p>
+            {summaryLoading ? (
+              <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Generating AI summary...
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-sm leading-relaxed whitespace-pre-wrap">
+                {totalStudents === 0 ? (
+                  "Add students to your classes to see AI-generated weekly summaries of their progress."
+                ) : totalTasks === 0 ? (
+                  "Assign tasks to your students to generate weekly progress summaries."
+                ) : aiSummary ? (
+                  aiSummary
+                ) : (
+                  <>
+                    <span className="text-foreground font-medium">This week: </span>
+                    {overallCompletion >= 80 ? (
+                      `Great progress! ${onTrack.length} students are exceeding expectations with ${overallCompletion}% overall completion.`
+                    ) : overallCompletion >= 50 ? (
+                      `Moderate progress with ${overallCompletion}% completion. ${needsAttention.length} students may need extra support.`
+                    ) : (
+                      `${needsAttention.length} students need attention. Consider reaching out to those below 50% completion.`
+                    )}
+                  </>
+                )}
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>

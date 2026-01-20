@@ -46,13 +46,27 @@ import {
     Loader2,
     ArrowUpDown,
     Lock,
-    Globe
+    Globe,
+    QrCode,
+    Share2,
+    Check,
+    UserMinus
 } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
 
-interface ClassSession {
+interface GroupInfo {
     id: string;
     name: string;
+    color: string;
     join_code: string;
+    qr_token: string;
 }
 
 interface StudentWithProgress {
@@ -89,7 +103,7 @@ export default function GroupDetail() {
     const { toast } = useToast();
 
     const [loading, setLoading] = useState(true);
-    const [session, setSession] = useState<ClassSession | null>(null);
+    const [group, setGroup] = useState<GroupInfo | null>(null);
     const [students, setStudents] = useState<StudentWithProgress[]>([]);
     const [notes, setNotes] = useState<Note[]>([]);
 
@@ -104,6 +118,12 @@ export default function GroupDetail() {
     const [filterStatus, setFilterStatus] = useState<string>("all");
     const [sortField, setSortField] = useState<SortField>("name");
     const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
+    const [copied, setCopied] = useState(false);
+    const [showQRDialog, setShowQRDialog] = useState(false);
+
+    // Remove Student State
+    const [studentToRemove, setStudentToRemove] = useState<StudentWithProgress | null>(null);
+    const [removing, setRemoving] = useState(false);
 
     useEffect(() => {
         if (!user || !groupId) return;
@@ -112,71 +132,70 @@ export default function GroupDetail() {
 
     const fetchData = async () => {
         try {
-            // 1. Fetch class session
-            const { data: sessionData, error: sessionError } = await supabase
-                .from("class_sessions" as any)
-                .select("id, name, join_code")
+            // 1. Fetch group info
+            const { data: groupData, error: groupError } = await supabase
+                .from("groups")
+                .select("id, name, color, join_code, qr_token")
                 .eq("id", groupId)
                 .single();
 
-            if (sessionError) throw sessionError;
-            setSession(sessionData);
+            if (groupError) throw groupError;
+            setGroup(groupData);
 
-            // 2. Fetch students in this group
-            const { data: connections } = await supabase
-                .from("instructor_students" as any)
-                .select("id, student_id")
-                .eq("class_session_id", groupId);
+            // 2. Fetch members in this group
+            const { data: members } = await supabase
+                .from("group_members")
+                .select("id, user_id")
+                .eq("group_id", groupId);
 
-            if (connections && connections.length > 0) {
-                const studentIds = connections.map((c: any) => c.student_id);
+            if (members && members.length > 0) {
+                const memberIds = members.map((m: any) => m.user_id);
 
                 // Get profiles
                 const { data: profiles } = await supabase
                     .from("profiles")
                     .select("user_id, display_name, email, updated_at")
-                    .in("user_id", studentIds);
+                    .in("user_id", memberIds);
 
-                // Get tasks for each student
-                const studentsWithProgress: StudentWithProgress[] = await Promise.all(
-                    connections.map(async (conn: any) => {
-                        const profile = profiles?.find((p: any) => p.user_id === conn.student_id);
+                // Get task instances for all members in one query
+                const { data: allTaskInstances } = await supabase
+                    .from("task_instances")
+                    .select("id, assignee_id, status")
+                    .in("assignee_id", memberIds);
 
-                        // Count tasks assigned to this student from this coach
-                        const { count: totalCount } = await supabase
-                            .from("tasks")
-                            .select("id", { count: "exact", head: true })
-                            .eq("user_id", user!.id)
-                            .eq("assigned_student_id", conn.student_id);
+                // Calculate progress for each member
+                const studentsWithProgress: StudentWithProgress[] = members.map((member: any) => {
+                    const profile = profiles?.find((p: any) => p.user_id === member.user_id);
 
-                        const { count: completedCount } = await supabase
-                            .from("tasks")
-                            .select("id", { count: "exact", head: true })
-                            .eq("user_id", user!.id)
-                            .eq("assigned_student_id", conn.student_id)
-                            .eq("is_completed", true);
+                    // Get task instances for this member
+                    const memberTasks = (allTaskInstances || []).filter(
+                        (t: any) => t.assignee_id === member.user_id
+                    );
+                    const total = memberTasks.length;
+                    const completed = memberTasks.filter((t: any) => t.status === "completed").length;
+                    const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
 
-                        const total = totalCount || 0;
-                        const completed = completedCount || 0;
-                        const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
+                    let status: "On Track" | "Behind" | "At Risk" = "On Track";
+                    if (total === 0) status = "On Track"; // No tasks assigned yet
+                    else if (rate < 50) status = "At Risk";
+                    else if (rate < 80) status = "Behind";
 
-                        let status: "On Track" | "Behind" | "At Risk" = "On Track";
-                        if (rate < 50) status = "At Risk";
-                        else if (rate < 80) status = "Behind";
+                    // Use display_name, fallback to email prefix, then "Student"
+                    const emailPrefix = profile?.email ? profile.email.split("@")[0] : null;
+                    const displayName = profile?.display_name || emailPrefix || "Student";
 
-                        return {
-                            id: conn.id,
-                            student_id: conn.student_id,
-                            display_name: profile?.display_name || "Student",
-                            email: profile?.email || "",
-                            total_tasks: total,
-                            completed_tasks: completed,
-                            completionRate: rate,
-                            status,
-                            last_active: profile?.updated_at
-                        };
-                    })
-                );
+                    return {
+                        id: member.id,
+                        student_id: member.user_id,
+                        display_name: displayName,
+                        email: profile?.email || "",
+                        total_tasks: total,
+                        completed_tasks: completed,
+                        completionRate: rate,
+                        status,
+                        last_active: profile?.updated_at
+                    };
+                });
 
                 setStudents(studentsWithProgress);
             } else {
@@ -187,22 +206,26 @@ export default function GroupDetail() {
             const { data: notesData } = await supabase
                 .from("notes" as any)
                 .select("*")
-                .eq("class_session_id", groupId)
+                .eq("group_id", groupId)
                 .order("created_at", { ascending: false });
 
             if (notesData) {
                 // Get names for note authors
                 const fromIds = [...new Set(notesData.map((n: any) => n.from_user_id))];
-                const { data: noteProfiles } = await supabase
-                    .from("profiles")
-                    .select("user_id, display_name")
-                    .in("user_id", fromIds);
+                if (fromIds.length > 0) {
+                    const { data: noteProfiles } = await supabase
+                        .from("profiles")
+                        .select("user_id, display_name")
+                        .in("user_id", fromIds);
 
-                const enrichedNotes = notesData.map((note: any) => ({
-                    ...note,
-                    from_name: noteProfiles?.find((p: any) => p.user_id === note.from_user_id)?.display_name || "Unknown"
-                }));
-                setNotes(enrichedNotes);
+                    const enrichedNotes = notesData.map((note: any) => ({
+                        ...note,
+                        from_name: noteProfiles?.find((p: any) => p.user_id === note.from_user_id)?.display_name || "Unknown"
+                    }));
+                    setNotes(enrichedNotes);
+                } else {
+                    setNotes(notesData);
+                }
             } else {
                 setNotes([]);
             }
@@ -221,7 +244,7 @@ export default function GroupDetail() {
 
         try {
             const { error } = await supabase.from("notes" as any).insert({
-                class_session_id: groupId,
+                group_id: groupId,
                 from_user_id: user.id,
                 to_user_id: null, // Broadcast to group for now (tab logic can expand this)
                 content: newNote.trim(),
@@ -248,13 +271,13 @@ export default function GroupDetail() {
 
         try {
             const { error } = await supabase
-                .from("class_sessions" as any)
+                .from("groups")
                 .delete()
                 .eq("id", groupId);
 
             if (error) throw error;
 
-            toast({ title: "Group Deleted", description: "The group and all connections have been removed." });
+            toast({ title: "Group Deleted", description: "The group and all members have been removed." });
             navigate("/dashboard");
         } catch (error: any) {
             toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -263,11 +286,49 @@ export default function GroupDetail() {
         }
     };
 
-    const copyCode = () => {
-        if (session) {
-            navigator.clipboard.writeText(session.join_code);
-            toast({ title: "Copied!", description: "Join code copied." });
+    const handleRemoveStudent = async () => {
+        if (!studentToRemove || !groupId) return;
+        setRemoving(true);
+
+        try {
+            // Remove from group_members table
+            const { error } = await supabase
+                .from("group_members")
+                .delete()
+                .eq("id", studentToRemove.id);
+
+            if (error) throw error;
+
+            // Update local state
+            setStudents(prev => prev.filter(s => s.id !== studentToRemove.id));
+
+            toast({
+                title: "Student Removed",
+                description: `${studentToRemove.display_name} has been removed from the group.`
+            });
+        } catch (error: any) {
+            toast({ title: "Error", description: error.message, variant: "destructive" });
+        } finally {
+            setRemoving(false);
+            setStudentToRemove(null);
         }
+    };
+
+    const copyCode = () => {
+        if (group) {
+            navigator.clipboard.writeText(group.join_code);
+            setCopied(true);
+            toast({ title: "Copied!", description: "Join code copied to clipboard." });
+            setTimeout(() => setCopied(false), 2000);
+        }
+    };
+
+    // Generate the QR code URL - this is the URL students will navigate to when scanning
+    const getQRCodeUrl = () => {
+        if (!group) return "";
+        // Use the app's URL with the QR token for scanning
+        const baseUrl = window.location.origin;
+        return `${baseUrl}/join?token=${group.qr_token}`;
     };
 
     // Sorting Logic
@@ -308,7 +369,7 @@ export default function GroupDetail() {
         );
     }
 
-    if (!session) {
+    if (!group) {
         return (
             <div className="p-6 text-center">
                 <p>Group not found.</p>
@@ -326,13 +387,10 @@ export default function GroupDetail() {
                         <ArrowLeft className="w-5 h-5" />
                     </Button>
                     <div>
-                        <h1 className="text-3xl font-bold font-display">{session.name}</h1>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                            <span>Code: <strong className="font-mono text-foreground">{session.join_code}</strong></span>
-                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={copyCode}>
-                                <Copy className="w-3 h-3" />
-                            </Button>
-                        </div>
+                        <h1 className="text-3xl font-bold font-display">{group.name}</h1>
+                        <p className="text-sm text-muted-foreground mt-1">
+                            {students.length} {students.length === 1 ? "student" : "students"}
+                        </p>
                     </div>
                 </div>
                 <div className="flex gap-2">
@@ -345,7 +403,7 @@ export default function GroupDetail() {
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                             <AlertDialogHeader>
-                                <AlertDialogTitle>Delete "{session.name}"?</AlertDialogTitle>
+                                <AlertDialogTitle>Delete "{group.name}"?</AlertDialogTitle>
                                 <AlertDialogDescription>
                                     This will permanently delete this group. All students will be disconnected.
                                 </AlertDialogDescription>
@@ -361,6 +419,76 @@ export default function GroupDetail() {
                     </AlertDialog>
                 </div>
             </div>
+
+            {/* Join Code & QR Code Card */}
+            <Card className="border-cta-primary/30 bg-cta-primary/5">
+                <CardContent className="p-4">
+                    <div className="flex flex-col sm:flex-row items-center gap-4">
+                        <div className="flex-1 text-center sm:text-left">
+                            <p className="text-sm text-muted-foreground mb-1">Share this code with students to join</p>
+                            <div className="flex items-center justify-center sm:justify-start gap-3">
+                                <span className="text-3xl font-bold font-mono tracking-[0.3em] text-foreground">
+                                    {group.join_code}
+                                </span>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={copyCode}
+                                    className="shrink-0"
+                                >
+                                    {copied ? (
+                                        <Check className="w-4 h-4 text-green-500" />
+                                    ) : (
+                                        <Copy className="w-4 h-4" />
+                                    )}
+                                    <span className="ml-2">{copied ? "Copied!" : "Copy"}</span>
+                                </Button>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Dialog open={showQRDialog} onOpenChange={setShowQRDialog}>
+                                <DialogTrigger asChild>
+                                    <Button variant="outline" className="gap-2">
+                                        <QrCode className="w-4 h-4" />
+                                        Show QR Code
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className="sm:max-w-md">
+                                    <DialogHeader>
+                                        <DialogTitle className="text-center">Scan to Join {group.name}</DialogTitle>
+                                    </DialogHeader>
+                                    <div className="flex flex-col items-center gap-6 py-6">
+                                        <div className="bg-white p-4 rounded-xl">
+                                            <QRCodeSVG
+                                                value={getQRCodeUrl()}
+                                                size={200}
+                                                level="H"
+                                                includeMargin={true}
+                                            />
+                                        </div>
+                                        <div className="text-center">
+                                            <p className="text-sm text-muted-foreground mb-2">Or enter this code manually:</p>
+                                            <p className="text-2xl font-bold font-mono tracking-[0.3em]">
+                                                {group.join_code}
+                                            </p>
+                                        </div>
+                                        <Button
+                                            variant="outline"
+                                            className="w-full"
+                                            onClick={() => {
+                                                copyCode();
+                                            }}
+                                        >
+                                            {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
+                                            {copied ? "Copied!" : "Copy Code"}
+                                        </Button>
+                                    </div>
+                                </DialogContent>
+                            </Dialog>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Main Content: Roster Table */}
@@ -388,35 +516,64 @@ export default function GroupDetail() {
                                         <TableHead className="cursor-pointer" onClick={() => handleSort("name")}>
                                             Name {sortField === "name" && <ArrowUpDown className="inline w-3 h-3 ml-1" />}
                                         </TableHead>
+                                        <TableHead>Tasks</TableHead>
                                         <TableHead className="cursor-pointer" onClick={() => handleSort("completion")}>
                                             Progress {sortField === "completion" && <ArrowUpDown className="inline w-3 h-3 ml-1" />}
                                         </TableHead>
                                         <TableHead className="cursor-pointer" onClick={() => handleSort("status")}>
                                             Status {sortField === "status" && <ArrowUpDown className="inline w-3 h-3 ml-1" />}
                                         </TableHead>
+                                        <TableHead className="w-[60px]"></TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {sortedStudents.map((student) => (
                                         <TableRow key={student.id}>
-                                            <TableCell className="font-medium">{student.display_name}</TableCell>
-                                            <TableCell className="w-[40%]">
-                                                <div className="flex items-center gap-2">
-                                                    <Progress value={student.completionRate} className="h-2 flex-1" />
-                                                    <span className="text-xs w-8">{student.completionRate}%</span>
+                                            <TableCell>
+                                                <div>
+                                                    <p className="font-medium">{student.display_name}</p>
+                                                    {student.email && (
+                                                        <p className="text-xs text-muted-foreground">{student.email}</p>
+                                                    )}
                                                 </div>
                                             </TableCell>
                                             <TableCell>
-                                                <Badge variant={student.status === "On Track" ? "default" : "destructive"}>
+                                                <span className="text-sm">
+                                                    {student.completed_tasks}/{student.total_tasks}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell className="w-[30%]">
+                                                <div className="flex items-center gap-2">
+                                                    <Progress value={student.completionRate} className="h-2 flex-1" />
+                                                    <span className="text-xs w-10 text-right">{student.completionRate}%</span>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge
+                                                    variant={student.status === "On Track" ? "default" : student.status === "Behind" ? "secondary" : "destructive"}
+                                                    className={student.status === "On Track" ? "bg-green-500/20 text-green-700 border-green-500/30" : ""}
+                                                >
                                                     {student.status}
                                                 </Badge>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                                    onClick={() => setStudentToRemove(student)}
+                                                >
+                                                    <UserMinus className="w-4 h-4" />
+                                                </Button>
                                             </TableCell>
                                         </TableRow>
                                     ))}
                                     {sortedStudents.length === 0 && (
                                         <TableRow>
-                                            <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
-                                                No students found matching filters.
+                                            <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                                                {students.length === 0
+                                                    ? "No students have joined this group yet. Share the join code above!"
+                                                    : "No students found matching filters."}
                                             </TableCell>
                                         </TableRow>
                                     )}
@@ -521,6 +678,30 @@ export default function GroupDetail() {
                     </Card>
                 </div>
             </div>
+
+            {/* Remove Student Confirmation Dialog */}
+            <AlertDialog open={!!studentToRemove} onOpenChange={(open) => !open && setStudentToRemove(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Remove Student?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to remove <span className="font-semibold">{studentToRemove?.display_name}</span> from this group?
+                            They will no longer have access to group tasks and can rejoin using the join code.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={removing}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleRemoveStudent}
+                            disabled={removing}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                            {removing && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                            Remove
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

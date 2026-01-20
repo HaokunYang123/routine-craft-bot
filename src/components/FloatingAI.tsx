@@ -38,8 +38,12 @@ export function FloatingAI({ context = "You are a helpful assistant.", placehold
     try {
       const { data, error } = await supabase.functions.invoke("ai-chat", { body: { messages: [...messages, { role: "user", content: userMessage }], systemPrompt: context } });
       if (error) throw error;
-      setMessages(prev => [...prev, { role: "assistant", content: data.response }]);
-    } catch { setMessages(prev => [...prev, { role: "assistant", content: "Oops! Something went wrong. 🌟" }]); }
+      if (data.error) throw new Error(data.error);
+      setMessages(prev => [...prev, { role: "assistant", content: data.response || "I'm here to help! Could you try rephrasing that?" }]);
+    } catch (err: any) {
+      console.error("AI Chat error:", err);
+      setMessages(prev => [...prev, { role: "assistant", content: err.message || "I'm having trouble connecting. Please try again in a moment." }]);
+    }
     finally { setIsLoading(false); }
   };
 

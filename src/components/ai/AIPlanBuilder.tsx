@@ -33,7 +33,8 @@ export function AIPlanBuilder({ onSavePlan, context }: AIPlanBuilderProps) {
   const handleGeneratePlan = async (prompt: string) => {
     const result = await generatePlan(prompt, context);
     if (result.success && result.data) {
-      setGeneratedTasks(result.data);
+      // result.data is GeneratedPlan { name, description, tasks }
+      setGeneratedTasks(result.data.tasks || []);
     }
   };
 

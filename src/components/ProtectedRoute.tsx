@@ -57,12 +57,18 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
   }
 
   // Role check if required
-  if (requiredRole && role && role !== requiredRole) {
-    // Redirect to appropriate dashboard based on actual role
-    if (role === "student") {
-      return <Navigate to="/app" replace />;
-    } else if (role === "coach") {
-      return <Navigate to="/dashboard" replace />;
+  if (requiredRole) {
+    // If role is not loaded yet or doesn't exist, redirect to home
+    if (!role) {
+      return <Navigate to="/" replace />;
+    }
+    // Redirect to appropriate dashboard if role doesn't match
+    if (role !== requiredRole) {
+      if (role === "student") {
+        return <Navigate to="/app" replace />;
+      } else if (role === "coach") {
+        return <Navigate to="/dashboard" replace />;
+      }
     }
   }
 

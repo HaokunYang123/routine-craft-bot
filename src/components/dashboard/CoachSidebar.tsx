@@ -1,9 +1,8 @@
 import {
   LayoutDashboard,
-  Users,
   Calendar,
+  ClipboardList,
   Library,
-  Settings,
   LogOut,
   Menu,
   X,
@@ -26,12 +25,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+// 4 tabs only as per specification
 const navItems = [
-  { title: "Overview", url: "/dashboard", icon: LayoutDashboard },
+  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Calendar", url: "/dashboard/calendar", icon: Calendar },
-  { title: "My Athletes", url: "/dashboard/people", icon: Users },
-  { title: "Template Library", url: "/dashboard/templates", icon: Library },
-  { title: "Settings", url: "/dashboard/settings", icon: Settings },
+  { title: "Tasks", url: "/dashboard/tasks", icon: ClipboardList },
+  { title: "Templates", url: "/dashboard/templates", icon: Library },
 ];
 
 export function CoachSidebar() {
