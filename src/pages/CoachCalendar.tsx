@@ -505,6 +505,9 @@ export default function CoachCalendar() {
   );
 }
 
+// Maximum tasks to show before collapse
+const MAX_VISIBLE_TASKS = 3;
+
 // Day Sheet Content Component - Shows groups with members and their tasks
 function DaySheetContent({
   tasks,
@@ -518,6 +521,8 @@ function DaySheetContent({
   onRefresh: () => void;
 }) {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(groups.map(g => g.id)));
+  // Track which members have expanded task lists (key: memberId)
+  const [expandedMembers, setExpandedMembers] = useState<Set<string>>(new Set());
 
   const toggleGroup = (groupId: string) => {
     setExpandedGroups((prev) => {
@@ -526,6 +531,18 @@ function DaySheetContent({
         newSet.delete(groupId);
       } else {
         newSet.add(groupId);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleMemberTasks = (memberId: string) => {
+    setExpandedMembers((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(memberId)) {
+        newSet.delete(memberId);
+      } else {
+        newSet.add(memberId);
       }
       return newSet;
     });
@@ -595,6 +612,15 @@ function DaySheetContent({
               <div
                 className="flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-muted/50 transition-colors"
                 style={{ borderLeftWidth: "4px", borderLeftColor: group.color }}
+                role="button"
+                aria-expanded={isExpanded}
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    toggleGroup(groupId);
+                  }
+                }}
               >
                 <div className="flex items-center gap-3">
                   <Users className="w-5 h-5" style={{ color: group.color }} />
@@ -626,6 +652,12 @@ function DaySheetContent({
                 const memberCompleted = member.tasks.filter(t => t.status === "completed").length;
                 const memberTotal = member.tasks.length;
                 const memberRate = memberTotal > 0 ? Math.round((memberCompleted / memberTotal) * 100) : 0;
+                const isMemberExpanded = expandedMembers.has(memberId);
+                const hasMoreTasks = member.tasks.length > MAX_VISIBLE_TASKS;
+                const visibleTasks = isMemberExpanded
+                  ? member.tasks
+                  : member.tasks.slice(0, MAX_VISIBLE_TASKS);
+                const hiddenCount = member.tasks.length - MAX_VISIBLE_TASKS;
 
                 return (
                   <div key={memberId} className="border rounded-lg p-3 bg-muted/20">
@@ -656,7 +688,7 @@ function DaySheetContent({
                     </div>
 
                     <div className="space-y-2">
-                      {member.tasks.map((task) => (
+                      {visibleTasks.map((task) => (
                         <div
                           key={task.id}
                           className={cn(
@@ -669,7 +701,8 @@ function DaySheetContent({
                               task.id,
                               task.status === "completed" ? "pending" : "completed"
                             )}
-                            className="focus:outline-none"
+                            className="focus:outline-none focus:ring-2 focus:ring-cta-primary rounded"
+                            aria-label={task.status === "completed" ? "Mark as incomplete" : "Mark as complete"}
                           >
                             {task.status === "completed" ? (
                               <CheckCircle2 className="w-4 h-4 text-green-500" />
@@ -678,18 +711,40 @@ function DaySheetContent({
                             )}
                           </button>
                           <span className={cn(
-                            "flex-1",
+                            "flex-1 truncate",
                             task.status === "completed" && "line-through text-muted-foreground"
                           )}>
                             {task.name}
                           </span>
                           {task.durationMinutes && (
-                            <Badge variant="outline" className="text-xs">
+                            <Badge variant="outline" className="text-xs shrink-0">
                               {task.durationMinutes}m
                             </Badge>
                           )}
                         </div>
                       ))}
+
+                      {/* Show more/less button */}
+                      {hasMoreTasks && (
+                        <button
+                          onClick={() => toggleMemberTasks(memberId)}
+                          className="w-full text-center py-2 text-xs font-medium text-cta-primary hover:text-cta-hover hover:bg-muted/50 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-cta-primary"
+                          aria-expanded={isMemberExpanded}
+                          aria-label={isMemberExpanded ? "Show less tasks" : `Show ${hiddenCount} more tasks`}
+                        >
+                          {isMemberExpanded ? (
+                            <span className="flex items-center justify-center gap-1">
+                              <ChevronUp className="w-3 h-3" />
+                              Show less
+                            </span>
+                          ) : (
+                            <span className="flex items-center justify-center gap-1">
+                              <ChevronDown className="w-3 h-3" />
+                              Show {hiddenCount} more task{hiddenCount > 1 ? "s" : ""}
+                            </span>
+                          )}
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
@@ -856,6 +911,9 @@ function DayView({
   );
 }
 
+// Maximum tasks to show in sidebar before collapse
+const MAX_SIDEBAR_TASKS = 5;
+
 // Shared Task List Component
 function TaskList({
   tasks,
@@ -866,6 +924,8 @@ function TaskList({
   onRefresh: () => void;
   showDetails?: boolean;
 }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
   const handleToggleComplete = async (taskId: string, newStatus: "pending" | "completed") => {
     try {
       const { error } = await supabase
@@ -892,9 +952,13 @@ function TaskList({
     );
   }
 
+  const hasMoreTasks = tasks.length > MAX_SIDEBAR_TASKS;
+  const visibleTasks = isExpanded ? tasks : tasks.slice(0, MAX_SIDEBAR_TASKS);
+  const hiddenCount = tasks.length - MAX_SIDEBAR_TASKS;
+
   return (
     <div className="space-y-3">
-      {tasks.map((task) => (
+      {visibleTasks.map((task) => (
         <div
           key={task.id}
           className={cn(
@@ -974,6 +1038,28 @@ function TaskList({
           </div>
         </div>
       ))}
+
+      {/* Show more/less button for sidebar task list */}
+      {hasMoreTasks && (
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="w-full text-center py-2 text-sm font-medium text-cta-primary hover:text-cta-hover hover:bg-muted/50 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-cta-primary"
+          aria-expanded={isExpanded}
+          aria-label={isExpanded ? "Show less tasks" : `Show ${hiddenCount} more tasks`}
+        >
+          {isExpanded ? (
+            <span className="flex items-center justify-center gap-1">
+              <ChevronUp className="w-4 h-4" />
+              Show less
+            </span>
+          ) : (
+            <span className="flex items-center justify-center gap-1">
+              <ChevronDown className="w-4 h-4" />
+              Show {hiddenCount} more task{hiddenCount > 1 ? "s" : ""}
+            </span>
+          )}
+        </button>
+      )}
     </div>
   );
 }

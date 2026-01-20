@@ -48,6 +48,7 @@ interface CreateAssignmentInput {
     name: string;
     description?: string;
     duration_minutes?: number;
+    due_date?: string;
   }>;
 }
 
@@ -102,17 +103,19 @@ export function useAssignments() {
       }
 
       // Get tasks from template or use provided tasks
-      let tasks: Array<{ name: string; description?: string; duration_minutes?: number }> = [];
+      let tasks: Array<{ name: string; description?: string; duration_minutes?: number; day_offset?: number; due_date?: string }> = [];
 
       if (input.template_id) {
         const { data: templateTasks } = await supabase
           .from("template_tasks")
-          .select("title, description, duration_minutes")
-          .eq("template_id", input.template_id);
+          .select("title, description, duration_minutes, day_offset, sort_order")
+          .eq("template_id", input.template_id)
+          .order("sort_order", { ascending: true });
         tasks = (templateTasks || []).map((t) => ({
           name: t.title,
           description: t.description,
           duration_minutes: t.duration_minutes,
+          day_offset: t.day_offset || 0,
         }));
       } else if (input.tasks) {
         tasks = input.tasks;
@@ -122,14 +125,7 @@ export function useAssignments() {
       const startDate = new Date(input.start_date);
       const endDate = input.end_date ? new Date(input.end_date) : addDays(startDate, 30);
 
-      const scheduledDates = getScheduledDates(
-        startDate,
-        endDate,
-        input.schedule_type,
-        input.schedule_days || []
-      );
-
-      // Create task instances for each assignee and each scheduled date
+      // Create task instances for each assignee
       const taskInstances: Array<{
         assignment_id: string;
         assignee_id: string;
@@ -140,18 +136,66 @@ export function useAssignments() {
         status: string;
       }> = [];
 
-      for (const assigneeId of assigneeIds) {
-        for (const date of scheduledDates) {
+      // Check if tasks have day_offset (template-based scheduling)
+      const hasTaskOffsets = tasks.some(t => t.day_offset !== undefined && t.day_offset !== 0);
+      // Check if any custom task has a specific due_date
+      const hasCustomDueDates = tasks.some(t => t.due_date);
+
+      if (hasCustomDueDates) {
+        // Custom tasks with specific due dates: Each task uses its own due_date or falls back to start_date
+        for (const assigneeId of assigneeIds) {
           for (const task of tasks) {
+            const taskDate = task.due_date || input.start_date;
             taskInstances.push({
               assignment_id: assignment.id,
               assignee_id: assigneeId,
               name: task.name,
               description: task.description || null,
               duration_minutes: task.duration_minutes || null,
-              scheduled_date: format(date, "yyyy-MM-dd"),
+              scheduled_date: taskDate,
               status: "pending",
             });
+          }
+        }
+      } else if (hasTaskOffsets || input.template_id) {
+        // Template-based: Use day_offset from each task to schedule on different days
+        // Each task gets scheduled on startDate + day_offset
+        for (const assigneeId of assigneeIds) {
+          for (const task of tasks) {
+            const taskDate = addDays(startDate, task.day_offset || 0);
+            taskInstances.push({
+              assignment_id: assignment.id,
+              assignee_id: assigneeId,
+              name: task.name,
+              description: task.description || null,
+              duration_minutes: task.duration_minutes || null,
+              scheduled_date: format(taskDate, "yyyy-MM-dd"),
+              status: "pending",
+            });
+          }
+        }
+      } else {
+        // Custom tasks or recurring: Use schedule_type to determine dates
+        const scheduledDates = getScheduledDates(
+          startDate,
+          endDate,
+          input.schedule_type,
+          input.schedule_days || []
+        );
+
+        for (const assigneeId of assigneeIds) {
+          for (const date of scheduledDates) {
+            for (const task of tasks) {
+              taskInstances.push({
+                assignment_id: assignment.id,
+                assignee_id: assigneeId,
+                name: task.name,
+                description: task.description || null,
+                duration_minutes: task.duration_minutes || null,
+                scheduled_date: format(date, "yyyy-MM-dd"),
+                status: "pending",
+              });
+            }
           }
         }
       }

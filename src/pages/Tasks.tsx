@@ -115,7 +115,8 @@ export default function Tasks() {
     name: string;
     description: string;
     duration_minutes: number | null;
-  }>>([{ name: "", description: "", duration_minutes: null }]);
+    due_date: string | null;
+  }>>([{ name: "", description: "", duration_minutes: null, due_date: null }]);
 
   // Schedule State
   const [scheduleType, setScheduleType] = useState<"once" | "daily" | "weekly" | "custom">("once");
@@ -201,7 +202,7 @@ export default function Tasks() {
     setAssignmentType("template");
     setSelectedTemplateId("");
     setTemplateTasks([]);
-    setCustomTasks([{ name: "", description: "", duration_minutes: null }]);
+    setCustomTasks([{ name: "", description: "", duration_minutes: null, due_date: null }]);
     setScheduleType("once");
     setScheduleDays([]);
     setStartDate(format(new Date(), "yyyy-MM-dd"));
@@ -231,7 +232,7 @@ export default function Tasks() {
   };
 
   const addCustomTask = () => {
-    setCustomTasks([...customTasks, { name: "", description: "", duration_minutes: null }]);
+    setCustomTasks([...customTasks, { name: "", description: "", duration_minutes: null, due_date: null }]);
   };
 
   const removeCustomTask = (index: number) => {
@@ -263,26 +264,50 @@ export default function Tasks() {
         body: {
           action: "enhance_task",
           payload: {
-            taskName: task.name,
-            taskDescription: task.description,
+            taskName: task.name.trim(),
+            taskDescription: task.description?.trim() || "",
           },
         },
       });
 
-      if (error) throw error;
-
-      if (data.result) {
-        updateCustomTask(index, "description", data.result);
-        toast({
-          title: "Task Enhanced",
-          description: "AI has improved your task description.",
-        });
+      // Handle function invocation error
+      if (error) {
+        console.error("AI function error:", error);
+        throw new Error(error.message || "Failed to connect to AI service");
       }
+
+      // Handle error in response body
+      if (data?.error) {
+        console.error("AI response error:", data.error);
+        throw new Error(data.error);
+      }
+
+      // Validate result exists and is a string
+      if (!data?.result || typeof data.result !== "string") {
+        console.error("Invalid AI response:", data);
+        throw new Error("AI returned an unexpected response format");
+      }
+
+      // Clean the result (remove quotes if AI added them)
+      const cleanedResult = data.result.replace(/^["']|["']$/g, "").trim();
+
+      if (cleanedResult.length === 0) {
+        throw new Error("AI returned an empty description");
+      }
+
+      updateCustomTask(index, "description", cleanedResult);
+      toast({
+        title: "Task Enhanced!",
+        description: "AI created a kid-friendly description.",
+      });
     } catch (error: any) {
       console.error("Error enhancing task:", error);
+      const errorMessage = error.message || "Could not enhance task";
       toast({
         title: "Enhancement Failed",
-        description: "Could not enhance task. Please try again.",
+        description: errorMessage.includes("timeout")
+          ? "AI took too long. Try a simpler task name."
+          : errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -329,6 +354,7 @@ export default function Tasks() {
         name: t.name.trim(),
         description: t.description.trim() || undefined,
         duration_minutes: t.duration_minutes || undefined,
+        due_date: t.due_date || undefined,
       }));
 
     setSaving(true);
@@ -738,20 +764,37 @@ export default function Tasks() {
                         />
                       </div>
 
-                      <div className="w-32">
-                        <Input
-                          type="number"
-                          placeholder="Duration (min)"
-                          value={task.duration_minutes || ""}
-                          onChange={(e) =>
-                            updateCustomTask(
-                              index,
-                              "duration_minutes",
-                              e.target.value ? parseInt(e.target.value) : null
-                            )
-                          }
-                          min="1"
-                        />
+                      <div className="flex gap-3">
+                        <div className="w-32">
+                          <Label className="text-xs text-muted-foreground mb-1 block">
+                            Duration (min)
+                          </Label>
+                          <Input
+                            type="number"
+                            placeholder="Duration"
+                            value={task.duration_minutes || ""}
+                            onChange={(e) =>
+                              updateCustomTask(
+                                index,
+                                "duration_minutes",
+                                e.target.value ? parseInt(e.target.value) : null
+                              )
+                            }
+                            min="1"
+                          />
+                        </div>
+                        <div className="w-40">
+                          <Label className="text-xs text-muted-foreground mb-1 block">
+                            Due Date (optional)
+                          </Label>
+                          <Input
+                            type="date"
+                            value={task.due_date || ""}
+                            onChange={(e) =>
+                              updateCustomTask(index, "due_date", e.target.value || null)
+                            }
+                          />
+                        </div>
                       </div>
                     </div>
                   </Card>

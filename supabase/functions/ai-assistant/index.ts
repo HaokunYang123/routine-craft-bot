@@ -62,6 +62,21 @@ serve(async (req) => {
         userPrompt = `Rewrite this task description: "${payload.description}"`;
         break;
 
+      case "enhance_task":
+        // Task writing helper: convert rough notes into kid-friendly steps
+        systemPrompt = `You are a friendly coach writing tasks for kids/students. Given a task name and optional description, write a clear, encouraging, and actionable task description.
+
+Rules:
+- Keep it under 150 characters
+- Use simple, positive language a child can understand
+- Be specific about what to do
+- Make it feel achievable and fun
+- Return ONLY the enhanced description text, no quotes or formatting`;
+        userPrompt = payload.taskDescription
+          ? `Task: "${payload.taskName}"\nCurrent description: "${payload.taskDescription}"\n\nEnhance this description.`
+          : `Task: "${payload.taskName}"\n\nWrite a kid-friendly description for this task.`;
+        break;
+
       case "modify_plan":
         systemPrompt = `Modify the plan based on feedback. Return ONLY a concise JSON array:
         [{"title":"Title","description":"Instructions","duration_minutes":15,"day_offset":0}]

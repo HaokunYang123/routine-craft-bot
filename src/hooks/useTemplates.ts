@@ -149,6 +149,83 @@ export function useTemplates() {
     }
   };
 
+  const updateTemplate = async (
+    templateId: string,
+    name: string,
+    description: string,
+    tasks: TemplateTask[]
+  ): Promise<Template | null> => {
+    if (!user) return null;
+
+    try {
+      // Update template
+      const { error: templateError } = await supabase
+        .from("templates" as any)
+        .update({
+          name,
+          description,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", templateId);
+
+      if (templateError) throw templateError;
+
+      // Delete existing tasks
+      const { error: deleteError } = await supabase
+        .from("template_tasks" as any)
+        .delete()
+        .eq("template_id", templateId);
+
+      if (deleteError) throw deleteError;
+
+      // Insert new tasks
+      if (tasks.length > 0) {
+        const taskInserts = tasks.map((task, index) => ({
+          template_id: templateId,
+          title: task.title,
+          description: task.description,
+          duration_minutes: task.duration_minutes,
+          day_offset: task.day_offset,
+          sort_order: index,
+        }));
+
+        const { error: tasksError } = await supabase
+          .from("template_tasks" as any)
+          .insert(taskInserts);
+
+        if (tasksError) throw tasksError;
+      }
+
+      const updatedTemplate: Template = {
+        id: templateId,
+        name,
+        description,
+        coach_id: user.id,
+        created_at: templates.find((t) => t.id === templateId)?.created_at || new Date().toISOString(),
+        tasks,
+      };
+
+      setTemplates((prev) =>
+        prev.map((t) => (t.id === templateId ? updatedTemplate : t))
+      );
+
+      toast({
+        title: "Template Updated",
+        description: `"${name}" has been saved.`,
+      });
+
+      return updatedTemplate;
+    } catch (error: any) {
+      console.error("Error updating template:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update template.",
+        variant: "destructive",
+      });
+      return null;
+    }
+  };
+
   const deleteTemplate = async (templateId: string) => {
     try {
       const { error } = await supabase
@@ -179,6 +256,7 @@ export function useTemplates() {
     loading,
     fetchTemplates,
     createTemplate,
+    updateTemplate,
     deleteTemplate,
   };
 }

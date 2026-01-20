@@ -1,20 +1,35 @@
-import { useState } from "react";
-import { Settings, User, Bell, Shield, Palette, LogOut } from "lucide-react";
+import { useState, useEffect } from "react";
+import { User, Shield, LogOut, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
 
 export default function CoachSettings() {
   const { user, signOut } = useAuth();
-  const [notifications, setNotifications] = useState({
-    emailDigest: true,
-    studentProgress: true,
-    weeklyReport: false,
-  });
+  const { profile, loading: profileLoading, updateProfile } = useProfile();
+  const [nameInput, setNameInput] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  // Initialize name input when profile loads
+  useEffect(() => {
+    if (profile) {
+      setNameInput(profile.display_name || "");
+    }
+  }, [profile]);
+
+  const handleSaveProfile = async () => {
+    if (!nameInput.trim()) return;
+
+    setSaving(true);
+    await updateProfile({ display_name: nameInput.trim() });
+    setSaving(false);
+  };
+
+  const hasNameChanged = nameInput.trim() !== (profile?.display_name || "");
 
   return (
     <div className="space-y-6 pb-20 max-w-3xl">
@@ -40,93 +55,58 @@ export default function CoachSettings() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-foreground">Display Name</Label>
-              <Input
-                defaultValue={user?.user_metadata?.full_name || ""}
-                placeholder="Your name"
-                className="bg-input border-border text-foreground"
-              />
+          {profileLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-10 w-full" />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label className="text-foreground">Email</Label>
-              <Input
-                value={user?.email || ""}
-                disabled
-                className="bg-muted border-border text-muted-foreground"
-              />
-            </div>
-          </div>
-          <Button className="bg-cta-primary hover:bg-cta-hover text-white">
-            Save Changes
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Notifications Section */}
-      <Card className="border-border">
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-btn-secondary/20">
-              <Bell className="w-5 h-5 text-btn-secondary" />
-            </div>
-            <div>
-              <CardTitle className="text-lg text-foreground">
-                Notifications
-              </CardTitle>
-              <CardDescription>Configure your notification preferences</CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-foreground">Email Digest</p>
-              <p className="text-sm text-muted-foreground">
-                Receive daily email summaries
-              </p>
-            </div>
-            <Switch
-              checked={notifications.emailDigest}
-              onCheckedChange={(checked) =>
-                setNotifications((prev) => ({ ...prev, emailDigest: checked }))
-              }
-            />
-          </div>
-          <Separator className="bg-border" />
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-foreground">Student Progress Alerts</p>
-              <p className="text-sm text-muted-foreground">
-                Get notified when students fall behind
-              </p>
-            </div>
-            <Switch
-              checked={notifications.studentProgress}
-              onCheckedChange={(checked) =>
-                setNotifications((prev) => ({
-                  ...prev,
-                  studentProgress: checked,
-                }))
-              }
-            />
-          </div>
-          <Separator className="bg-border" />
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-foreground">Weekly Reports</p>
-              <p className="text-sm text-muted-foreground">
-                Receive weekly performance reports
-              </p>
-            </div>
-            <Switch
-              checked={notifications.weeklyReport}
-              onCheckedChange={(checked) =>
-                setNotifications((prev) => ({ ...prev, weeklyReport: checked }))
-              }
-            />
-          </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="display-name" className="text-foreground">Display Name</Label>
+                  <Input
+                    id="display-name"
+                    value={nameInput}
+                    onChange={(e) => setNameInput(e.target.value)}
+                    placeholder="Enter your name (e.g., Coach Josh)"
+                    className="bg-input border-border text-foreground"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    This name will be shown throughout the app
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-foreground">Email</Label>
+                  <Input
+                    value={user?.email || ""}
+                    disabled
+                    className="bg-muted border-border text-muted-foreground"
+                  />
+                </div>
+              </div>
+              <Button
+                onClick={handleSaveProfile}
+                disabled={saving || !hasNameChanged || !nameInput.trim()}
+                className="bg-cta-primary hover:bg-cta-hover text-white disabled:opacity-50"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save Changes"
+                )}
+              </Button>
+            </>
+          )}
         </CardContent>
       </Card>
 

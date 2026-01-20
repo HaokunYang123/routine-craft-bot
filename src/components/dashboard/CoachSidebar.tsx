@@ -7,9 +7,11 @@ import {
   Menu,
   X,
   UsersRound,
+  Settings,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
 import {
   Sidebar,
   SidebarContent,
@@ -23,9 +25,10 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
-// 4 tabs only as per specification
+// Main nav items
 const navItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Calendar", url: "/dashboard/calendar", icon: Calendar },
@@ -36,12 +39,12 @@ const navItems = [
 export function CoachSidebar() {
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const { displayName, initials, loading: profileLoading } = useProfile();
   const { state, toggleSidebar } = useSidebar();
   const collapsed = state === "collapsed";
 
-  // Get user display info
+  // Get user email for fallback
   const userEmail = user?.email || "";
-  const userInitials = userEmail.substring(0, 2).toUpperCase();
 
   return (
     <Sidebar
@@ -114,25 +117,63 @@ export function CoachSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="p-4 border-t border-sidebar-border space-y-3">
-        {/* User Badge */}
-        <div
+        {/* User Badge - Clickable to Settings */}
+        <NavLink
+          to="/dashboard/settings"
           className={cn(
-            "flex items-center gap-3 p-2 rounded-lg bg-sidebar-accent/50",
+            "flex items-center gap-3 p-2 rounded-lg bg-sidebar-accent/50 hover:bg-sidebar-accent transition-colors",
             collapsed && "justify-center"
           )}
         >
-          <div className="w-8 h-8 rounded-full bg-btn-secondary flex items-center justify-center text-white text-xs font-bold shrink-0">
-            {userInitials}
-          </div>
-          {!collapsed && (
-            <div className="flex-1 min-w-0">
-              <p className="text-xs text-muted-foreground">Logged in as</p>
-              <p className="text-sm font-medium text-foreground truncate">
-                {userEmail}
-              </p>
-            </div>
+          {profileLoading ? (
+            <>
+              <Skeleton className="w-8 h-8 rounded-full shrink-0" />
+              {!collapsed && (
+                <div className="flex-1 min-w-0 space-y-1">
+                  <Skeleton className="h-3 w-20" />
+                  <Skeleton className="h-4 w-24" />
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <div className="w-8 h-8 rounded-full bg-btn-secondary flex items-center justify-center text-white text-xs font-bold shrink-0">
+                {initials}
+              </div>
+              {!collapsed && (
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">
+                    {displayName}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {userEmail}
+                  </p>
+                </div>
+              )}
+            </>
           )}
-        </div>
+        </NavLink>
+
+        {/* Settings Link */}
+        <SidebarMenuButton
+          asChild
+          isActive={location.pathname === "/dashboard/settings"}
+          tooltip={collapsed ? "Settings" : undefined}
+          className={cn(
+            "rounded-lg transition-all duration-200",
+            "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+            location.pathname === "/dashboard/settings" &&
+              "bg-cta-primary text-white hover:bg-cta-hover hover:text-white"
+          )}
+        >
+          <NavLink
+            to="/dashboard/settings"
+            className="flex items-center gap-3 px-3 py-2"
+          >
+            <Settings className="w-5 h-5 shrink-0" />
+            {!collapsed && <span className="font-medium">Settings</span>}
+          </NavLink>
+        </SidebarMenuButton>
 
         {/* Sign Out Button */}
         <Button

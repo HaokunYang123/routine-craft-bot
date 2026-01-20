@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Library, Plus, Sparkles, Clock, Calendar, Trash2, Loader2, Edit, FileEdit, Copy, Users } from "lucide-react";
+import { Library, Plus, Sparkles, Clock, Calendar, Trash2, Loader2, Edit, FileEdit, Edit2, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -31,7 +31,7 @@ import { useTemplates, Template } from "@/hooks/useTemplates";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Templates() {
-  const { templates, loading, createTemplate, deleteTemplate } = useTemplates();
+  const { templates, loading, createTemplate, updateTemplate, deleteTemplate } = useTemplates();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("ai");
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
@@ -40,6 +40,11 @@ export default function Templates() {
   const [templateDescription, setTemplateDescription] = useState("");
   const [saving, setSaving] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState<Template | null>(null);
+  const [editTemplate, setEditTemplate] = useState<Template | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editTasks, setEditTasks] = useState<Array<{ title: string; description: string; duration_minutes: number; day_offset: number }>>([]);
+  const [editSaving, setEditSaving] = useState(false);
   const [manualSaving, setManualSaving] = useState(false);
 
   const handleSavePlan = (tasks: GeneratedTask[]) => {
@@ -90,10 +95,11 @@ export default function Templates() {
     }
   };
 
-  const handleDuplicate = async (template: Template) => {
-    const result = await createTemplate(
-      `${template.name} (Copy)`,
-      template.description || "",
+  const handleOpenEdit = (template: Template) => {
+    setEditTemplate(template);
+    setEditName(template.name);
+    setEditDescription(template.description || "");
+    setEditTasks(
       (template.tasks || []).map((t) => ({
         title: t.title,
         description: t.description,
@@ -101,11 +107,41 @@ export default function Templates() {
         day_offset: t.day_offset,
       }))
     );
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editTemplate || !editName.trim()) return;
+
+    setEditSaving(true);
+    const result = await updateTemplate(
+      editTemplate.id,
+      editName.trim(),
+      editDescription.trim(),
+      editTasks.filter((t) => t.title.trim())
+    );
+    setEditSaving(false);
+
     if (result) {
-      toast({
-        title: "Template Duplicated",
-        description: `Created copy of "${template.name}"`,
-      });
+      setEditTemplate(null);
+    }
+  };
+
+  const handleEditTaskChange = (index: number, field: string, value: any) => {
+    setEditTasks((prev) =>
+      prev.map((task, i) => (i === index ? { ...task, [field]: value } : task))
+    );
+  };
+
+  const handleAddEditTask = () => {
+    setEditTasks((prev) => [
+      ...prev,
+      { title: "", description: "", duration_minutes: 15, day_offset: prev.length > 0 ? prev[prev.length - 1].day_offset : 0 },
+    ]);
+  };
+
+  const handleRemoveEditTask = (index: number) => {
+    if (editTasks.length > 1) {
+      setEditTasks((prev) => prev.filter((_, i) => i !== index));
     }
   };
 
@@ -261,10 +297,10 @@ export default function Templates() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleDuplicate(template)}
-                          className="border-muted-foreground/30 text-muted-foreground hover:bg-muted/30"
+                          onClick={() => handleOpenEdit(template)}
+                          className="border-btn-secondary/30 text-btn-secondary hover:bg-btn-secondary/10"
                         >
-                          <Copy className="w-4 h-4" />
+                          <Edit2 className="w-4 h-4" />
                         </Button>
                       </div>
                     </div>
