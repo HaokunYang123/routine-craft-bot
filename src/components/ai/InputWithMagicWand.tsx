@@ -44,12 +44,6 @@ export function InputWithMagicWand({
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-      e.preventDefault();
-      handleSubmit();
-    }
-  };
 
   return (
     <div className={cn("relative", className)}>
@@ -63,7 +57,6 @@ export function InputWithMagicWand({
           ref={textareaRef}
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={isLoading}
           className={cn(
@@ -74,18 +67,7 @@ export function InputWithMagicWand({
         />
 
         {/* Action buttons */}
-        <div className="flex items-center justify-between p-2 border-t border-border/50 bg-muted/20">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <kbd className="px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
-              {navigator.platform.includes("Mac") ? "⌘" : "Ctrl"}
-            </kbd>
-            <span>+</span>
-            <kbd className="px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
-              Enter
-            </kbd>
-            <span>to submit</span>
-          </div>
-
+        <div className="flex items-center justify-end p-2 border-t border-border/50 bg-muted/20">
           <div className="flex items-center gap-2">
             {showExpandButton && onExpand && (
               <Button

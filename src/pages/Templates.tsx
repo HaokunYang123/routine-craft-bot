@@ -394,6 +394,113 @@ export default function Templates() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Template Dialog */}
+      <Dialog open={!!editTemplate} onOpenChange={() => setEditTemplate(null)}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Template</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Template Name</Label>
+              <Input
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="Template name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Description (optional)</Label>
+              <Textarea
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                placeholder="Brief description..."
+                rows={2}
+              />
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label>Tasks</Label>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddEditTask}
+                  className="text-btn-secondary border-btn-secondary/30"
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  Add Task
+                </Button>
+              </div>
+
+              {editTasks.map((task, index) => (
+                <div key={index} className="p-3 border rounded-lg space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={task.title}
+                      onChange={(e) => handleEditTaskChange(index, "title", e.target.value)}
+                      placeholder="Task title"
+                      className="flex-1"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleRemoveEditTask(index)}
+                      disabled={editTasks.length === 1}
+                      className="text-muted-foreground hover:text-destructive shrink-0"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  <Input
+                    value={task.description}
+                    onChange={(e) => handleEditTaskChange(index, "description", e.target.value)}
+                    placeholder="Description (optional)"
+                    className="text-sm"
+                  />
+                  <div className="flex gap-2">
+                    <div className="flex items-center gap-2">
+                      <Label className="text-xs whitespace-nowrap">Day</Label>
+                      <Input
+                        type="number"
+                        value={task.day_offset + 1}
+                        onChange={(e) => handleEditTaskChange(index, "day_offset", Math.max(0, parseInt(e.target.value) - 1) || 0)}
+                        className="w-16"
+                        min={1}
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Label className="text-xs whitespace-nowrap">Duration</Label>
+                      <Input
+                        type="number"
+                        value={task.duration_minutes}
+                        onChange={(e) => handleEditTaskChange(index, "duration_minutes", parseInt(e.target.value) || 15)}
+                        className="w-20"
+                        min={1}
+                      />
+                      <span className="text-xs text-muted-foreground">min</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditTemplate(null)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveEdit}
+              disabled={editSaving || !editName.trim() || editTasks.filter(t => t.title.trim()).length === 0}
+              className="bg-cta-primary hover:bg-cta-hover text-white"
+            >
+              {editSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

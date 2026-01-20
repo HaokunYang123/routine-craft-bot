@@ -2,7 +2,6 @@ import { Outlet, NavLink } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { CoachSidebar } from "@/components/dashboard/CoachSidebar";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { FloatingAI } from "@/components/FloatingAI";
 import { Logo } from "@/components/ui/logo";
 import { useProfile } from "@/hooks/useProfile";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -54,7 +53,6 @@ export default function DashboardLayout() {
               </div>
             </main>
           </div>
-          <FloatingAI placeholder="Ask about routines, tasks, or get suggestions..." />
         </SidebarProvider>
       </div>
     </ProtectedRoute>
