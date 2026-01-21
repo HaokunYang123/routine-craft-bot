@@ -26,14 +26,6 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
-
-// Student emoji options - fun and youthful
-const STUDENT_EMOJIS = [
-    "😊", "😎", "🤩", "🥳", "😄", "🙂", "🤗", "😇",
-    "🦊", "🐱", "🐶", "🐼", "🦁", "🐯", "🐨", "🐰",
-    "⭐", "🌟", "✨", "🔥", "💪", "🎯", "🏆", "🎉",
-];
 
 interface Profile {
     display_name: string | null;
@@ -51,11 +43,9 @@ export default function StudentSettings() {
     const [loading, setLoading] = useState(true);
     const [editingName, setEditingName] = useState(false);
     const [newDisplayName, setNewDisplayName] = useState("");
-    const [selectedEmoji, setSelectedEmoji] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
     const [deleting, setDeleting] = useState(false);
-    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
     useEffect(() => {
         if (user) {
@@ -76,10 +66,6 @@ export default function StudentSettings() {
             if (error) throw error;
             setProfile(data);
             setNewDisplayName(data.display_name || "");
-            // Extract emoji from avatar_url if it's an emoji
-            if (data.avatar_url?.startsWith("emoji:")) {
-                setSelectedEmoji(data.avatar_url.replace("emoji:", ""));
-            }
         } catch (error) {
             console.error("Error fetching profile:", error);
         } finally {
@@ -109,36 +95,6 @@ export default function StudentSettings() {
             toast({
                 title: "Error",
                 description: error.message || "Failed to update name",
-                variant: "destructive",
-            });
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    const handleSaveEmoji = async (emoji: string | null) => {
-        if (!user) return;
-
-        setSaving(true);
-        try {
-            const { error } = await supabase
-                .from("profiles")
-                .update({ avatar_url: emoji ? `emoji:${emoji}` : null })
-                .eq("user_id", user.id);
-
-            if (error) throw error;
-
-            setSelectedEmoji(emoji);
-            setProfile((prev) => prev ? { ...prev, avatar_url: emoji ? `emoji:${emoji}` : null } : null);
-            setShowEmojiPicker(false);
-            toast({
-                title: "Avatar Updated",
-                description: "Your avatar has been changed.",
-            });
-        } catch (error: any) {
-            toast({
-                title: "Error",
-                description: error.message || "Failed to update avatar",
                 variant: "destructive",
             });
         } finally {
@@ -209,12 +165,9 @@ export default function StudentSettings() {
                 <CardContent className="space-y-4">
                     {/* Avatar and Name */}
                     <div className="flex items-center gap-4">
-                        <button
-                            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                            className="w-16 h-16 rounded-full bg-cta-primary/20 flex items-center justify-center text-3xl font-bold text-cta-primary border-2 border-cta-primary/30 hover:border-cta-primary transition-colors"
-                        >
-                            {selectedEmoji || initials}
-                        </button>
+                        <div className="w-16 h-16 rounded-full bg-cta-primary/20 flex items-center justify-center text-3xl font-bold text-cta-primary border-2 border-cta-primary/30">
+                            {initials}
+                        </div>
                         <div className="flex-1">
                             {editingName ? (
                                 <div className="space-y-2">
@@ -271,43 +224,6 @@ export default function StudentSettings() {
                             )}
                         </div>
                     </div>
-
-                    {/* Emoji Picker */}
-                    {showEmojiPicker && (
-                        <div className="p-4 bg-muted/30 rounded-lg border border-border space-y-3">
-                            <div className="flex items-center justify-between">
-                                <Label>Choose Your Avatar</Label>
-                                {selectedEmoji && (
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleSaveEmoji(null)}
-                                        className="text-muted-foreground hover:text-foreground"
-                                    >
-                                        Remove
-                                    </Button>
-                                )}
-                            </div>
-                            <div className="grid grid-cols-8 gap-2">
-                                {STUDENT_EMOJIS.map((emoji) => (
-                                    <button
-                                        key={emoji}
-                                        type="button"
-                                        onClick={() => handleSaveEmoji(emoji)}
-                                        disabled={saving}
-                                        className={cn(
-                                            "w-10 h-10 text-xl rounded-lg flex items-center justify-center transition-all hover:bg-cta-primary/20",
-                                            selectedEmoji === emoji
-                                                ? "bg-cta-primary/30 ring-2 ring-cta-primary"
-                                                : "bg-card hover:scale-110"
-                                        )}
-                                    >
-                                        {emoji}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
 
                     {/* Email */}
                     <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
