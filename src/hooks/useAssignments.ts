@@ -48,7 +48,9 @@ interface CreateAssignmentInput {
     name: string;
     description?: string;
     duration_minutes?: number;
+    start_date?: string;
     due_date?: string;
+    scheduled_time?: string;
   }>;
 }
 
@@ -103,7 +105,7 @@ export function useAssignments() {
       }
 
       // Get tasks from template or use provided tasks
-      let tasks: Array<{ name: string; description?: string; duration_minutes?: number; day_offset: number; due_date?: string }> = [];
+      let tasks: Array<{ name: string; description?: string; duration_minutes?: number; day_offset: number; start_date?: string; due_date?: string; scheduled_time?: string }> = [];
 
       if (input.template_id) {
         const { data: templateTasks, error: templateError } = await supabase
@@ -142,9 +144,14 @@ export function useAssignments() {
           };
         });
       } else if (input.tasks) {
-        // Custom tasks without day_offset get offset 0 (all on start_date)
+        // Custom tasks - preserve all fields including start_date, due_date, scheduled_time
         tasks = input.tasks.map((t, index) => ({
-          ...t,
+          name: t.name,
+          description: t.description,
+          duration_minutes: t.duration_minutes,
+          start_date: t.start_date,
+          due_date: t.due_date,
+          scheduled_time: t.scheduled_time,
           day_offset: 0,
         }));
       }
@@ -178,18 +185,20 @@ export function useAssignments() {
         description: string | null;
         duration_minutes: number | null;
         scheduled_date: string;
+        scheduled_time: string | null;
         status: string;
       }> = [];
 
-      // Check if any custom task has a specific due_date
-      const hasCustomDueDates = tasks.some(t => t.due_date);
+      // Check if any custom task has a specific due_date or start_date
+      const hasCustomDates = tasks.some(t => t.due_date || t.start_date);
 
-      if (hasCustomDueDates) {
-        // Custom tasks with specific due dates: Each task uses its own due_date or falls back to start_date
-        console.log("[useAssignments] Using custom due_date path");
+      if (hasCustomDates && !input.template_id) {
+        // Custom tasks with specific dates: Each task uses its own dates
+        // Priority: due_date > start_date > input.start_date
+        console.log("[useAssignments] Using custom dates path");
         for (const assigneeId of assigneeIds) {
           for (const task of tasks) {
-            const taskDate = task.due_date || input.start_date;
+            const taskDate = task.due_date || task.start_date || input.start_date;
             taskInstances.push({
               assignment_id: assignment.id,
               assignee_id: assigneeId,
@@ -197,6 +206,7 @@ export function useAssignments() {
               description: task.description || null,
               duration_minutes: task.duration_minutes || null,
               scheduled_date: taskDate,
+              scheduled_time: task.scheduled_time || null,
               status: "pending",
             });
           }
@@ -219,6 +229,7 @@ export function useAssignments() {
               description: task.description || null,
               duration_minutes: task.duration_minutes || null,
               scheduled_date: scheduledDateStr,
+              scheduled_time: task.scheduled_time || null,
               status: "pending",
             });
           }
@@ -235,6 +246,7 @@ export function useAssignments() {
               description: task.description || null,
               duration_minutes: task.duration_minutes || null,
               scheduled_date: input.start_date,
+              scheduled_time: task.scheduled_time || null,
               status: "pending",
             });
           }
@@ -259,6 +271,7 @@ export function useAssignments() {
                 description: task.description || null,
                 duration_minutes: task.duration_minutes || null,
                 scheduled_date: format(date, "yyyy-MM-dd"),
+                scheduled_time: task.scheduled_time || null,
                 status: "pending",
               });
             }
