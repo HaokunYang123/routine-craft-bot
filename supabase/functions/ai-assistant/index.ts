@@ -21,8 +21,8 @@ const corsHeaders = {
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent";
 
-// Request timeout in milliseconds (8 seconds to stay under Edge Function limits)
-const REQUEST_TIMEOUT = 8000;
+// Request timeout in milliseconds (10 seconds - Edge Functions have 60s limit)
+const REQUEST_TIMEOUT = 10000;
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -102,14 +102,8 @@ Keep under 100 words. No generic praise - use the actual data.`;
         break;
 
       case "student_recap":
-        systemPrompt = `You are a supportive coach providing a brief recap of a student's week. Write 2-3 short sentences that are:
-- Encouraging and positive
-- Specific about their achievements
-- Constructive about areas to improve (if needed)
-- Written in a friendly, conversational tone
-
-Keep the total response under 150 words.`;
-        userPrompt = `Student "${payload.studentName}" completed ${payload.completedCount} of ${payload.totalCount} tasks this week (${payload.completionRate}% completion rate). ${payload.missedCount} tasks were missed. Recent task activity: ${JSON.stringify(payload.recentTasks || [])}`;
+        systemPrompt = `Write 2 sentences max: One about what went well, one about what to improve. Be specific with numbers. Example: "Great job completing 8 of 10 tasks! Focus on finishing warm-ups next week."`;
+        userPrompt = `${payload.studentName}: ${payload.completedCount}/${payload.totalCount} done (${payload.completionRate}%), ${payload.missedCount} missed.`;
         break;
 
       default:
