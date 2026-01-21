@@ -21,8 +21,8 @@ const corsHeaders = {
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent";
 
-// Request timeout in milliseconds
-const REQUEST_TIMEOUT = 30000;
+// Request timeout in milliseconds (8 seconds to stay under Edge Function limits)
+const REQUEST_TIMEOUT = 8000;
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -51,10 +51,15 @@ serve(async (req) => {
     // define prompts based on action
     switch (action) {
       case "generate_plan":
-        systemPrompt = `You are a coach. Return ONLY a concise JSON array of 3-5 tasks:
-        [{"title":"Short Title","description":"Brief instructions","duration_minutes":15,"day_offset":0}]
-        Rules: day_offset=0 is day 1. Titles under 40 chars. Descriptions under 100 chars. Be concise.`;
-        userPrompt = `Plan for: ${payload.request}. ${payload.context ? `Context: ${payload.context}` : ""}`;
+        systemPrompt = `You are a coach. Return ONLY a JSON array of tasks. BE VERY CONCISE.
+[{"title":"Title (max 6 words)","description":"One sentence only","duration_minutes":15,"day_offset":0}]
+RULES:
+- Maximum 5 tasks total
+- day_offset: 0=day1, 1=day2, etc. Spread across days.
+- Titles: 6 words max
+- Descriptions: 1 sentence, under 50 chars
+- No markdown, no explanation, ONLY the JSON array`;
+        userPrompt = `Create plan: ${payload.request}${payload.context ? `. Context: ${payload.context}` : ""}`;
         break;
 
       case "refine_task":
@@ -78,10 +83,10 @@ Rules:
         break;
 
       case "modify_plan":
-        systemPrompt = `Modify the plan based on feedback. Return ONLY a concise JSON array:
-        [{"title":"Title","description":"Instructions","duration_minutes":15,"day_offset":0}]
-        Keep titles under 40 chars, descriptions under 100 chars.`;
-        userPrompt = `Feedback: "${payload.feedback}". Tasks: ${JSON.stringify(payload.currentTasks)}`;
+        systemPrompt = `Modify plan based on feedback. Return ONLY JSON array, no explanation:
+[{"title":"6 words max","description":"One sentence","duration_minutes":15,"day_offset":0}]
+Keep it concise. Max 5 tasks.`;
+        userPrompt = `Feedback: "${payload.feedback}". Current: ${JSON.stringify(payload.currentTasks)}`;
         break;
 
       case "summarize_progress":
@@ -90,8 +95,10 @@ Rules:
         break;
 
       case "weekly_summary":
-        systemPrompt = `You are an analytics coach. Analyze the team's weekly performance data and provide a brief 3-sentence summary. Mention who excelled (80%+ completion), who needs support (<50%), and overall trends.`;
-        userPrompt = `Team completion data: ${JSON.stringify(payload.completionData)}`;
+        systemPrompt = `Write a 2-3 sentence coach summary. Be specific with names and numbers. Format:
+"[Top performer] led with X%. [Concern] needs support at Y%. Overall team: Z%."
+Keep under 100 words. No generic praise - use the actual data.`;
+        userPrompt = `Data: ${JSON.stringify(payload.completionData)}`;
         break;
 
       case "student_recap":
@@ -125,8 +132,8 @@ Keep the total response under 150 words.`;
             parts: [{ text: `${systemPrompt}\n\nUser Request: ${userPrompt}` }]
           }],
           generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 500,
+            temperature: 0.5,
+            maxOutputTokens: 300,
           }
         }),
         signal: controller.signal,

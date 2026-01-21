@@ -18,6 +18,7 @@ import {
   Users,
   Pencil,
   AlertTriangle,
+  Wand2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -41,6 +42,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
+import { useAIAssistant } from "@/hooks/useAIAssistant";
 import {
   Collapsible,
   CollapsibleContent,
@@ -102,6 +104,8 @@ export default function CoachCalendar() {
   const [loading, setLoading] = useState(true);
   const [groupMap, setGroupMap] = useState<Record<string, GroupInfo>>({});
   const [sheetOpen, setSheetOpen] = useState(false);
+  const { refineTask, loading: aiLoading } = useAIAssistant();
+  const [polishingDescription, setPolishingDescription] = useState(false);
 
   useEffect(() => {
     // Build group map for quick lookup
@@ -966,13 +970,39 @@ function DaySheetContent({
             </div>
             <div className="space-y-2">
               <Label htmlFor="sheet-edit-description">Description</Label>
-              <Textarea
-                id="sheet-edit-description"
-                value={editForm.description}
-                onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                placeholder="Optional description"
-                rows={3}
-              />
+              <div className="flex gap-2">
+                <Textarea
+                  id="sheet-edit-description"
+                  value={editForm.description}
+                  onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                  placeholder="Optional description"
+                  rows={3}
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={async () => {
+                    if (!editForm.description && !editForm.name) return;
+                    setPolishingDescription(true);
+                    const result = await refineTask(editForm.description || editForm.name);
+                    if (result.success && result.data) {
+                      setEditForm({ ...editForm, description: result.data });
+                    }
+                    setPolishingDescription(false);
+                  }}
+                  disabled={polishingDescription || (!editForm.description && !editForm.name)}
+                  className="shrink-0 h-auto border-purple-300 text-purple-600 hover:bg-purple-50 hover:text-purple-700"
+                  title="Polish with AI"
+                >
+                  {polishingDescription ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Wand2 className="w-4 h-4" />
+                  )}
+                </Button>
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="sheet-edit-duration">Duration (minutes)</Label>
@@ -1509,13 +1539,39 @@ function TaskList({
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-description">Description</Label>
-              <Textarea
-                id="edit-description"
-                value={editForm.description}
-                onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                placeholder="Optional description"
-                rows={3}
-              />
+              <div className="flex gap-2">
+                <Textarea
+                  id="edit-description"
+                  value={editForm.description}
+                  onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                  placeholder="Optional description"
+                  rows={3}
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={async () => {
+                    if (!editForm.description && !editForm.name) return;
+                    setPolishingDescription(true);
+                    const result = await refineTask(editForm.description || editForm.name);
+                    if (result.success && result.data) {
+                      setEditForm({ ...editForm, description: result.data });
+                    }
+                    setPolishingDescription(false);
+                  }}
+                  disabled={polishingDescription || (!editForm.description && !editForm.name)}
+                  className="shrink-0 h-auto border-purple-300 text-purple-600 hover:bg-purple-50 hover:text-purple-700"
+                  title="Polish with AI"
+                >
+                  {polishingDescription ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Wand2 className="w-4 h-4" />
+                  )}
+                </Button>
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-duration">Duration (minutes)</Label>
