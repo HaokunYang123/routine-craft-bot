@@ -356,7 +356,15 @@ export default function Tasks() {
   };
 
   const handleAssign = async () => {
-    if (!selectedGroup) return;
+    console.log("[Tasks] handleAssign called");
+    console.log("[Tasks] selectedGroup:", selectedGroup);
+    console.log("[Tasks] selectedMember:", selectedMember);
+    console.log("[Tasks] assignmentType:", assignmentType);
+
+    if (!selectedGroup) {
+      console.log("[Tasks] No selectedGroup, returning early");
+      return;
+    }
 
     // For templates, validate that a template is selected
     // The actual tasks will be fetched from template_tasks in createAssignment
@@ -371,7 +379,8 @@ export default function Tasks() {
       }
     } else {
       // For custom tasks, validate that at least one task has a name
-      const validTasks = customTasks.filter((t) => t.name.trim());
+      const validTasks = customTasks.filter((t) => t.name && t.name.trim());
+      console.log("[Tasks] Custom tasks validation - validTasks:", validTasks.length);
       if (validTasks.length === 0) {
         toast({
           title: "No Tasks",
@@ -383,15 +392,17 @@ export default function Tasks() {
     }
 
     const customTasksToSend = customTasks
-      .filter((t) => t.name.trim())
+      .filter((t) => t.name && t.name.trim())
       .map((t) => ({
         name: t.name.trim(),
-        description: t.description.trim() || undefined,
+        description: (t.description || "").trim() || undefined,
         duration_minutes: t.duration_minutes || undefined,
         start_date: t.start_date || undefined,
         due_date: t.due_date || undefined,
         scheduled_time: t.scheduled_time || undefined,
       }));
+
+    console.log("[Tasks] customTasksToSend:", customTasksToSend);
 
     setSaving(true);
     try {
@@ -400,7 +411,7 @@ export default function Tasks() {
       const isTemplate = assignmentType === "template";
       const effectiveScheduleType = isTemplate ? "once" : scheduleType;
 
-      const result = await createAssignment({
+      const assignmentInput = {
         template_id: isTemplate ? selectedTemplateId : undefined,
         group_id: !selectedMember ? selectedGroup.id : undefined,
         assignee_id: selectedMember?.user_id,
@@ -412,12 +423,20 @@ export default function Tasks() {
         start_date: isTemplate ? startDate : (scheduleType === "once" ? dueDate : startDate),
         end_date: !isTemplate && scheduleType !== "once" ? endDate : undefined,
         tasks: !isTemplate ? customTasksToSend : undefined,
-      });
+      };
+
+      console.log("[Tasks] Calling createAssignment with:", assignmentInput);
+
+      const result = await createAssignment(assignmentInput);
+
+      console.log("[Tasks] createAssignment result:", result);
 
       if (result) {
         setAssignDialogOpen(false);
         loadGroupsWithMembers();
       }
+    } catch (err) {
+      console.error("[Tasks] Error in handleAssign:", err);
     } finally {
       setSaving(false);
     }

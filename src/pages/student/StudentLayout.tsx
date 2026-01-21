@@ -14,7 +14,7 @@ export default function StudentLayout() {
 
   return (
     <ProtectedRoute requiredRole="student">
-      <div className="min-h-screen flex flex-col bg-background">
+      <div className="student-theme min-h-screen flex flex-col bg-background">
         <main className="flex-1 overflow-auto pb-20">
           <Outlet />
         </main>

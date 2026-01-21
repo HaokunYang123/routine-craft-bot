@@ -60,42 +60,60 @@ export function useAssignments() {
   const [loading, setLoading] = useState(false);
 
   const createAssignment = useCallback(async (input: CreateAssignmentInput) => {
-    if (!user) return null;
+    console.log("[useAssignments] createAssignment called with input:", JSON.stringify(input, null, 2));
+    console.log("[useAssignments] user:", user?.id);
+
+    if (!user) {
+      console.log("[useAssignments] No user, returning null");
+      return null;
+    }
     setLoading(true);
 
     try {
+      console.log("[useAssignments] Starting assignment creation...");
       // Create the assignment
+      const insertData = {
+        template_id: input.template_id || null,
+        group_id: input.group_id || null,
+        assignee_id: input.assignee_id || null,
+        assigned_by: user.id,
+        schedule_type: input.schedule_type,
+        schedule_days: input.schedule_days || [],
+        start_date: input.start_date,
+        end_date: input.end_date || null,
+        is_active: true,
+      };
+      console.log("[useAssignments] Inserting assignment:", insertData);
+
       const { data: assignment, error: assignmentError } = await supabase
         .from("assignments")
-        .insert({
-          template_id: input.template_id || null,
-          group_id: input.group_id || null,
-          assignee_id: input.assignee_id || null,
-          assigned_by: user.id,
-          schedule_type: input.schedule_type,
-          schedule_days: input.schedule_days || [],
-          start_date: input.start_date,
-          end_date: input.end_date || null,
-          is_active: true,
-        })
+        .insert(insertData)
         .select()
         .single();
+
+      console.log("[useAssignments] Assignment insert result - data:", assignment, "error:", assignmentError);
 
       if (assignmentError) throw assignmentError;
 
       // Get assignees (either from group or individual)
       let assigneeIds: string[] = [];
+      console.log("[useAssignments] Getting assignees - group_id:", input.group_id, "assignee_id:", input.assignee_id);
+
       if (input.group_id) {
-        const { data: members } = await supabase
+        const { data: members, error: membersError } = await supabase
           .from("group_members")
           .select("user_id")
           .eq("group_id", input.group_id);
+        console.log("[useAssignments] Group members result - data:", members, "error:", membersError);
         assigneeIds = (members || []).map((m) => m.user_id);
       } else if (input.assignee_id) {
         assigneeIds = [input.assignee_id];
       }
 
+      console.log("[useAssignments] assigneeIds:", assigneeIds);
+
       if (assigneeIds.length === 0) {
+        console.log("[useAssignments] No assignees found, returning early");
         toast({
           title: "Warning",
           description: "No assignees found for this assignment",
@@ -145,6 +163,7 @@ export function useAssignments() {
         });
       } else if (input.tasks) {
         // Custom tasks - preserve all fields including start_date, due_date, scheduled_time
+        console.log("[useAssignments] Using custom tasks path - input.tasks:", input.tasks);
         tasks = input.tasks.map((t, index) => ({
           name: t.name,
           description: t.description,
@@ -154,6 +173,9 @@ export function useAssignments() {
           scheduled_time: t.scheduled_time,
           day_offset: 0,
         }));
+        console.log("[useAssignments] Mapped custom tasks:", tasks);
+      } else {
+        console.log("[useAssignments] No template_id and no tasks provided!");
       }
 
       // Parse start_date properly to avoid timezone issues
@@ -280,13 +302,20 @@ export function useAssignments() {
       }
 
       console.log("[useAssignments] Total task instances to create:", taskInstances.length);
+      console.log("[useAssignments] Task instances:", JSON.stringify(taskInstances, null, 2));
 
       if (taskInstances.length > 0) {
-        const { error: instancesError } = await supabase
+        console.log("[useAssignments] Inserting task instances...");
+        const { data: insertedInstances, error: instancesError } = await supabase
           .from("task_instances")
-          .insert(taskInstances);
+          .insert(taskInstances)
+          .select();
+
+        console.log("[useAssignments] Task instances insert result - data:", insertedInstances, "error:", instancesError);
 
         if (instancesError) throw instancesError;
+      } else {
+        console.log("[useAssignments] No task instances to create - skipping insert");
       }
 
       toast({

@@ -155,6 +155,38 @@
     --sidebar-border: 220 4% 20%;
     --sidebar-ring: 100 78% 28%;
   }
+
+  /* Student Dashboard Theme - Dark Charcoal */
+  .student-theme {
+    --background: 220 4% 14%; /* #222325 Charcoal */
+    --foreground: 0 0% 100%; /* White */
+    --bg-secondary: 220 4% 18%;
+    --card: 220 4% 18%;
+    --card-foreground: 0 0% 100%;
+    --popover: 220 4% 20%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 100 78% 28%; /* #3E7E10 - CTA Green */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 205 78% 27%; /* #0E4B7B - Blue */
+    --secondary-foreground: 0 0% 100%;
+    --muted: 220 4% 25%;
+    --muted-foreground: 220 9% 83%; /* #D1D5DB Light Gray */
+    --accent: 100 78% 28%; /* Green accent */
+    --accent-foreground: 0 0% 100%;
+    --accent-purple: 100 78% 28%; /* Override purple to green */
+    --accent-yellow: 16 89% 42%; /* Orange for urgency */
+    --success: 100 78% 28%;
+    --success-foreground: 0 0% 100%;
+    --destructive: 16 89% 42%; /* #CB3D0A - Orange/Urgent */
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 4% 28%;
+    --border-dark: 220 4% 35%;
+    --input: 220 4% 20%;
+    --ring: 100 78% 28%;
+    --ink: 0 0% 100%;
+    --ink-light: 220 9% 70%;
+    --hint: 220 9% 60%;
+  }
 }
 
 @layer base {

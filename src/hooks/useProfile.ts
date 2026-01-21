@@ -109,11 +109,21 @@ export function useProfile() {
   // Helper to get initials
   const initials = displayName.substring(0, 2).toUpperCase();
 
+  // Helper to get avatar emoji (if set)
+  const avatarEmoji = profile?.avatar_url?.startsWith("emoji:")
+    ? profile.avatar_url.replace("emoji:", "")
+    : null;
+
+  // Helper to get avatar display (emoji or initials)
+  const avatarDisplay = avatarEmoji || initials;
+
   return {
     profile,
     loading,
     displayName,
     initials,
+    avatarEmoji,
+    avatarDisplay,
     fetchProfile,
     updateProfile,
   };
