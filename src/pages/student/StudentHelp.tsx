@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { SketchCard, SketchButton } from "@/components/ui/sketch";
-import { ArrowLeft, HelpCircle } from "lucide-react";
+import { ArrowLeft, HelpCircle, CalendarDays, CheckCircle2, UserPlus, Mail } from "lucide-react";
 
 export default function StudentHelp() {
     const navigate = useNavigate();
@@ -26,14 +26,68 @@ export default function StudentHelp() {
                 </div>
             </SketchCard>
 
-            <div className="prose prose-sm max-w-none text-foreground font-sans bg-card p-6 rounded-2xl border-[2.5px] border-foreground shadow-sticker leading-relaxed">
-                <h3 className="text-xl font-bold font-hand mb-4">Preamble</h3>
-                <p>
-                    We the People of the United States, in Order to form a more perfect Union, establish Justice, insure domestic Tranquility, provide for the common defence, promote the general Welfare, and secure the Blessings of Liberty to ourselves and our Posterity, do ordain and establish this Constitution for the United States of America.
-                </p>
-                <p className="mt-4 text-muted-foreground italic">
-                    (This is a placeholder for the actual Help Content)
-                </p>
+            <div className="grid gap-4">
+                <SketchCard variant="default" className="p-5">
+                    <div className="flex items-start gap-4">
+                        <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                            <UserPlus className="w-5 h-5 text-primary" />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-bold font-hand mb-2">Getting Started</h3>
+                            <p className="text-body-md text-muted-foreground leading-relaxed">
+                                Join a class using the invite code provided by your coach. Once joined,
+                                you'll see tasks assigned to you on your home screen and calendar.
+                            </p>
+                        </div>
+                    </div>
+                </SketchCard>
+
+                <SketchCard variant="default" className="p-5">
+                    <div className="flex items-start gap-4">
+                        <div className="w-10 h-10 bg-green-500/10 rounded-full flex items-center justify-center flex-shrink-0">
+                            <CheckCircle2 className="w-5 h-5 text-green-600" />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-bold font-hand mb-2">Completing Tasks</h3>
+                            <p className="text-body-md text-muted-foreground leading-relaxed">
+                                Tap the checkbox next to any task to mark it complete. Your progress
+                                is tracked automatically and visible to your coach.
+                            </p>
+                        </div>
+                    </div>
+                </SketchCard>
+
+                <SketchCard variant="default" className="p-5">
+                    <div className="flex items-start gap-4">
+                        <div className="w-10 h-10 bg-blue-500/10 rounded-full flex items-center justify-center flex-shrink-0">
+                            <CalendarDays className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-bold font-hand mb-2">Using the Calendar</h3>
+                            <p className="text-body-md text-muted-foreground leading-relaxed">
+                                Colored dots on dates indicate tasks scheduled for that day.
+                                Tap any date to see the full list of tasks and mark them complete.
+                            </p>
+                        </div>
+                    </div>
+                </SketchCard>
+
+                <SketchCard variant="default" className="p-5">
+                    <div className="flex items-start gap-4">
+                        <div className="w-10 h-10 bg-accent-yellow/20 rounded-full flex items-center justify-center flex-shrink-0">
+                            <Mail className="w-5 h-5 text-accent-yellow-dark" />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-bold font-hand mb-2">Contact Support</h3>
+                            <p className="text-body-md text-muted-foreground leading-relaxed">
+                                Need help? Reach out to your coach directly or email us at{" "}
+                                <a href="mailto:support@teachcoachconnect.com" className="text-primary underline">
+                                    support@teachcoachconnect.com
+                                </a>
+                            </p>
+                        </div>
+                    </div>
+                </SketchCard>
             </div>
         </div>
     );

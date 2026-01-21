@@ -26,16 +26,47 @@ export default function StudentPrivacy() {
                 </div>
             </SketchCard>
 
-            <div className="prose prose-sm max-w-none text-foreground font-sans bg-card p-6 rounded-2xl border-[2.5px] border-foreground shadow-sticker leading-relaxed">
-                <h3 className="text-xl font-bold font-hand mb-4">The Constitution</h3>
-                <p>
-                    We the People of the United States, in Order to form a more perfect Union, establish Justice, insure domestic Tranquility, provide for the common defence, promote the general Welfare, and secure the Blessings of Liberty to ourselves and our Posterity, do ordain and establish this Constitution for the United States of America.
-                </p>
-                <p className="mt-4">
-                    All legislative Powers herein granted shall be vested in a Congress of the United States, which shall consist of a Senate and House of Representatives.
-                </p>
-                <p className="mt-4 text-muted-foreground italic">
-                    (This is a placeholder for the actual Privacy Policy)
+            <div className="space-y-6">
+                <SketchCard variant="default" className="p-5">
+                    <h3 className="text-lg font-bold font-hand mb-3">1. Data Collection</h3>
+                    <p className="text-body-md text-muted-foreground leading-relaxed">
+                        We collect your name, email address, and task completion data assigned by your coach.
+                        This information is necessary to provide our coaching and task management services.
+                    </p>
+                </SketchCard>
+
+                <SketchCard variant="default" className="p-5">
+                    <h3 className="text-lg font-bold font-hand mb-3">2. Data Usage</h3>
+                    <p className="text-body-md text-muted-foreground leading-relaxed">
+                        Your data is visible <strong>only to you and your assigned coaches</strong>.
+                        We use your information to track progress, send reminders, and help your coach
+                        support your goals. We do not sell or share your data with third parties.
+                    </p>
+                </SketchCard>
+
+                <SketchCard variant="default" className="p-5">
+                    <h3 className="text-lg font-bold font-hand mb-3">3. Data Security</h3>
+                    <p className="text-body-md text-muted-foreground leading-relaxed">
+                        We use industry-standard security measures to protect your information,
+                        including encrypted connections and secure data storage. Your password
+                        is never stored in plain text.
+                    </p>
+                </SketchCard>
+
+                <SketchCard variant="default" className="p-5">
+                    <h3 className="text-lg font-bold font-hand mb-3">4. Account Deletion</h3>
+                    <p className="text-body-md text-muted-foreground leading-relaxed">
+                        You can request complete deletion of your account and all associated data
+                        at any time. Contact your coach or email{" "}
+                        <a href="mailto:support@teachcoachconnect.com" className="text-primary underline">
+                            support@teachcoachconnect.com
+                        </a>{" "}
+                        to request data deletion.
+                    </p>
+                </SketchCard>
+
+                <p className="text-sm text-muted-foreground text-center pt-4">
+                    Effective Date: January 2026
                 </p>
             </div>
         </div>
