@@ -96,7 +96,7 @@ type ViewMode = "month" | "week" | "day";
 
 export default function CoachCalendar() {
   const { user } = useAuth();
-  const { groups } = useGroups();
+  const { groups, fetchGroups } = useGroups();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>("month");
@@ -115,6 +115,17 @@ export default function CoachCalendar() {
     });
     setGroupMap(map);
   }, [groups]);
+
+  // Refetch groups when window gains focus (handles deletions from other tabs/pages)
+  useEffect(() => {
+    const handleFocus = () => {
+      if (user) {
+        fetchGroups();
+      }
+    };
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [user, fetchGroups]);
 
   useEffect(() => {
     if (user) {
@@ -188,25 +199,33 @@ export default function CoachCalendar() {
       });
 
       // Map task instances with group colors
-      const mappedTasks: ScheduledTask[] = (taskInstances || []).map((task: any) => {
-        const groupId = memberGroupMap[task.assignee_id];
-        const group = groupId ? groupMap[groupId] : null;
+      // Filter out orphaned tasks (group was deleted but task still exists due to timing)
+      const mappedTasks: ScheduledTask[] = (taskInstances || [])
+        .map((task: any) => {
+          const groupId = memberGroupMap[task.assignee_id];
+          const group = groupId ? groupMap[groupId] : null;
 
-        return {
-          id: task.id,
-          name: task.name,
-          description: task.description,
-          assigneeName: profileMap[task.assignee_id] || "Student",
-          assigneeId: task.assignee_id,
-          groupId: groupId || null,
-          groupName: group?.name || null,
-          groupColor: group?.color || "#6B7280",
-          scheduledDate: task.scheduled_date,
-          scheduledTime: task.scheduled_time,
-          status: task.status,
-          durationMinutes: task.duration_minutes,
-        };
-      });
+          // Skip tasks where the group no longer exists (orphaned data)
+          if (groupId && !group) {
+            return null;
+          }
+
+          return {
+            id: task.id,
+            name: task.name,
+            description: task.description,
+            assigneeName: profileMap[task.assignee_id] || "Student",
+            assigneeId: task.assignee_id,
+            groupId: groupId || null,
+            groupName: group?.name || null,
+            groupColor: group?.color || "#6B7280",
+            scheduledDate: task.scheduled_date,
+            scheduledTime: task.scheduled_time,
+            status: task.status,
+            durationMinutes: task.duration_minutes,
+          };
+        })
+        .filter((task): task is ScheduledTask => task !== null);
 
       setTasks(mappedTasks);
     } catch (error) {
