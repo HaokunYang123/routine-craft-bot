@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { format, isToday, isTomorrow, differenceInDays, parseISO } from "date-fns";
-import { cn } from "@/lib/utils";
+import { format, isToday, isTomorrow, differenceInDays, parseISO, isValid } from "date-fns";
+import { cn, safeParseISO } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -306,7 +306,8 @@ export default function StudentHome() {
   };
 
   const formatDueDate = (dateStr: string) => {
-    const date = parseISO(dateStr);
+    const date = safeParseISO(dateStr);
+    if (!date) return "No date";
     if (isToday(date)) return "Today";
     if (isTomorrow(date)) return "Tomorrow";
     const days = differenceInDays(date, new Date());

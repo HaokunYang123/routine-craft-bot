@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { format, isToday, isTomorrow, parseISO } from "date-fns";
-import { cn } from "@/lib/utils";
+import { format, isToday, isTomorrow, parseISO, isValid } from "date-fns";
+import { cn, safeParseISO } from "@/lib/utils";
 import {
   SoftCard,
   SoftProgress,
@@ -55,8 +55,14 @@ export default function StudentTasks() {
     fetchTasks();
   };
 
-  const todayTasks = tasks.filter(t => t.due_date && isToday(parseISO(t.due_date)));
-  const upcomingTasks = tasks.filter(t => t.due_date && !isToday(parseISO(t.due_date)) && !t.is_completed);
+  const todayTasks = tasks.filter(t => {
+    const parsed = safeParseISO(t.due_date);
+    return parsed && isToday(parsed);
+  });
+  const upcomingTasks = tasks.filter(t => {
+    const parsed = safeParseISO(t.due_date);
+    return parsed && !isToday(parsed) && !t.is_completed;
+  });
   const completedToday = todayTasks.filter(t => t.is_completed).length;
   const progressValue = todayTasks.length > 0 ? (completedToday / todayTasks.length) * 100 : 0;
 
@@ -165,7 +171,8 @@ function TaskCard({
   showDate?: boolean;
 }) {
   const formatDueDate = (date: string) => {
-    const parsed = parseISO(date);
+    const parsed = safeParseISO(date);
+    if (!parsed) return "No date";
     if (isToday(parsed)) return "Today";
     if (isTomorrow(parsed)) return "Tomorrow";
     return format(parsed, "EEE, MMM d");

@@ -49,7 +49,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Progress } from "@/components/ui/progress";
-import { cn } from "@/lib/utils";
+import { cn, safeParseISO } from "@/lib/utils";
 import {
   format,
   startOfWeek,
@@ -218,8 +218,8 @@ export default function CoachCalendar() {
 
   const getTasksForDate = (date: Date) => {
     return tasks.filter((task) => {
-      const taskDate = parseISO(task.scheduledDate);
-      return isSameDay(taskDate, date);
+      const taskDate = safeParseISO(task.scheduledDate);
+      return taskDate && isSameDay(taskDate, date);
     });
   };
 

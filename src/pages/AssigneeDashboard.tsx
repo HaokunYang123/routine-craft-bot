@@ -19,6 +19,7 @@ import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 import { format, parseISO } from "date-fns";
+import { safeFormatDate } from "@/lib/utils";
 
 // Use task_instances table - these have the correctly calculated scheduled_date
 interface TaskInstance {
@@ -402,7 +403,7 @@ export default function AssigneeDashboard() {
                       From {note.from_name}
                     </span>
                     <span className="text-xs text-muted-foreground">
-                      {format(parseISO(note.created_at), "MMM d, h:mm a")}
+                      {safeFormatDate(note.created_at, "MMM d, h:mm a")}
                     </span>
                   </div>
                 </div>

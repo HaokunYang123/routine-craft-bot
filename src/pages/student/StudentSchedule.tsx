@@ -10,11 +10,22 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Calendar, CheckCircle2, Clock, User, Plus, History, ChevronDown, ChevronUp, Users, AlertTriangle, MessageSquare } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
-import { format, isToday, isTomorrow, parseISO, subDays, isAfter, isBefore, startOfDay, addDays } from "date-fns";
+import { format, isToday, isTomorrow, parseISO, subDays, isAfter, isBefore, startOfDay, addDays, isValid } from "date-fns";
 import { InstructorsList } from "@/components/student/InstructorsList";
 import { JoinInstructor } from "@/components/student/JoinInstructor";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
+import { cn, safeParseISO, safeFormatDate } from "@/lib/utils";
+
+// Safe date check helpers
+const safeDateCheck = (dateStr: string | null | undefined, checkFn: (d: Date) => boolean): boolean => {
+    if (!dateStr) return false;
+    try {
+        const parsed = parseISO(dateStr);
+        return isValid(parsed) && checkFn(parsed);
+    } catch {
+        return false;
+    }
+};
 
 // Use task_instances table - these have the correctly calculated scheduled_date
 interface TaskInstance {
@@ -244,29 +255,25 @@ export default function StudentSchedule() {
     const historyTasks = tasks.filter(t => {
         // History view: show completed/missed tasks from past 7 days
         if (t.status === "pending") return false;
-        const scheduledDate = parseISO(t.scheduled_date);
-        return isAfter(scheduledDate, sevenDaysAgo);
+        return safeDateCheck(t.scheduled_date, (d) => isAfter(d, sevenDaysAgo));
     });
 
     const displayTasks = showHistory ? historyTasks : activeTasks;
 
     // Separate overdue tasks (past date + still pending) from completed history
     const overdueTasks = tasks.filter(t => {
-        const date = parseISO(t.scheduled_date);
-        return isBefore(date, today) && !isToday(date) && t.status === "pending";
+        return safeDateCheck(t.scheduled_date, (d) => isBefore(d, today) && !isToday(d)) && t.status === "pending";
     });
 
     const groupedTasks = {
         overdue: overdueTasks, // Always visible if there are overdue tasks
-        today: displayTasks.filter((t) => isToday(parseISO(t.scheduled_date))),
-        tomorrow: displayTasks.filter((t) => isTomorrow(parseISO(t.scheduled_date))),
+        today: displayTasks.filter((t) => safeDateCheck(t.scheduled_date, isToday)),
+        tomorrow: displayTasks.filter((t) => safeDateCheck(t.scheduled_date, isTomorrow)),
         upcoming: displayTasks.filter((t) => {
-            const date = parseISO(t.scheduled_date);
-            return isAfter(date, tomorrow) && !isToday(date) && !isTomorrow(date);
+            return safeDateCheck(t.scheduled_date, (d) => isAfter(d, tomorrow) && !isToday(d) && !isTomorrow(d));
         }),
         pastCompleted: displayTasks.filter((t) => {
-            const date = parseISO(t.scheduled_date);
-            return isBefore(date, today) && !isToday(date) && t.status !== "pending";
+            return safeDateCheck(t.scheduled_date, (d) => isBefore(d, today) && !isToday(d)) && t.status !== "pending";
         }),
     };
 
@@ -551,7 +558,7 @@ function TaskSection({ title, tasks, onToggleComplete, isHistory = false, isOver
                                             )}
                                             <Badge variant="outline" className="text-xs gap-1">
                                                 <Calendar className="w-3 h-3" />
-                                                Due: {format(parseISO(task.scheduled_date), "MMM d")}
+                                                Due: {safeFormatDate(task.scheduled_date, "MMM d")}
                                             </Badge>
                                             {task.updated_at && (
                                                 <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">

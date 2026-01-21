@@ -24,7 +24,7 @@ import {
   History,
 } from "lucide-react";
 import { format, parseISO, subDays, isAfter } from "date-fns";
-import { cn } from "@/lib/utils";
+import { cn, safeFormatDate } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
 interface TaskInstance {
@@ -363,7 +363,7 @@ function TaskCard({ task, isHistory = false }: TaskCardProps) {
               </Badge>
               <span className="text-xs text-muted-foreground flex items-center gap-1">
                 <Calendar className="w-3 h-3" />
-                Due: {format(parseISO(task.scheduled_date), "MMM d")}
+                Due: {safeFormatDate(task.scheduled_date, "MMM d")}
               </span>
               {task.duration_minutes && (
                 <span className="text-xs text-muted-foreground flex items-center gap-1">
@@ -375,7 +375,7 @@ function TaskCard({ task, isHistory = false }: TaskCardProps) {
             {/* Completion timestamp - helps catch cheaters */}
             {isHistory && task.completed_at && (
               <div className="mt-1.5 text-xs text-muted-foreground">
-                ✓ Completed: {format(parseISO(task.completed_at), "MMM d 'at' h:mm a")}
+                ✓ Completed: {safeFormatDate(task.completed_at, "MMM d 'at' h:mm a")}
               </div>
             )}
           </div>

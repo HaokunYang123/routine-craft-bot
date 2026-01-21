@@ -27,7 +27,7 @@ import {
   addMonths,
   subMonths,
 } from "date-fns";
-import { cn } from "@/lib/utils";
+import { cn, safeParseISO } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 
@@ -120,16 +120,20 @@ export default function StudentCalendar() {
     }
   };
 
-  const tasksForDate = tasks.filter((t) =>
-    isSameDay(parseISO(t.scheduled_date), selectedDate)
-  );
+  const tasksForDate = tasks.filter((t) => {
+    const parsed = safeParseISO(t.scheduled_date);
+    return parsed && isSameDay(parsed, selectedDate);
+  });
 
-  const datesWithTasks = tasks.map((t) => parseISO(t.scheduled_date));
+  const datesWithTasks = tasks
+    .map((t) => safeParseISO(t.scheduled_date))
+    .filter((d): d is Date => d !== null);
 
   const getCompletionForDate = (date: Date) => {
-    const dayTasks = tasks.filter((t) =>
-      isSameDay(parseISO(t.scheduled_date), date)
-    );
+    const dayTasks = tasks.filter((t) => {
+      const parsed = safeParseISO(t.scheduled_date);
+      return parsed && isSameDay(parsed, date);
+    });
     const completed = dayTasks.filter((t) => t.status === "completed").length;
     return { completed, total: dayTasks.length };
   };
