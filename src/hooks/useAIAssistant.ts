@@ -73,14 +73,36 @@ export function useAIAssistant() {
             clearTimeout(timeoutId);
             console.error("AI Assistant Error:", err);
 
-            // Check if this was a timeout/abort error
+            // Parse error details for better messaging
             let errorMessage: string;
-            if (err.name === "AbortError" || err.message?.includes("abort")) {
-                errorMessage = "AI is taking too long. Please try again with a shorter prompt.";
-            } else if (err.message?.includes("timeout") || err.message?.includes("timed out")) {
-                errorMessage = "Request timed out. Please try a simpler request.";
-            } else {
-                errorMessage = err.message || "Brainstorming... please try again.";
+            const errMsg = err.message?.toLowerCase() || "";
+            const errCode = err.code || err.status;
+
+            // 1. Timeout errors (504 or AbortError)
+            if (err.name === "AbortError" || errMsg.includes("abort")) {
+                errorMessage = "AI is taking too long. Try a shorter request (e.g., '2 weeks' instead of '5 weeks').";
+            } else if (errCode === 504 || errMsg.includes("timeout") || errMsg.includes("timed out") || errMsg.includes("gateway")) {
+                errorMessage = "Request timed out. Try asking for a shorter plan (2 weeks max).";
+            }
+            // 2. Rate limit errors (429)
+            else if (errCode === 429 || errMsg.includes("rate") || errMsg.includes("too many")) {
+                errorMessage = "Too many requests. Please wait a moment and try again.";
+            }
+            // 3. Auth errors (401)
+            else if (errCode === 401 || errMsg.includes("unauthorized") || errMsg.includes("jwt")) {
+                errorMessage = "Session expired. Please refresh the page and try again.";
+            }
+            // 4. Server errors (500)
+            else if (errCode === 500 || errMsg.includes("internal")) {
+                errorMessage = "AI service error. Please try again in a moment.";
+            }
+            // 5. API key / config errors
+            else if (errMsg.includes("not configured") || errMsg.includes("api key")) {
+                errorMessage = "AI service is not configured. Please contact support.";
+            }
+            // 6. Generic fallback with actual message
+            else {
+                errorMessage = err.message || "Something went wrong. Please try again.";
             }
 
             setError(errorMessage);
