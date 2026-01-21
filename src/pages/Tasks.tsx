@@ -116,8 +116,25 @@ export default function Tasks() {
     name: string;
     description: string;
     duration_minutes: number | null;
+    start_date: string | null;
     due_date: string | null;
-  }>>([{ name: "", description: "", duration_minutes: null, due_date: null }]);
+    scheduled_time: string | null;
+  }>>([{ name: "", description: "", duration_minutes: null, start_date: null, due_date: null, scheduled_time: null }]);
+
+  // Generate time slots in 30-minute intervals with AM/PM
+  const TIME_SLOTS = (() => {
+    const slots: { value: string; label: string }[] = [];
+    for (let hour = 0; hour < 24; hour++) {
+      for (let min = 0; min < 60; min += 30) {
+        const hour12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+        const ampm = hour < 12 ? "AM" : "PM";
+        const timeValue = `${hour.toString().padStart(2, "0")}:${min.toString().padStart(2, "0")}`;
+        const timeLabel = `${hour12}:${min.toString().padStart(2, "0")} ${ampm}`;
+        slots.push({ value: timeValue, label: timeLabel });
+      }
+    }
+    return slots;
+  })();
 
   // Schedule State
   const [scheduleType, setScheduleType] = useState<"once" | "daily" | "weekly" | "custom">("once");
@@ -204,7 +221,7 @@ export default function Tasks() {
     setAssignmentType("template");
     setSelectedTemplateId("");
     setTemplateTasks([]);
-    setCustomTasks([{ name: "", description: "", duration_minutes: null, due_date: null }]);
+    setCustomTasks([{ name: "", description: "", duration_minutes: null, start_date: null, due_date: null, scheduled_time: null }]);
     setScheduleType("once");
     setScheduleDays([]);
     setStartDate(format(new Date(), "yyyy-MM-dd"));
@@ -249,7 +266,7 @@ export default function Tasks() {
   };
 
   const addCustomTask = () => {
-    setCustomTasks([...customTasks, { name: "", description: "", duration_minutes: null, due_date: null }]);
+    setCustomTasks([...customTasks, { name: "", description: "", duration_minutes: null, start_date: null, due_date: null, scheduled_time: null }]);
   };
 
   const removeCustomTask = (index: number) => {
@@ -371,7 +388,9 @@ export default function Tasks() {
         name: t.name.trim(),
         description: t.description.trim() || undefined,
         duration_minutes: t.duration_minutes || undefined,
+        start_date: t.start_date || undefined,
         due_date: t.due_date || undefined,
+        scheduled_time: t.scheduled_time || undefined,
       }));
 
     setSaving(true);
@@ -789,8 +808,8 @@ export default function Tasks() {
                         />
                       </div>
 
-                      <div className="flex gap-3">
-                        <div className="w-32">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div>
                           <Label className="text-xs text-muted-foreground mb-1 block">
                             Duration (min)
                           </Label>
@@ -808,9 +827,21 @@ export default function Tasks() {
                             min="1"
                           />
                         </div>
-                        <div className="w-40">
+                        <div>
                           <Label className="text-xs text-muted-foreground mb-1 block">
-                            Due Date (optional)
+                            Start Date
+                          </Label>
+                          <Input
+                            type="date"
+                            value={task.start_date || ""}
+                            onChange={(e) =>
+                              updateCustomTask(index, "start_date", e.target.value || null)
+                            }
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground mb-1 block">
+                            Due Date
                           </Label>
                           <Input
                             type="date"
@@ -819,6 +850,26 @@ export default function Tasks() {
                               updateCustomTask(index, "due_date", e.target.value || null)
                             }
                           />
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground mb-1 block">
+                            Time
+                          </Label>
+                          <Select
+                            value={task.scheduled_time || ""}
+                            onValueChange={(v) => updateCustomTask(index, "scheduled_time", v || null)}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select time" />
+                            </SelectTrigger>
+                            <SelectContent className="max-h-60">
+                              {TIME_SLOTS.map((slot) => (
+                                <SelectItem key={slot.value} value={slot.value}>
+                                  {slot.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
                     </div>
