@@ -84,8 +84,8 @@ export function useAIAssistant() {
             } else if (errCode === 504 || errMsg.includes("timeout") || errMsg.includes("timed out") || errMsg.includes("gateway")) {
                 errorMessage = "Request timed out. Try asking for a shorter plan (2 weeks max).";
             }
-            // 2. Rate limit errors (429)
-            else if (errCode === 429 || errMsg.includes("rate") || errMsg.includes("too many")) {
+            // 2. Rate limit errors (429 only - don't match on strings)
+            else if (errCode === 429) {
                 errorMessage = "Too many requests. Please wait a moment and try again.";
             }
             // 3. Auth errors (401)
