@@ -114,8 +114,19 @@ export default function AssigneeDashboard() {
         setTasks([]);
       }
 
-      // Fetch coach notes
-      const { data: notesData } = await supabase
+      // Get groups this student belongs to
+      const { data: memberships } = await supabase
+        .from("group_members")
+        .select("group_id")
+        .eq("user_id", user.id);
+
+      const groupIds = memberships?.map((m) => m.group_id) || [];
+
+      // Fetch coach notes - both targeted to this user AND broadcast to their groups
+      let allNotes: any[] = [];
+
+      // 1. Notes targeted directly to this student
+      const { data: targetedNotes } = await supabase
         .from("notes")
         .select("id, content, created_at, from_user_id")
         .eq("to_user_id", user.id)
@@ -123,9 +134,29 @@ export default function AssigneeDashboard() {
         .order("created_at", { ascending: false })
         .limit(5);
 
+      if (targetedNotes) allNotes = [...targetedNotes];
+
+      // 2. Broadcast notes to student's groups (to_user_id is null)
+      if (groupIds.length > 0) {
+        const { data: broadcastNotes } = await supabase
+          .from("notes")
+          .select("id, content, created_at, from_user_id")
+          .in("group_id", groupIds)
+          .is("to_user_id", null)
+          .eq("visibility", "shared")
+          .order("created_at", { ascending: false })
+          .limit(5);
+
+        if (broadcastNotes) allNotes = [...allNotes, ...broadcastNotes];
+      }
+
+      // Sort by date and take top 5
+      allNotes.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      const topNotes = allNotes.slice(0, 5);
+
       // Get coach names for notes
-      if (notesData && notesData.length > 0) {
-        const coachIds = [...new Set(notesData.map((n) => n.from_user_id))];
+      if (topNotes.length > 0) {
+        const coachIds = [...new Set(topNotes.map((n) => n.from_user_id))];
         const { data: profiles } = await supabase
           .from("profiles")
           .select("user_id, display_name")
@@ -137,7 +168,7 @@ export default function AssigneeDashboard() {
         });
 
         setNotes(
-          notesData.map((n) => ({
+          topNotes.map((n) => ({
             id: n.id,
             content: n.content,
             created_at: n.created_at,

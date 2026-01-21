@@ -401,6 +401,9 @@ export default function CoachCalendar() {
                 tasks={getTasksForDate(currentDate)}
                 onRefresh={fetchTasks}
                 userId={user?.id || ""}
+                polishingDescription={polishingDescription}
+                setPolishingDescription={setPolishingDescription}
+                refineTask={refineTask}
               />
             ) : viewMode === "week" ? (
               <WeekView
@@ -471,7 +474,7 @@ export default function CoachCalendar() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <TaskList tasks={selectedTasks} onRefresh={fetchTasks} userId={user?.id || ""} />
+              <TaskList tasks={selectedTasks} onRefresh={fetchTasks} userId={user?.id || ""} polishingDescription={polishingDescription} setPolishingDescription={setPolishingDescription} refineTask={refineTask} />
             </CardContent>
           </Card>
         )}
@@ -516,6 +519,9 @@ export default function CoachCalendar() {
                 onRefresh={() => {
                   fetchTasks();
                 }}
+                polishingDescription={polishingDescription}
+                setPolishingDescription={setPolishingDescription}
+                refineTask={refineTask}
               />
             )}
           </div>
@@ -535,12 +541,18 @@ function DaySheetContent({
   groupMap,
   userId,
   onRefresh,
+  polishingDescription,
+  setPolishingDescription,
+  refineTask,
 }: {
   tasks: ScheduledTask[];
   groups: { id: string; name: string; color: string }[];
   groupMap: Record<string, GroupInfo>;
   userId: string;
   onRefresh: () => void;
+  polishingDescription: boolean;
+  setPolishingDescription: (v: boolean) => void;
+  refineTask: (text: string) => Promise<{ success: boolean; data?: string }>;
 }) {
   const { toast } = useToast();
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(groups.map(g => g.id)));
@@ -1135,11 +1147,17 @@ function DayView({
   tasks,
   onRefresh,
   userId,
+  polishingDescription,
+  setPolishingDescription,
+  refineTask,
 }: {
   date: Date;
   tasks: ScheduledTask[];
   onRefresh: () => void;
   userId: string;
+  polishingDescription: boolean;
+  setPolishingDescription: (v: boolean) => void;
+  refineTask: (text: string) => Promise<{ success: boolean; data?: string }>;
 }) {
   const completedCount = tasks.filter((t) => t.status === "completed").length;
 
@@ -1190,7 +1208,7 @@ function DayView({
                   ({groupTasks.filter((t) => t.status === "completed").length}/{groupTasks.length})
                 </span>
               </div>
-              <TaskList tasks={groupTasks} onRefresh={onRefresh} showDetails userId={userId} />
+              <TaskList tasks={groupTasks} onRefresh={onRefresh} showDetails userId={userId} polishingDescription={polishingDescription} setPolishingDescription={setPolishingDescription} refineTask={refineTask} />
             </div>
           ))}
         </div>
@@ -1213,11 +1231,17 @@ function TaskList({
   onRefresh,
   showDetails = false,
   userId,
+  polishingDescription,
+  setPolishingDescription,
+  refineTask,
 }: {
   tasks: ScheduledTask[];
   onRefresh: () => void;
   showDetails?: boolean;
   userId: string;
+  polishingDescription: boolean;
+  setPolishingDescription: (v: boolean) => void;
+  refineTask: (text: string) => Promise<{ success: boolean; data?: string }>;
 }) {
   const { toast } = useToast();
   const [isExpanded, setIsExpanded] = useState(false);

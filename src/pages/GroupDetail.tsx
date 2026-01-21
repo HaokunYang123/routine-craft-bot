@@ -45,10 +45,8 @@ import {
     MessageSquare,
     Loader2,
     ArrowUpDown,
-    Lock,
     Globe,
     QrCode,
-    Share2,
     Check,
     UserMinus
 } from "lucide-react";
@@ -89,6 +87,7 @@ interface Note {
     content: string;
     created_at: string;
     from_name?: string;
+    to_user_name?: string;
     visibility: "private" | "shared";
     tags?: string[];
     title?: string;
@@ -111,7 +110,7 @@ export default function GroupDetail() {
     // Note State
     const [newNote, setNewNote] = useState("");
     const [newNoteTitle, setNewNoteTitle] = useState("");
-    const [noteVisibility, setNoteVisibility] = useState<"private" | "shared">("shared");
+    const [noteTargetStudent, setNoteTargetStudent] = useState<string>("all"); // "all" or student_id
     const [sendingNote, setSendingNote] = useState(false);
     const [deleting, setDeleting] = useState(false);
 
@@ -213,17 +212,23 @@ export default function GroupDetail() {
                 .order("created_at", { ascending: false });
 
             if (notesData) {
-                // Get names for note authors
+                // Get names for note authors and recipients
                 const fromIds = [...new Set(notesData.map((n: any) => n.from_user_id))];
-                if (fromIds.length > 0) {
+                const toIds = [...new Set(notesData.filter((n: any) => n.to_user_id).map((n: any) => n.to_user_id))];
+                const allUserIds = [...new Set([...fromIds, ...toIds])];
+
+                if (allUserIds.length > 0) {
                     const { data: noteProfiles } = await supabase
                         .from("profiles")
                         .select("user_id, display_name")
-                        .in("user_id", fromIds);
+                        .in("user_id", allUserIds);
 
                     const enrichedNotes = notesData.map((note: any) => ({
                         ...note,
-                        from_name: noteProfiles?.find((p: any) => p.user_id === note.from_user_id)?.display_name || "Unknown"
+                        from_name: noteProfiles?.find((p: any) => p.user_id === note.from_user_id)?.display_name || "Unknown",
+                        to_user_name: note.to_user_id
+                            ? noteProfiles?.find((p: any) => p.user_id === note.to_user_id)?.display_name || "Student"
+                            : null
                     }));
                     setNotes(enrichedNotes);
                 } else {
@@ -246,20 +251,25 @@ export default function GroupDetail() {
         setSendingNote(true);
 
         try {
+            const targetStudentId = noteTargetStudent === "all" ? null : noteTargetStudent;
             const { error } = await supabase.from("notes" as any).insert({
                 group_id: groupId,
                 from_user_id: user.id,
-                to_user_id: null, // Broadcast to group for now (tab logic can expand this)
+                to_user_id: targetStudentId,
                 content: newNote.trim(),
                 title: newNoteTitle.trim() || null,
-                visibility: noteVisibility
+                visibility: "shared" // Always shared, targeting handled by to_user_id
             });
 
             if (error) throw error;
 
-            toast({ title: "Note Posted", description: "Your note has been added." });
+            const targetName = targetStudentId
+                ? students.find(s => s.student_id === targetStudentId)?.display_name || "student"
+                : "all students";
+            toast({ title: "Note Posted", description: `Your note has been sent to ${targetName}.` });
             setNewNote("");
             setNewNoteTitle("");
+            setNoteTargetStudent("all");
             fetchData();
         } catch (error: any) {
             toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -633,13 +643,13 @@ export default function GroupDetail() {
                                         </div>
                                         {note.title && <p className="font-semibold text-sm text-accent">{note.title}</p>}
                                         <p className="text-sm">{note.content}</p>
-                                        <div className="flex items-center gap-2 mt-2">
-                                            {note.visibility === 'private' && (
-                                                <Badge variant="outline" className="text-[10px] h-5 px-1 gap-1">
-                                                    <Lock className="w-2 h-2" /> Private
+                                        {note.to_user_name && (
+                                            <div className="flex items-center gap-2 mt-2">
+                                                <Badge variant="outline" className="text-[10px] h-5 px-1.5 gap-1 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300">
+                                                    <Users className="w-2 h-2" /> To: {note.to_user_name}
                                                 </Badge>
-                                            )}
-                                        </div>
+                                            </div>
+                                        )}
                                     </div>
                                 ))
                             )}
@@ -658,17 +668,25 @@ export default function GroupDetail() {
                                     onChange={(e) => setNewNote(e.target.value)}
                                     className="min-h-[80px] text-sm resize-none"
                                 />
-                                <div className="flex items-center justify-between">
-                                    <Select value={noteVisibility} onValueChange={(v: any) => setNoteVisibility(v)}>
-                                        <SelectTrigger className="w-[110px] h-8 text-xs">
+                                <div className="flex items-center justify-between gap-2">
+                                    <Select value={noteTargetStudent} onValueChange={setNoteTargetStudent}>
+                                        <SelectTrigger className="flex-1 h-8 text-xs">
                                             <div className="flex items-center gap-2">
-                                                {noteVisibility === 'private' ? <Lock className="w-3 h-3" /> : <Globe className="w-3 h-3" />}
-                                                <SelectValue />
+                                                <Users className="w-3 h-3" />
+                                                <SelectValue placeholder="Send to..." />
                                             </div>
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="shared">Shared</SelectItem>
-                                            <SelectItem value="private">Private</SelectItem>
+                                            <SelectItem value="all">
+                                                <span className="flex items-center gap-2">
+                                                    <Globe className="w-3 h-3" /> All Students
+                                                </span>
+                                            </SelectItem>
+                                            {students.map((student) => (
+                                                <SelectItem key={student.student_id} value={student.student_id}>
+                                                    {student.display_name}
+                                                </SelectItem>
+                                            ))}
                                         </SelectContent>
                                     </Select>
                                     <Button size="sm" onClick={handleSendNote} disabled={sendingNote || !newNote.trim()}>
