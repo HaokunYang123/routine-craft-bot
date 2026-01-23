@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.ico", "apple-touch-icon.png", "masked-icon.svg"],
+      includeAssets: ["favicon.ico", "apple-touch-icon.png"],
       manifest: {
         name: "TaskFlow - Routine Manager",
         short_name: "TaskFlow",

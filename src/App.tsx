@@ -53,7 +53,7 @@ const App = () => (
             <Route path="group/:groupId" element={<GroupDetail />} />
           </Route>
           {/* Assigner Dashboard Route */}
-          <Route path="/assignerDashBoard" element={<DashboardLayout />}>
+          <Route path="/assigner-dashboard" element={<DashboardLayout />}>
             <Route index element={<AssignerDashboard />} />
           </Route>
           {/* Student PWA View */}
@@ -65,7 +65,7 @@ const App = () => (
             <Route path="help" element={<StudentHelp />} />
           </Route>
           {/* Assignee Dashboard Route */}
-          <Route path="/assigneeDashBoard" element={<StudentLayout />}>
+          <Route path="/assignee-dashboard" element={<StudentLayout />}>
             <Route index element={<AssigneeDashboard />} />
           </Route>
           <Route path="/ui" element={<PolygonShowcase />} />
