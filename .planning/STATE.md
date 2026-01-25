@@ -10,29 +10,29 @@ See: .planning/PROJECT.md (updated 2026-01-24)
 ## Current Position
 
 Phase: 2 of 8 (Error Completion)
-Plan: 2 of 4 in current phase
+Plan: 3 of 4 in current phase
 Status: In progress
-Last activity: 2026-01-25 - Completed 02-02-PLAN.md (Session Expiry Handling)
+Last activity: 2026-01-25 - Completed 02-03-PLAN.md (AI Assistant Retry Logic)
 
-Progress: [====----------------] 24%
+Progress: [=====---------------] 29%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
-- Average duration: 2.9 min
-- Total execution time: 0.19 hours
+- Total plans completed: 5
+- Average duration: 2.8 min
+- Total execution time: 0.23 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-error-foundation | 2 | 7min | 3.5min |
-| 02-error-completion | 2 | 4.5min | 2.25min |
+| 02-error-completion | 3 | 8min | 2.7min |
 
 **Recent Trend:**
-- Last 5 plans: 02-02 (1.5min), 02-01 (3min), 01-02 (5min), 01-01 (2min)
-- Trend: Improving (~2min/plan recent)
+- Last 5 plans: 02-03 (3.5min), 02-02 (1.5min), 02-01 (3min), 01-02 (5min), 01-01 (2min)
+- Trend: Stable (~2.5-3min/plan)
 
 *Updated after each plan completion*
 
@@ -56,6 +56,9 @@ Recent decisions affecting current work:
 - Skeleton components match existing dashboard card styling - 02-01
 - Navigate before signOut to prevent false expiry modal - 02-02
 - Use onAuthStateChange SIGNED_OUT event for session expiry detection - 02-02
+- AI retry delays: 1s, 2s, 4s exponential backoff - 02-03
+- Only retry transient errors (timeout/5xx); fail fast on auth/rate-limit - 02-03
+- Silent retries: loading state unchanged between attempts - 02-03
 
 ### Pending Todos
 
@@ -70,7 +73,7 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-01-25
-Stopped at: Completed 02-02-PLAN.md (Session Expiry Handling)
+Stopped at: Completed 02-03-PLAN.md (AI Assistant Retry Logic)
 Resume file: None
 
 ---
