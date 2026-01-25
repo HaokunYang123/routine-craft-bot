@@ -10,6 +10,7 @@ import {
   Plus,
   Save,
   Wand2,
+  X,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,7 +26,7 @@ interface AIPlanBuilderProps {
 }
 
 export function AIPlanBuilder({ onSavePlan, context }: AIPlanBuilderProps) {
-  const { generatePlan, modifyPlan, refineTask, loading, error } = useAIAssistant();
+  const { generatePlan, modifyPlan, refineTask, loading, error, cancel } = useAIAssistant();
   const [generatedTasks, setGeneratedTasks] = useState<GeneratedTask[]>([]);
   const [modificationPrompt, setModificationPrompt] = useState("");
   const [isModifying, setIsModifying] = useState(false);
@@ -52,6 +53,11 @@ export function AIPlanBuilder({ onSavePlan, context }: AIPlanBuilderProps) {
     } finally {
       setIsModifying(false);
     }
+  };
+
+  const handleCancelModify = () => {
+    cancel();
+    setIsModifying(false);
   };
 
   const handleDeleteTask = (index: number) => {
@@ -126,6 +132,19 @@ export function AIPlanBuilder({ onSavePlan, context }: AIPlanBuilderProps) {
             onSubmit={handleGeneratePlan}
             isLoading={loading}
           />
+          {loading && (
+            <div className="mt-2 flex items-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Generating plan...</span>
+              <button
+                onClick={cancel}
+                className="ml-auto text-sm text-muted-foreground hover:text-foreground flex items-center gap-1"
+              >
+                <X className="w-3 h-3" />
+                Cancel
+              </button>
+            </div>
+          )}
           {error && (
             <p className="mt-2 text-sm text-urgent">{error}</p>
           )}
@@ -170,6 +189,7 @@ export function AIPlanBuilder({ onSavePlan, context }: AIPlanBuilderProps) {
                 placeholder="Modify: 'Make it easier' or 'Add more rest days' or 'Adjust for knee injury'"
                 className="bg-card border-border"
                 onKeyDown={(e) => e.key === "Enter" && handleModifyPlan()}
+                disabled={isModifying}
               />
               <Button
                 onClick={handleModifyPlan}
@@ -183,6 +203,17 @@ export function AIPlanBuilder({ onSavePlan, context }: AIPlanBuilderProps) {
                   <Sparkles className="w-4 h-4" />
                 )}
               </Button>
+              {isModifying && (
+                <Button
+                  onClick={handleCancelModify}
+                  variant="ghost"
+                  size="icon"
+                  className="shrink-0 text-muted-foreground hover:text-foreground"
+                  title="Cancel modification"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              )}
             </div>
 
             {/* Tasks by Day */}
