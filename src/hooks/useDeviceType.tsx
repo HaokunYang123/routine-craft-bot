@@ -12,7 +12,7 @@ export function useDeviceType(): DeviceType {
       const width = window.innerWidth;
       // Check if running as PWA (standalone mode)
       const isPWA = window.matchMedia('(display-mode: standalone)').matches ||
-                    (window.navigator as any).standalone === true;
+                    window.navigator.standalone === true;
       
       if (width < MOBILE_BREAKPOINT) {
         setDeviceType("mobile");
@@ -37,7 +37,7 @@ export function useIsPWA(): boolean {
   React.useEffect(() => {
     const checkPWA = () => {
       const standalone = window.matchMedia('(display-mode: standalone)').matches ||
-                        (window.navigator as any).standalone === true;
+                        window.navigator.standalone === true;
       setIsPWA(standalone);
     };
 
