@@ -3,23 +3,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { useToast } from "./use-toast";
 
-export interface RecurringSchedule {
-  id: string;
-  user_id: string;
-  template_id: string | null;
-  name: string;
-  description: string | null;
-  recurrence_type: "daily" | "weekly" | "custom";
-  days_of_week: number[];
-  custom_interval_days: number | null;
-  start_date: string;
-  end_date: string | null;
-  is_active: boolean;
-  assigned_student_id: string | null;
-  class_session_id: string | null;
-  created_at: string;
-  updated_at: string;
-  // Joined data
+import type { Tables } from "@/integrations/supabase/types";
+
+// Database row type
+type RecurringScheduleRow = Tables<"recurring_schedules">;
+
+// Extended type with joined data
+export interface RecurringSchedule extends RecurringScheduleRow {
+  // Joined data (not in database)
   template_name?: string;
   student_name?: string;
   class_name?: string;
@@ -28,10 +19,10 @@ export interface RecurringSchedule {
 export interface CreateRecurringScheduleInput {
   name: string;
   description?: string;
-  recurrence_type: "daily" | "weekly" | "custom";
+  recurrence_type: string;
   days_of_week?: number[];
   custom_interval_days?: number;
-  start_date: string;
+  start_date?: string;
   end_date?: string;
   template_id?: string;
   assigned_student_id?: string;
@@ -50,7 +41,7 @@ export function useRecurringSchedules() {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from("recurring_schedules" as never)
+        .from("recurring_schedules")
         .select("*")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
@@ -71,54 +62,57 @@ export function useRecurringSchedules() {
 
       // Get template names
       const templateIds = scheduleData
-        .filter((s: RecurringSchedule) => s.template_id)
-        .map((s: RecurringSchedule) => s.template_id);
+        .filter((s) => s.template_id)
+        .map((s) => s.template_id)
+        .filter((id): id is string => id !== null);
 
       const templateMap: Record<string, string> = {};
       if (templateIds.length > 0) {
         const { data: templates } = await supabase
-          .from("templates" as never)
+          .from("templates")
           .select("id, name")
-          .in("id", templateIds as string[]);
-        (templates as Array<{ id: string; name: string }> | null)?.forEach((t) => {
+          .in("id", templateIds);
+        templates?.forEach((t) => {
           templateMap[t.id] = t.name;
         });
       }
 
       // Get student names
       const studentIds = scheduleData
-        .filter((s: RecurringSchedule) => s.assigned_student_id)
-        .map((s: RecurringSchedule) => s.assigned_student_id);
+        .filter((s) => s.assigned_student_id)
+        .map((s) => s.assigned_student_id)
+        .filter((id): id is string => id !== null);
 
       const studentMap: Record<string, string> = {};
       if (studentIds.length > 0) {
         const { data: profiles } = await supabase
           .from("profiles")
           .select("user_id, display_name")
-          .in("user_id", studentIds as string[]);
-        (profiles as Array<{ user_id: string; display_name: string }> | null)?.forEach((p) => {
+          .in("user_id", studentIds);
+        profiles?.forEach((p) => {
           studentMap[p.user_id] = p.display_name || "Student";
         });
       }
 
       // Get class names
       const classIds = scheduleData
-        .filter((s: RecurringSchedule) => s.class_session_id)
-        .map((s: RecurringSchedule) => s.class_session_id);
+        .filter((s) => s.class_session_id)
+        .map((s) => s.class_session_id)
+        .filter((id): id is string => id !== null);
 
       const classMap: Record<string, string> = {};
       if (classIds.length > 0) {
         const { data: classes } = await supabase
-          .from("class_sessions" as never)
+          .from("class_sessions")
           .select("id, name")
-          .in("id", classIds as string[]);
-        (classes as Array<{ id: string; name: string }> | null)?.forEach((c) => {
+          .in("id", classIds);
+        classes?.forEach((c) => {
           classMap[c.id] = c.name;
         });
       }
 
       // Enrich schedules
-      const enrichedSchedules: RecurringSchedule[] = scheduleData.map((s: any) => ({
+      const enrichedSchedules: RecurringSchedule[] = scheduleData.map((s) => ({
         ...s,
         template_name: s.template_id ? templateMap[s.template_id] : undefined,
         student_name: s.assigned_student_id ? studentMap[s.assigned_student_id] : undefined,
@@ -149,7 +143,7 @@ export function useRecurringSchedules() {
 
     try {
       const { data, error } = await supabase
-        .from("recurring_schedules" as any)
+        .from("recurring_schedules")
         .insert({
           user_id: user.id,
           name: input.name,
@@ -193,7 +187,7 @@ export function useRecurringSchedules() {
   ): Promise<boolean> => {
     try {
       const { error } = await supabase
-        .from("recurring_schedules" as any)
+        .from("recurring_schedules")
         .update(updates)
         .eq("id", id);
 
@@ -220,7 +214,7 @@ export function useRecurringSchedules() {
   const deleteSchedule = async (id: string): Promise<boolean> => {
     try {
       const { error } = await supabase
-        .from("recurring_schedules" as any)
+        .from("recurring_schedules")
         .delete()
         .eq("id", id);
 
@@ -250,7 +244,7 @@ export function useRecurringSchedules() {
     toDate?: string
   ): Promise<{ success: boolean; taskCount?: number }> => {
     try {
-      const { data, error } = await supabase.rpc("generate_recurring_tasks" as any, {
+      const { data, error } = await supabase.rpc("generate_recurring_tasks", {
         p_schedule_id: scheduleId,
         p_from_date: fromDate || new Date().toISOString().split("T")[0],
         p_to_date: toDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
