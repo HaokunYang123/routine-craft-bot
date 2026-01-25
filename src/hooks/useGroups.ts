@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { useToast } from "./use-toast";
+import { handleError } from "@/lib/error";
 
 export interface Group {
   id: string;
@@ -59,13 +60,8 @@ export function useGroups() {
       );
 
       setGroups(groupsWithCounts);
-    } catch (error: any) {
-      console.error("Error fetching groups:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load groups",
-        variant: "destructive",
-      });
+    } catch (error) {
+      handleError(error, { component: 'useGroups', action: 'fetch groups' });
     } finally {
       setLoading(false);
     }
@@ -106,13 +102,8 @@ export function useGroups() {
 
       await fetchGroups();
       return data;
-    } catch (error: any) {
-      console.error("Error creating group:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to create group",
-        variant: "destructive",
-      });
+    } catch (error) {
+      handleError(error, { component: 'useGroups', action: 'create group' });
       return null;
     }
   };
@@ -255,7 +246,7 @@ export function useGroups() {
         display_name: profileMap[m.user_id] || "Student",
       }));
     } catch (error) {
-      console.error("Error fetching group members:", error);
+      handleError(error, { component: 'useGroups', action: 'fetch group members', silent: true });
       return [];
     }
   };

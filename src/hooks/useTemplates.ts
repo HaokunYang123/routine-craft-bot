@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { useToast } from "./use-toast";
+import { handleError } from "@/lib/error";
 
 export interface TemplateTask {
   id?: string;
@@ -83,13 +84,8 @@ export function useTemplates() {
       );
 
       setTemplates(templatesWithTasks);
-    } catch (error: any) {
-      console.error("Error fetching templates:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load templates.",
-        variant: "destructive",
-      });
+    } catch (error) {
+      handleError(error, { component: 'useTemplates', action: 'fetch templates' });
     } finally {
       setLoading(false);
     }
@@ -147,13 +143,8 @@ export function useTemplates() {
       });
 
       return newTemplate;
-    } catch (error: any) {
-      console.error("Error creating template:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to create template.",
-        variant: "destructive",
-      });
+    } catch (error) {
+      handleError(error, { component: 'useTemplates', action: 'create template' });
       return null;
     }
   };
@@ -224,13 +215,8 @@ export function useTemplates() {
       });
 
       return updatedTemplate;
-    } catch (error: any) {
-      console.error("Error updating template:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update template.",
-        variant: "destructive",
-      });
+    } catch (error) {
+      handleError(error, { component: 'useTemplates', action: 'update template' });
       return null;
     }
   };
@@ -250,13 +236,8 @@ export function useTemplates() {
         title: "Template Deleted",
         description: "Template has been removed.",
       });
-    } catch (error: any) {
-      console.error("Error deleting template:", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete template.",
-        variant: "destructive",
-      });
+    } catch (error) {
+      handleError(error, { component: 'useTemplates', action: 'delete template' });
     }
   };
 

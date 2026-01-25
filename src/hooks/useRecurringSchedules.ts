@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { useToast } from "./use-toast";
+import { handleError } from "@/lib/error";
 
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -120,13 +121,8 @@ export function useRecurringSchedules() {
       }));
 
       setSchedules(enrichedSchedules);
-    } catch (error: any) {
-      console.error("Error fetching schedules:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load recurring schedules.",
-        variant: "destructive",
-      });
+    } catch (error) {
+      handleError(error, { component: 'useRecurringSchedules', action: 'fetch schedules' });
     } finally {
       setLoading(false);
     }
@@ -170,13 +166,8 @@ export function useRecurringSchedules() {
 
       await fetchSchedules();
       return data as RecurringSchedule;
-    } catch (error: any) {
-      console.error("Error creating schedule:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to create schedule.",
-        variant: "destructive",
-      });
+    } catch (error) {
+      handleError(error, { component: 'useRecurringSchedules', action: 'create schedule' });
       return null;
     }
   };
@@ -200,13 +191,8 @@ export function useRecurringSchedules() {
 
       await fetchSchedules();
       return true;
-    } catch (error: any) {
-      console.error("Error updating schedule:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update schedule.",
-        variant: "destructive",
-      });
+    } catch (error) {
+      handleError(error, { component: 'useRecurringSchedules', action: 'update schedule' });
       return false;
     }
   };
@@ -227,13 +213,8 @@ export function useRecurringSchedules() {
 
       setSchedules((prev) => prev.filter((s) => s.id !== id));
       return true;
-    } catch (error: any) {
-      console.error("Error deleting schedule:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to delete schedule.",
-        variant: "destructive",
-      });
+    } catch (error) {
+      handleError(error, { component: 'useRecurringSchedules', action: 'delete schedule' });
       return false;
     }
   };
@@ -263,13 +244,8 @@ export function useRecurringSchedules() {
       } else {
         throw new Error("Failed to generate tasks");
       }
-    } catch (error: any) {
-      console.error("Error generating tasks:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to generate tasks.",
-        variant: "destructive",
-      });
+    } catch (error) {
+      handleError(error, { component: 'useRecurringSchedules', action: 'generate tasks' });
       return { success: false };
     }
   };

@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { useToast } from "./use-toast";
+import { handleError } from "@/lib/error";
 import { addDays, format, eachDayOfInterval, getDay, parseISO, startOfDay } from "date-fns";
 
 export interface Assignment {
@@ -329,13 +330,8 @@ export function useAssignments() {
       });
 
       return assignment;
-    } catch (error: any) {
-      console.error("Error creating assignment:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to create assignment",
-        variant: "destructive",
-      });
+    } catch (error) {
+      handleError(error, { component: 'useAssignments', action: 'create assignment' });
       return null;
     } finally {
       setLoading(false);
@@ -382,7 +378,7 @@ export function useAssignments() {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error("Error fetching task instances:", error);
+      handleError(error, { component: 'useAssignments', action: 'fetch task instances', silent: true });
       return [];
     }
   }, []);
@@ -486,7 +482,7 @@ export function useAssignments() {
         members: memberStats,
       };
     } catch (error) {
-      console.error("Error getting group progress:", error);
+      handleError(error, { component: 'useAssignments', action: 'get group progress', silent: true });
       return { completed: 0, total: 0, members: [] };
     }
   }, []);

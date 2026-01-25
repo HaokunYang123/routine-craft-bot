@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { handleError } from "@/lib/error";
 
 interface Sticker {
     id: string;
@@ -127,7 +128,7 @@ export function useStickers() {
         });
 
         if (error) {
-            console.error("Failed to award sticker:", error);
+            handleError(error, { component: 'useStickers', action: 'award sticker', silent: true });
             return null;
         }
 

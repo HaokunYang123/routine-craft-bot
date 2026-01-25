@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { useToast } from "./use-toast";
+import { handleError } from "@/lib/error";
 
 export interface Profile {
   id: string;
@@ -59,7 +60,7 @@ export function useProfile() {
         setProfile(data);
       }
     } catch (error) {
-      console.error("Error fetching profile:", error);
+      handleError(error, { component: 'useProfile', action: 'fetch profile', silent: true });
     } finally {
       setLoading(false);
     }
@@ -92,13 +93,8 @@ export function useProfile() {
       });
 
       return true;
-    } catch (error: any) {
-      console.error("Error updating profile:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update profile",
-        variant: "destructive",
-      });
+    } catch (error) {
+      handleError(error, { component: 'useProfile', action: 'update profile' });
       return false;
     }
   }, [user, toast]);
