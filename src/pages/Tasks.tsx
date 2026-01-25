@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useGroups, Group, GroupMember } from "@/hooks/useGroups";
 import { useAssignments } from "@/hooks/useAssignments";
 import { useToast } from "@/hooks/use-toast";
+import { TaskListSkeleton } from "@/components/skeletons/TaskListSkeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -486,8 +487,15 @@ export default function Tasks() {
 
   if (loading || groupsLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-cta-primary" />
+      <div className="space-y-8 pb-20">
+        <div>
+          <div className="h-8 w-56 bg-muted animate-pulse rounded" />
+          <div className="h-4 w-72 bg-muted animate-pulse rounded mt-2" />
+        </div>
+        <div className="space-y-4">
+          <TaskListSkeleton />
+          <TaskListSkeleton />
+        </div>
       </div>
     );
   }
