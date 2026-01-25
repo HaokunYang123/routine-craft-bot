@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
@@ -33,83 +33,182 @@ interface AIResponse<T> {
 // Timeout duration in milliseconds (20 seconds for more complex operations)
 const AI_REQUEST_TIMEOUT = 20000;
 
+// Retry configuration: 3 attempts with exponential backoff (1s, 2s, 4s)
+const RETRY_DELAYS = [1000, 2000, 4000];
+const MAX_RETRIES = 3;
+
+/**
+ * Check if an error is retryable (transient server/timeout errors)
+ * Do NOT retry: auth errors, rate limits, client errors
+ */
+function isRetryableError(errorMsg: string | undefined, errorCode?: number | string): boolean {
+    // Don't retry auth errors
+    if (errorCode === 401 || errorCode === 403) return false;
+    // Don't retry rate limits
+    if (errorCode === 429) return false;
+    // Don't retry client errors (4xx except rate limit)
+    if (typeof errorCode === 'number' && errorCode >= 400 && errorCode < 500) return false;
+
+    if (!errorMsg) return false;
+    const msg = errorMsg.toLowerCase();
+
+    // Don't retry auth-related messages
+    if (msg.includes('unauthorized') || msg.includes('jwt') || msg.includes('forbidden')) return false;
+    // Don't retry rate limit messages
+    if (msg.includes('rate limit') || msg.includes('too many requests')) return false;
+
+    // Retry on timeout errors
+    if (msg.includes('timeout') || msg.includes('timed out') || msg.includes('abort')) return true;
+    // Retry on server errors (5xx)
+    if (msg.includes('service error') || msg.includes('internal')) return true;
+    if (msg.includes('504') || msg.includes('503') || msg.includes('502') || msg.includes('500')) return true;
+    // Retry on network errors
+    if (msg.includes('network') || msg.includes('connection') || msg.includes('fetch')) return true;
+
+    return false;
+}
+
 export function useAIAssistant() {
     const { user } = useAuth();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const abortControllerRef = useRef<AbortController | null>(null);
 
-    const callAIAssistant = useCallback(async <T>(body: Record<string, any>): Promise<AIResponse<T>> => {
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            abortControllerRef.current?.abort();
+        };
+    }, []);
+
+    // Cancel function to abort pending requests
+    const cancel = useCallback(() => {
+        abortControllerRef.current?.abort();
+        abortControllerRef.current = null;
+        setLoading(false);
+        setError(null);
+    }, []);
+
+    const callAIAssistant = useCallback(async <T>(body: Record<string, unknown>): Promise<AIResponse<T>> => {
         setLoading(true);
         setError(null);
 
-        // Create abort controller for timeout
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), AI_REQUEST_TIMEOUT);
+        // Create new AbortController for this request chain
+        abortControllerRef.current = new AbortController();
+        const signal = abortControllerRef.current.signal;
 
-        try {
-            const { data, error: funcError } = await supabase.functions.invoke("ai-assistant", {
-                body: {
-                    ...body,
-                    userId: user?.id, // Pass user ID for database context
-                },
-            });
-
-            clearTimeout(timeoutId);
-
-            if (funcError) {
-                throw new Error(funcError.message);
+        // Retry loop with exponential backoff
+        for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+            // Check if cancelled before each attempt
+            if (signal.aborted) {
+                setLoading(false);
+                return { success: false, error: 'Request cancelled' };
             }
 
-            if (data.error) {
-                throw new Error(data.error);
-            }
+            // Create abort controller for timeout on each attempt
+            const timeoutController = new AbortController();
+            const timeoutId = setTimeout(() => timeoutController.abort(), AI_REQUEST_TIMEOUT);
 
-            return {
-                success: true,
-                data: data.result as T,
-                context: data.context
-            };
-        } catch (err: any) {
-            clearTimeout(timeoutId);
-            console.error("AI Assistant Error:", err);
+            try {
+                const { data, error: funcError } = await supabase.functions.invoke("ai-assistant", {
+                    body: {
+                        ...body,
+                        userId: user?.id,
+                    },
+                });
 
-            // Parse error details for better messaging
-            let errorMessage: string;
-            const errMsg = err.message?.toLowerCase() || "";
-            const errCode = err.code || err.status;
+                clearTimeout(timeoutId);
 
-            // 1. Timeout errors (504 or AbortError)
-            if (err.name === "AbortError" || errMsg.includes("abort")) {
-                errorMessage = "AI is taking too long. Try a shorter request (e.g., '2 weeks' instead of '5 weeks').";
-            } else if (errCode === 504 || errMsg.includes("timeout") || errMsg.includes("timed out") || errMsg.includes("gateway")) {
-                errorMessage = "Request timed out. Try asking for a shorter plan (2 weeks max).";
-            }
-            // 2. Rate limit errors (429 only - don't match on strings)
-            else if (errCode === 429) {
-                errorMessage = "Too many requests. Please wait a moment and try again.";
-            }
-            // 3. Auth errors (401)
-            else if (errCode === 401 || errMsg.includes("unauthorized") || errMsg.includes("jwt")) {
-                errorMessage = "Session expired. Please refresh the page and try again.";
-            }
-            // 4. Server errors (500)
-            else if (errCode === 500 || errMsg.includes("internal")) {
-                errorMessage = "AI service error. Please try again in a moment.";
-            }
-            // 5. API key / config errors
-            else if (errMsg.includes("not configured") || errMsg.includes("api key")) {
-                errorMessage = "AI service is not configured. Please contact support.";
-            }
-            // 6. Generic fallback with actual message
-            else {
-                errorMessage = err.message || "Something went wrong. Please try again.";
-            }
+                // Check if cancelled during request
+                if (signal.aborted) {
+                    setLoading(false);
+                    return { success: false, error: 'Request cancelled' };
+                }
 
-            setError(errorMessage);
-            return { success: false, error: errorMessage };
-        } finally {
-            setLoading(false);
+                if (funcError) {
+                    const errorMsg = funcError.message;
+                    const errorCode = (funcError as { status?: number }).status;
+
+                    // Check if error is retryable
+                    if (!isRetryableError(errorMsg, errorCode)) {
+                        // Non-retryable error - return immediately
+                        const userError = parseErrorMessage(funcError.message, errorCode);
+                        setError(userError);
+                        setLoading(false);
+                        return { success: false, error: userError };
+                    }
+
+                    // Retryable error - wait and try again (unless last attempt)
+                    if (attempt < MAX_RETRIES - 1) {
+                        await new Promise(resolve => setTimeout(resolve, RETRY_DELAYS[attempt]));
+                        continue;
+                    }
+                }
+
+                if (data?.error) {
+                    const errorCode = data.status || data.code;
+                    // Check if data error is retryable
+                    if (!isRetryableError(data.error, errorCode)) {
+                        const userError = parseErrorMessage(data.error, errorCode);
+                        setError(userError);
+                        setLoading(false);
+                        return { success: false, error: userError };
+                    }
+
+                    // Retryable error - wait and try again (unless last attempt)
+                    if (attempt < MAX_RETRIES - 1) {
+                        await new Promise(resolve => setTimeout(resolve, RETRY_DELAYS[attempt]));
+                        continue;
+                    }
+                }
+
+                // Success!
+                setLoading(false);
+                return {
+                    success: true,
+                    data: data.result as T,
+                    context: data.context
+                };
+            } catch (err: unknown) {
+                clearTimeout(timeoutId);
+
+                // Check if user cancelled
+                if (signal.aborted) {
+                    setLoading(false);
+                    return { success: false, error: 'Request cancelled' };
+                }
+
+                const errObj = err as { name?: string; message?: string; code?: number | string; status?: number };
+                const errMsg = errObj.message || '';
+                const errCode = errObj.code || errObj.status;
+
+                console.error(`AI Assistant Error (attempt ${attempt + 1}/${MAX_RETRIES}):`, err);
+
+                // Check if error is retryable
+                const isAbortError = errObj.name === 'AbortError' || errMsg.toLowerCase().includes('abort');
+                const isRetryable = isAbortError || isRetryableError(errMsg, errCode as number);
+
+                if (!isRetryable) {
+                    // Non-retryable error - return immediately
+                    const userError = parseErrorMessage(errMsg, errCode as number);
+                    setError(userError);
+                    setLoading(false);
+                    return { success: false, error: userError };
+                }
+
+                // Retryable error - wait and try again (unless last attempt)
+                if (attempt < MAX_RETRIES - 1) {
+                    await new Promise(resolve => setTimeout(resolve, RETRY_DELAYS[attempt]));
+                    continue;
+                }
+            }
         }
+
+        // All retries exhausted - return timeout message
+        const timeoutError = "Request timed out. Try asking for less information at once.";
+        setError(timeoutError);
+        setLoading(false);
+        return { success: false, error: timeoutError };
     }, [user?.id]);
 
     // Generate a training/study plan from natural language
@@ -149,7 +248,7 @@ export function useAIAssistant() {
         studentName: string,
         completedCount: number,
         totalCount: number,
-        logs: any[]
+        logs: unknown[]
     ): Promise<AIResponse<string>> => {
         return callAIAssistant<string>({
             action: "summarize_progress",
@@ -189,6 +288,7 @@ export function useAIAssistant() {
     return {
         loading,
         error,
+        cancel,
         generatePlan,
         personalizePlan,
         modifyPlan,
@@ -197,4 +297,37 @@ export function useAIAssistant() {
         generateWeeklySummary,
         chat,
     };
+}
+
+/**
+ * Parse error details into user-friendly messages
+ */
+function parseErrorMessage(errMsg: string | undefined, errCode?: number | string): string {
+    const msg = errMsg?.toLowerCase() || "";
+
+    // 1. Timeout errors (504 or AbortError)
+    if (msg.includes("abort")) {
+        return "AI is taking too long. Try a shorter request (e.g., '2 weeks' instead of '5 weeks').";
+    }
+    if (errCode === 504 || msg.includes("timeout") || msg.includes("timed out") || msg.includes("gateway")) {
+        return "Request timed out. Try asking for a shorter plan (2 weeks max).";
+    }
+    // 2. Rate limit errors (429 only)
+    if (errCode === 429 || msg.includes('rate limit') || msg.includes('too many requests')) {
+        return "Too many requests. Please wait a moment and try again.";
+    }
+    // 3. Auth errors (401)
+    if (errCode === 401 || msg.includes("unauthorized") || msg.includes("jwt")) {
+        return "Session expired. Please refresh the page and try again.";
+    }
+    // 4. Server errors (500)
+    if (errCode === 500 || msg.includes("internal")) {
+        return "AI service error. Please try again in a moment.";
+    }
+    // 5. API key / config errors
+    if (msg.includes("not configured") || msg.includes("api key")) {
+        return "AI service is not configured. Please contact support.";
+    }
+    // 6. Generic fallback with actual message
+    return errMsg || "Something went wrong. Please try again.";
 }
