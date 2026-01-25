@@ -83,11 +83,10 @@ Plans:
   2. safeFormatDate formats valid dates, returns fallback for invalid, accepts custom fallback
   3. cn() merges class names correctly and resolves Tailwind conflicts
   4. All utility tests pass in CI environment
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 04-01: Date utility tests (safeParseISO, safeFormatDate)
-- [ ] 04-02: Class name utility tests (cn)
+- [ ] 04-01-PLAN.md — Date utility tests (safeParseISO, safeFormatDate) - cn tests already complete from Phase 3
 
 ### Phase 5: Type Safety
 **Goal**: TypeScript catches Supabase query errors at compile time; no runtime type surprises
@@ -172,17 +171,18 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 | 1. Error Foundation | 2/2 | ✓ Complete | 2026-01-24 |
 | 2. Error Completion | 4/4 | ✓ Complete | 2026-01-25 |
 | 3. Test Infrastructure | 3/3 | ✓ Complete | 2026-01-25 |
-| 4. Utility Tests | 0/2 | Not started | - |
+| 4. Utility Tests | 0/1 | Not started | - |
 | 5. Type Safety | 0/4 | Not started | - |
 | 6. Code Quality | 0/2 | Not started | - |
 | 7. Hook Tests | 0/4 | Not started | - |
 | 8. Component Tests | 0/3 | Not started | - |
 
-**Total:** 9/24 plans complete
+**Total:** 9/23 plans complete
 
 ---
 *Roadmap created: 2026-01-24*
 *Phase 1 planned: 2026-01-24*
 *Phase 2 planned: 2026-01-25*
 *Phase 3 planned: 2026-01-25*
+*Phase 4 planned: 2026-01-25*
 *Milestone: Reliability Hardening*
