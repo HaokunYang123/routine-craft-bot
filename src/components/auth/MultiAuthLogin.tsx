@@ -85,7 +85,7 @@ export function MultiAuthLogin({ onEmailAuth }: MultiAuthLoginProps) {
 
         try {
             // QR data should be a UUID token
-            const { data, error } = await supabase.rpc("validate_qr_token" as any, {
+            const { data, error } = await supabase.rpc("validate_qr_token", {
                 token: qrData
             });
 

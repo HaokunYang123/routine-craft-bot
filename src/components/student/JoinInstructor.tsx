@@ -27,11 +27,11 @@ export function JoinInstructor({ onSuccess }: { onSuccess?: () => void }) {
 
         setLoading(true);
         try {
-            const { data, error } = await supabase.rpc("accept_invite" as any, {
+            const { data, error } = await supabase.rpc("accept_invite", {
                 p_join_code: code.toUpperCase().trim(),
             });
 
-            const result = data as JoinResult;
+            const result = data as unknown as JoinResult;
 
             if (error) {
                 throw new Error(error.message);
