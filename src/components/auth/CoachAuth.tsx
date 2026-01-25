@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/ui/loading-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Mail, ArrowLeft, Eye, EyeOff } from "lucide-react";
@@ -187,10 +188,9 @@ export function CoachAuth() {
                 </div>
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+            <LoadingButton type="submit" className="w-full" isLoading={isLoading}>
                 {isLogin ? "Sign In" : "Create Account"}
-            </Button>
+            </LoadingButton>
 
             <button type="button" onClick={() => setIsLogin(!isLogin)} className="w-full text-sm text-muted-foreground hover:text-foreground">
                 {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
