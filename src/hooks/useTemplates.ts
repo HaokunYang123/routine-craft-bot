@@ -40,7 +40,7 @@ export function useTemplates() {
     try {
       // Fetch templates
       const { data: templatesData, error: templatesError } = await supabase
-        .from("templates" as any)
+        .from("templates")
         .select("*")
         .eq("coach_id", user.id)
         .order("created_at", { ascending: false });
@@ -58,9 +58,9 @@ export function useTemplates() {
 
       // Fetch tasks for each template
       const templatesWithTasks = await Promise.all(
-        (templatesData || []).map(async (template: any) => {
+        (templatesData || []).map(async (template) => {
           const { data: tasksData } = await supabase
-            .from("template_tasks" as any)
+            .from("template_tasks")
             .select("*")
             .eq("template_id", template.id)
             .order("day_offset", { ascending: true })
@@ -96,7 +96,7 @@ export function useTemplates() {
     try {
       // Create template
       const { data: templateData, error: templateError } = await supabase
-        .from("templates" as any)
+        .from("templates")
         .insert({
           coach_id: user.id,
           name,
@@ -119,7 +119,7 @@ export function useTemplates() {
         }));
 
         const { error: tasksError } = await supabase
-          .from("template_tasks" as any)
+          .from("template_tasks")
           .insert(taskInserts);
 
         if (tasksError) throw tasksError;
@@ -160,7 +160,7 @@ export function useTemplates() {
     try {
       // Update template
       const { error: templateError } = await supabase
-        .from("templates" as any)
+        .from("templates")
         .update({
           name,
           description,
@@ -172,7 +172,7 @@ export function useTemplates() {
 
       // Delete existing tasks
       const { error: deleteError } = await supabase
-        .from("template_tasks" as any)
+        .from("template_tasks")
         .delete()
         .eq("template_id", templateId);
 
@@ -190,7 +190,7 @@ export function useTemplates() {
         }));
 
         const { error: tasksError } = await supabase
-          .from("template_tasks" as any)
+          .from("template_tasks")
           .insert(taskInserts);
 
         if (tasksError) throw tasksError;
@@ -229,7 +229,7 @@ export function useTemplates() {
   const deleteTemplate = async (templateId: string) => {
     try {
       const { error } = await supabase
-        .from("templates" as any)
+        .from("templates")
         .delete()
         .eq("id", templateId);
 
