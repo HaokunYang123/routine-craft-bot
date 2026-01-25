@@ -13,6 +13,12 @@ declare global {
     /** Standard Speech Recognition API */
     SpeechRecognition?: typeof SpeechRecognition;
   }
+
+  /** Speech Recognition Event - extends Event with results property */
+  interface SpeechRecognitionEvent extends Event {
+    results: SpeechRecognitionResultList;
+    resultIndex: number;
+  }
 }
 
 export {};

@@ -137,7 +137,7 @@ export default function StudentHome() {
         p_join_code: joinCode.toUpperCase().trim(),
       });
 
-      const result = data as JoinResult;
+      const result = data as unknown as JoinResult;
 
       if (error) {
         throw new Error(error.message);

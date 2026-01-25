@@ -65,7 +65,7 @@ interface GroupInfo {
     name: string;
     color: string;
     join_code: string;
-    qr_token: string;
+    qr_token: string | null;
 }
 
 interface StudentWithProgress {
@@ -85,9 +85,9 @@ interface Note {
     from_user_id: string;
     to_user_id: string | null;
     content: string;
-    created_at: string;
+    created_at: string | null;
     from_name?: string;
-    to_user_name?: string;
+    to_user_name?: string | null;
     visibility: string | null;
     tags?: string[] | null;
     title?: string | null;
@@ -133,6 +133,7 @@ export default function GroupDetail() {
     }, [user, groupId]);
 
     const fetchData = async () => {
+        if (!groupId) return;
         try {
             // 1. Fetch group info
             const { data: groupData, error: groupError } = await supabase
@@ -640,7 +641,7 @@ export default function GroupDetail() {
                                         <div className="flex items-center justify-between">
                                             <span className="font-bold text-xs">{note.from_name}</span>
                                             <span className="text-[10px] text-muted-foreground">
-                                                {new Date(note.created_at).toLocaleDateString()}
+                                                {note.created_at ? new Date(note.created_at).toLocaleDateString() : ""}
                                             </span>
                                         </div>
                                         {note.title && <p className="font-semibold text-sm text-accent">{note.title}</p>}

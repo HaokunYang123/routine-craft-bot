@@ -6,10 +6,12 @@ import { useToast } from "./use-toast";
 export interface TemplateTask {
   id?: string;
   title: string;
-  description: string;
-  duration_minutes: number;
+  description: string | null;
+  duration_minutes: number | null;
   day_offset: number;
-  sort_order?: number;
+  sort_order?: number | null;
+  created_at?: string | null;
+  template_id?: string;
 }
 
 export interface Template {
@@ -17,7 +19,14 @@ export interface Template {
   name: string;
   description: string | null;
   coach_id: string;
-  created_at: string;
+  created_at: string | null;
+  updated_at?: string | null;
+  category?: string | null;
+  duration_weeks?: number | null;
+  frequency_per_week?: number | null;
+  is_ai_generated?: boolean | null;
+  tags?: string[] | null;
+  weeks?: unknown;
   tasks?: TemplateTask[];
 }
 

@@ -7,9 +7,11 @@ export interface Group {
   id: string;
   name: string;
   color: string;
-  icon: string;
+  icon: string | null;
   coach_id: string;
-  created_at: string;
+  created_at: string | null;
+  join_code: string;
+  qr_token: string | null;
   member_count?: number;
 }
 
@@ -18,7 +20,7 @@ export interface GroupMember {
   group_id: string;
   user_id: string;
   role: string;
-  joined_at: string;
+  joined_at: string | null;
   display_name?: string;
 }
 
@@ -79,6 +81,10 @@ export function useGroups() {
     if (!user) return null;
 
     try {
+      // Generate a unique join code
+      const { data: joinCode, error: codeError } = await supabase.rpc("generate_group_join_code");
+      if (codeError) throw codeError;
+
       const { data, error } = await supabase
         .from("groups")
         .insert({
@@ -86,6 +92,7 @@ export function useGroups() {
           color,
           icon,
           coach_id: user.id,
+          join_code: joinCode,
         })
         .select()
         .single();

@@ -59,7 +59,7 @@ interface Template {
   id: string;
   name: string;
   description: string | null;
-  category: string;
+  category: string | null;
 }
 
 interface TemplateTask {
@@ -163,11 +163,12 @@ export default function Tasks() {
   }, [groups, groupsLoading]);
 
   const fetchTemplates = async () => {
+    if (!user?.id) return;
     try {
       const { data, error } = await supabase
         .from("templates")
         .select("id, name, description, category")
-        .eq("coach_id", user?.id)
+        .eq("coach_id", user.id)
         .order("name");
 
       if (error) throw error;
@@ -401,6 +402,7 @@ export default function Tasks() {
         start_date: t.start_date || undefined,
         due_date: t.due_date || undefined,
         scheduled_time: t.scheduled_time || undefined,
+        day_offset: 0,
       }));
 
     console.log("[Tasks] customTasksToSend:", customTasksToSend);

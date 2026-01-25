@@ -9,7 +9,7 @@ export interface Profile {
   display_name: string | null;
   email: string | null;
   avatar_url: string | null;
-  role: "coach" | "student";
+  role: string | null;
   created_at: string;
   updated_at: string;
 }

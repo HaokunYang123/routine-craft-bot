@@ -265,11 +265,11 @@ export function createMockSession(overrides?: {
  * });
  * ```
  */
-let _mockInstance: ReturnType<typeof createMockSupabaseClient> | null = null;
+let _mockInstance: ReturnType<typeof createMockSupabaseClient<unknown>> | null = null;
 
-export function getMockSupabase<T = unknown>() {
+export function getMockSupabase() {
   if (!_mockInstance) {
-    _mockInstance = createMockSupabaseClient<T>();
+    _mockInstance = createMockSupabaseClient<unknown>();
   }
   return _mockInstance;
 }
@@ -287,6 +287,7 @@ export const mockSupabaseModule = {
     {
       get: (_target, prop) => {
         const mock = getMockSupabase();
+        if (!mock) return undefined;
         return (mock.client as Record<string, unknown>)[prop as string];
       },
     }

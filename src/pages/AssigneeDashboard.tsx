@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
 import { supabase } from "@/integrations/supabase/client";
 import {
   CheckCircle2,
@@ -29,7 +30,7 @@ interface TaskInstance {
   duration_minutes: number | null;
   scheduled_time: string | null;
   scheduled_date: string;
-  status: "pending" | "completed" | "missed";
+  status: string;
   coach_name?: string;
 }
 
@@ -41,7 +42,8 @@ interface CoachNote {
 }
 
 export default function AssigneeDashboard() {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
+  const { profile } = useProfile();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [tasks, setTasks] = useState<TaskInstance[]>([]);

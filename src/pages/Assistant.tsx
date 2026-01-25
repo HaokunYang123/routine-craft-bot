@@ -31,7 +31,7 @@ interface ClassSession {
 interface Task {
   id: string;
   title: string;
-  is_completed: boolean;
+  is_completed: boolean | null;
   due_date: string | null;
   assigned_student_id: string | null;
 }

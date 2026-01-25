@@ -23,17 +23,21 @@ export interface Assignment {
 
 export interface TaskInstance {
   id: string;
-  assignment_id: string;
+  assignment_id: string | null;
   assignee_id: string;
   name: string;
   description: string | null;
   duration_minutes: number | null;
   scheduled_date: string;
   scheduled_time: string | null;
-  status: "pending" | "completed" | "missed";
+  status: string;
   completed_at: string | null;
   student_note: string | null;
-  created_at: string;
+  coach_note: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  updated_by: string | null;
+  is_customized: boolean;
 }
 
 interface CreateAssignmentInput {
@@ -46,11 +50,12 @@ interface CreateAssignmentInput {
   end_date?: string;
   tasks?: Array<{
     name: string;
-    description?: string;
-    duration_minutes?: number;
+    description?: string | null;
+    duration_minutes?: number | null;
     start_date?: string;
     due_date?: string;
     scheduled_time?: string;
+    day_offset: number;
   }>;
 }
 
@@ -123,7 +128,7 @@ export function useAssignments() {
       }
 
       // Get tasks from template or use provided tasks
-      let tasks: Array<{ name: string; description?: string; duration_minutes?: number; day_offset: number; start_date?: string; due_date?: string; scheduled_time?: string }> = [];
+      let tasks: Array<{ name: string; description?: string | null; duration_minutes?: number | null; day_offset: number; start_date?: string; due_date?: string; scheduled_time?: string }> = [];
 
       if (input.template_id) {
         const { data: templateTasks, error: templateError } = await supabase

@@ -25,7 +25,7 @@ interface Task {
   title: string;
   description: string | null;
   duration_minutes: number | null;
-  is_completed: boolean;
+  is_completed: boolean | null;
   due_date: string | null;
   scheduled_time: string | null;
 }

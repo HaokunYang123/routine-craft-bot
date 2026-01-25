@@ -7,7 +7,8 @@ interface Sticker {
     id: string;
     name: string;
     image_url: string;
-    rarity: string;
+    rarity: string | null;
+    created_at: string;
 }
 
 interface UserSticker {
@@ -64,7 +65,9 @@ export function useStickers() {
 
         // Calculate Streak
         if (completedTasks.data) {
-            const dates = completedTasks.data.map(t => new Date(t.completed_at).toDateString());
+            const dates = completedTasks.data
+                .filter(t => t.completed_at !== null)
+                .map(t => new Date(t.completed_at!).toDateString());
             const uniqueDates = [...new Set(dates)];
             let currentStreak = 0;
             const today = new Date().toDateString();

@@ -38,7 +38,7 @@ interface TaskInstance {
   duration_minutes: number | null;
   scheduled_date: string;
   scheduled_time: string | null;
-  status: "pending" | "completed" | "missed";
+  status: string;
 }
 
 export default function StudentCalendar() {

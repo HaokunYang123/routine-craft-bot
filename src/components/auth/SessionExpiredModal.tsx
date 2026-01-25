@@ -17,8 +17,7 @@ export function SessionExpiredModal({ open, onReLogin }: SessionExpiredModalProp
   return (
     <AlertDialog open={open}>
       <AlertDialogContent
-        onEscapeKeyDown={(e) => e.preventDefault()}
-        onPointerDownOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e: KeyboardEvent) => e.preventDefault()}
       >
         <AlertDialogHeader>
           <AlertDialogTitle>Session Expired</AlertDialogTitle>

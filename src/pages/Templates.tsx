@@ -44,7 +44,7 @@ export default function Templates() {
   const [editTemplate, setEditTemplate] = useState<Template | null>(null);
   const [editName, setEditName] = useState("");
   const [editDescription, setEditDescription] = useState("");
-  const [editTasks, setEditTasks] = useState<Array<{ title: string; description: string; duration_minutes: number; day_offset: number }>>([]);
+  const [editTasks, setEditTasks] = useState<Array<{ title: string; description: string | null; duration_minutes: number | null; day_offset: number }>>([]);
   const [editSaving, setEditSaving] = useState(false);
   const [manualSaving, setManualSaving] = useState(false);
   const [polishingTaskIndex, setPolishingTaskIndex] = useState<number | null>(null);
@@ -473,7 +473,7 @@ export default function Templates() {
                   </div>
                   <div className="flex gap-2">
                     <Input
-                      value={task.description}
+                      value={task.description ?? ""}
                       onChange={(e) => handleEditTaskChange(index, "description", e.target.value)}
                       placeholder="Description (optional)"
                       className="text-sm flex-1"
@@ -508,7 +508,7 @@ export default function Templates() {
                       <Label className="text-xs whitespace-nowrap">Duration</Label>
                       <Input
                         type="number"
-                        value={task.duration_minutes}
+                        value={task.duration_minutes ?? ""}
                         onChange={(e) => handleEditTaskChange(index, "duration_minutes", parseInt(e.target.value) || 15)}
                         className="w-20"
                         min={1}

@@ -61,8 +61,9 @@ export function FloatingAI({ context = "You are a helpful assistant.", placehold
       recognition.continuous = false;
       recognition.interimResults = false;
       recognition.lang = 'en-US';
-      recognition.onresult = (event) => {
-        setInput(prev => prev + event.results[0][0].transcript);
+      recognition.onresult = (event: Event) => {
+        const speechEvent = event as SpeechRecognitionEvent;
+        setInput(prev => prev + speechEvent.results[0][0].transcript);
         setIsListening(false);
       };
       recognition.onerror = () => setIsListening(false);

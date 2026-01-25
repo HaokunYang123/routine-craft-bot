@@ -11,12 +11,13 @@ interface RouteErrorBoundaryProps {
  * the parent AppErrorBoundary already handles route-change resets.
  */
 export function RouteErrorBoundary({ children }: RouteErrorBoundaryProps) {
-  const handleError = (error: Error, info: React.ErrorInfo) => {
+  const handleError = (error: unknown, info: React.ErrorInfo) => {
     try {
+      const errorObj = error instanceof Error ? error : new Error(String(error));
       const errorLog = {
         timestamp: new Date().toISOString(),
-        message: error.message,
-        stack: error.stack,
+        message: errorObj.message,
+        stack: errorObj.stack,
         componentStack: info.componentStack,
         url: window.location.href,
       };

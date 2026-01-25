@@ -19,7 +19,7 @@ export interface GroupData {
   id: string;
   name: string;
   color: string;
-  icon?: string;
+  icon?: string | null;
   memberCount: number;
   completedToday: number;
   totalToday: number;

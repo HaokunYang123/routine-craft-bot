@@ -33,8 +33,17 @@ interface TaskInstance {
   description: string | null;
   duration_minutes: number | null;
   scheduled_date: string;
-  status: "pending" | "completed" | "missed";
+  status: string;
   completed_at: string | null;
+  assignment_id?: string | null;
+  assignee_id?: string;
+  coach_note?: string | null;
+  created_at?: string | null;
+  is_customized?: boolean;
+  scheduled_time?: string | null;
+  student_note?: string | null;
+  updated_at?: string | null;
+  updated_by?: string | null;
 }
 
 interface StudentDetailSheetProps {

@@ -456,7 +456,7 @@ export default function RecurringSchedules() {
                     </CardDescription>
                   </div>
                   <Switch
-                    checked={schedule.is_active}
+                    checked={schedule.is_active ?? false}
                     onCheckedChange={(checked) => handleToggleActive(schedule.id, checked)}
                   />
                 </div>
