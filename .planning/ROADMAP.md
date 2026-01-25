@@ -12,7 +12,7 @@ This roadmap delivers comprehensive reliability hardening for the Routine Craft 
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Error Foundation** - React Error Boundary and error handling utility
+- [x] **Phase 1: Error Foundation** - React Error Boundary and error handling utility ✓
 - [ ] **Phase 2: Error Completion** - Loading states, JWT handling, AI retry logic
 - [ ] **Phase 3: Test Infrastructure** - Vitest setup with mocks and test utilities
 - [ ] **Phase 4: Utility Tests** - Tests for pure utility functions
@@ -35,8 +35,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 2 plans
 
 Plans:
-- [ ] 01-01-PLAN.md - React Error Boundary implementation (ErrorFallback, AppErrorBoundary, Sonner config)
-- [ ] 01-02-PLAN.md - Error handling utility with toast + log + retry pattern
+- [x] 01-01-PLAN.md - React Error Boundary implementation (ErrorFallback, AppErrorBoundary, Sonner config) ✓
+- [x] 01-02-PLAN.md - Error handling utility with toast + log + retry pattern ✓
 
 ### Phase 2: Error Completion
 **Goal**: All async operations provide clear feedback; JWT and AI errors are handled gracefully
@@ -168,7 +168,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Error Foundation | 0/2 | Planned | - |
+| 1. Error Foundation | 2/2 | ✓ Complete | 2026-01-24 |
 | 2. Error Completion | 0/3 | Not started | - |
 | 3. Test Infrastructure | 0/3 | Not started | - |
 | 4. Utility Tests | 0/2 | Not started | - |
@@ -177,7 +177,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 | 7. Hook Tests | 0/4 | Not started | - |
 | 8. Component Tests | 0/3 | Not started | - |
 
-**Total:** 0/23 plans complete
+**Total:** 2/23 plans complete
 
 ---
 *Roadmap created: 2026-01-24*
