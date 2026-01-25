@@ -17,10 +17,10 @@ Requirements for this reliability milestone. Each maps to roadmap phases.
 
 ### Testing Infrastructure
 
-- [ ] **TEST-01**: Vitest is configured with React Testing Library and jsdom
-- [ ] **TEST-02**: Supabase mock factory supports method chaining (from/select/eq/etc)
-- [ ] **TEST-03**: Test utilities exist (wrapper with providers, factories for mock data)
-- [ ] **TEST-04**: Test scripts added to package.json (test, test:coverage, test:watch)
+- [x] **TEST-01**: Vitest is configured with React Testing Library and jsdom ✓
+- [x] **TEST-02**: Supabase mock factory supports method chaining (from/select/eq/etc) ✓
+- [x] **TEST-03**: Test utilities exist (wrapper with providers, factories for mock data) ✓
+- [x] **TEST-04**: Test scripts added to package.json (test, test:coverage, test:watch) ✓
 
 ### Utility Tests
 
@@ -101,10 +101,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ERR-03 | 2 | Error Completion | Complete |
 | ERR-04 | 2 | Error Completion | Complete |
 | ERR-05 | 2 | Error Completion | Complete |
-| TEST-01 | 3 | Test Infrastructure | Pending |
-| TEST-02 | 3 | Test Infrastructure | Pending |
-| TEST-03 | 3 | Test Infrastructure | Pending |
-| TEST-04 | 3 | Test Infrastructure | Pending |
+| TEST-01 | 3 | Test Infrastructure | Complete |
+| TEST-02 | 3 | Test Infrastructure | Complete |
+| TEST-03 | 3 | Test Infrastructure | Complete |
+| TEST-04 | 3 | Test Infrastructure | Complete |
 | UTIL-01 | 4 | Utility Tests | Pending |
 | UTIL-02 | 4 | Utility Tests | Pending |
 | UTIL-03 | 4 | Utility Tests | Pending |
