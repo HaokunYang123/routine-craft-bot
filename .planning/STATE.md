@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-01-24)
 ## Current Position
 
 Phase: 5 of 8 (Type Safety)
-Plan: 1 of 4 in current phase
+Plan: 2 of 4 in current phase
 Status: In progress
-Last activity: 2026-01-25 - Completed 05-01-PLAN.md (Regenerate Supabase Types)
+Last activity: 2026-01-25 - Completed 05-02-PLAN.md (Hook Type Safety)
 
-Progress: [===========-------------] 47.8%
+Progress: [============------------] 52.2%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 11
+- Total plans completed: 12
 - Average duration: 2.4 min
-- Total execution time: 0.44 hours
+- Total execution time: 0.48 hours
 
 **By Phase:**
 
@@ -31,10 +31,10 @@ Progress: [===========-------------] 47.8%
 | 02-error-completion | 4 | 10min | 2.5min |
 | 03-test-infrastructure | 3 | 6min | 2min |
 | 04-utility-tests | 1 | 2min | 2min |
-| 05-type-safety | 1 | 3min | 3min |
+| 05-type-safety | 2 | 6min | 3min |
 
 **Recent Trend:**
-- Last 5 plans: 05-01 (3min), 04-01 (2min), 03-03 (2min), 03-02 (2min), 03-01 (2min)
+- Last 5 plans: 05-02 (3min), 05-01 (3min), 04-01 (2min), 03-03 (2min), 03-02 (2min)
 - Trend: Stable (~2-3min/plan)
 
 *Updated after each plan completion*
@@ -77,6 +77,9 @@ Recent decisions affecting current work:
 - Use --linked flag for Supabase type generation (project already linked) - 05-01
 - recurring_schedule_assignments stored inline (not separate table) - 05-01
 - get_group_stats and get_family_weekly_stats not in production (planned features) - 05-01
+- Use Tables<'name'> type helper from Supabase for database row types - 05-02
+- Use type guards instead of type casts for filtering nullable values - 05-02
+- Extend database types for additional computed/joined fields - 05-02
 
 ### Pending Todos
 
@@ -85,14 +88,15 @@ None yet.
 ### Blockers/Concerns
 
 - Types regenerated: 20 tables and 13 RPC functions now typed
-- TypeScript errors exposed in hooks/pages/components due to stricter types - will be fixed in 05-02, 05-03, 05-04
-- 33 `as any`/`as never` casts identified (17 hooks, 12 pages, 4 components) - addressed by Phase 5 plans
+- Hook type casts fixed: useRecurringSchedules, useTemplates, useDeviceType now type-safe
+- TypeScript errors exposed in pages/components due to stricter types - will be fixed in 05-03, 05-04
+- 16 `as any`/`as never` casts remaining (12 pages, 4 components) - addressed by 05-03, 05-04
 - 76 try-catch blocks with inconsistent patterns - Phase 1 establishes standard (handleError utility and error boundaries now available)
 
 ## Session Continuity
 
 Last session: 2026-01-25
-Stopped at: Completed 05-01-PLAN.md
+Stopped at: Completed 05-02-PLAN.md
 Resume file: None
 
 ---
