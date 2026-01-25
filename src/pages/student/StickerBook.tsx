@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import {
@@ -194,12 +194,24 @@ interface StickerCardProps {
 function StickerCard({ sticker, onClick }: StickerCardProps) {
   const isLocked = !sticker.earnedAt;
   const [showPop, setShowPop] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   // Pop animation when earned sticker comes into view
   const handleClick = () => {
     if (!isLocked) {
       setShowPop(true);
-      setTimeout(() => setShowPop(false), 300);
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      timeoutRef.current = setTimeout(() => setShowPop(false), 300);
     }
     onClick?.();
   };

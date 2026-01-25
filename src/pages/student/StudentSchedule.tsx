@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -54,6 +54,7 @@ export default function StudentSchedule() {
     const [activeTab, setActiveTab] = useState("schedule");
     const [showHistory, setShowHistory] = useState(false);
     const [fadingTasks, setFadingTasks] = useState<Set<string>>(new Set());
+    const timeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
     const selectedCoachId = searchParams.get("coachId");
 
@@ -61,6 +62,13 @@ export default function StudentSchedule() {
         if (!user) return;
         fetchSchedule();
     }, [user, selectedCoachId]);
+
+    useEffect(() => {
+        return () => {
+            timeoutsRef.current.forEach((timeout) => clearTimeout(timeout));
+            timeoutsRef.current.clear();
+        };
+    }, []);
 
     const fetchSchedule = async () => {
         if (!user) return;
@@ -211,14 +219,21 @@ export default function StudentSchedule() {
                     description: "Task marked as complete.",
                 });
 
+                // Clear any existing timeout for this task
+                const existing = timeoutsRef.current.get(taskId);
+                if (existing) clearTimeout(existing);
+
                 // Remove from fading set after animation completes
-                setTimeout(() => {
+                const timeout = setTimeout(() => {
                     setFadingTasks(prev => {
                         const newSet = new Set(prev);
                         newSet.delete(taskId);
                         return newSet;
                     });
+                    timeoutsRef.current.delete(taskId);
                 }, 1000);
+
+                timeoutsRef.current.set(taskId, timeout);
             }
         } catch (error: any) {
             // Revert on error
