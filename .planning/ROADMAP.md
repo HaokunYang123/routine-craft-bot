@@ -98,13 +98,13 @@ Plans:
   3. No `as any` casts remain in component files
   4. RPC function calls have typed request and response signatures
   5. TypeScript strict mode passes with no type errors
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 05-01: Regenerate Supabase types from schema
-- [ ] 05-02: Replace `as any` casts in hooks with proper types
-- [ ] 05-03: Replace `as any` casts in components with proper types
-- [ ] 05-04: Type RPC function signatures
+- [ ] 05-01-PLAN.md — Regenerate Supabase types from production database (TYPE-01)
+- [ ] 05-02-PLAN.md — Replace `as any` casts in hooks with proper types (TYPE-02)
+- [ ] 05-03-PLAN.md — Replace `as any` casts in components with proper types (TYPE-03)
+- [ ] 05-04-PLAN.md — Type RPC functions and enable strict mode (TYPE-04)
 
 ### Phase 6: Code Quality
 **Goal**: No memory leaks from timers; errors logged with structure for debugging
@@ -172,7 +172,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 | 2. Error Completion | 4/4 | ✓ Complete | 2026-01-25 |
 | 3. Test Infrastructure | 3/3 | ✓ Complete | 2026-01-25 |
 | 4. Utility Tests | 1/1 | ✓ Complete | 2026-01-25 |
-| 5. Type Safety | 0/4 | Not started | - |
+| 5. Type Safety | 0/4 | Planned | - |
 | 6. Code Quality | 0/2 | Not started | - |
 | 7. Hook Tests | 0/4 | Not started | - |
 | 8. Component Tests | 0/3 | Not started | - |
@@ -185,4 +185,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 *Phase 2 planned: 2026-01-25*
 *Phase 3 planned: 2026-01-25*
 *Phase 4 planned: 2026-01-25*
+*Phase 5 planned: 2026-01-25*
 *Milestone: Reliability Hardening*
