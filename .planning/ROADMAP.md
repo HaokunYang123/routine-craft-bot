@@ -117,11 +117,11 @@ Plans:
   4. StickerBook.tsx setTimeout cleanup in useEffect
   5. console.error calls replaced with structured logging utility
   6. Log entries include context (component, action, user ID when available)
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 06-01: Memory leak fixes (setTimeout cleanup in 4 files)
-- [ ] 06-02: Structured logging utility and migration
+- [ ] 06-01-PLAN.md — Memory leak fixes (setTimeout cleanup in 4 files)
+- [ ] 06-02-PLAN.md — Structured logging migration (59 console.error to handleError)
 
 ### Phase 7: Hook Tests
 **Goal**: Critical business logic hooks have comprehensive test coverage
@@ -173,7 +173,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 | 3. Test Infrastructure | 3/3 | ✓ Complete | 2026-01-25 |
 | 4. Utility Tests | 1/1 | ✓ Complete | 2026-01-25 |
 | 5. Type Safety | 4/4 | ✓ Complete | 2026-01-25 |
-| 6. Code Quality | 0/2 | Not started | - |
+| 6. Code Quality | 0/2 | Planned | - |
 | 7. Hook Tests | 0/4 | Not started | - |
 | 8. Component Tests | 0/3 | Not started | - |
 
@@ -186,4 +186,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 *Phase 3 planned: 2026-01-25*
 *Phase 4 planned: 2026-01-25*
 *Phase 5 planned: 2026-01-25*
+*Phase 6 planned: 2026-01-25*
 *Milestone: Reliability Hardening*
