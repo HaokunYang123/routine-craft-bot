@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-01-24)
 ## Current Position
 
 Phase: 5 of 8 (Type Safety)
-Plan: 0 of 4 in current phase
-Status: Ready to plan
-Last activity: 2026-01-25 - Phase 4 verified and complete
+Plan: 1 of 4 in current phase
+Status: In progress
+Last activity: 2026-01-25 - Completed 05-01-PLAN.md (Regenerate Supabase Types)
 
-Progress: [===========--------------] 43.5%
+Progress: [===========-------------] 47.8%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 10
+- Total plans completed: 11
 - Average duration: 2.4 min
-- Total execution time: 0.4 hours
+- Total execution time: 0.44 hours
 
 **By Phase:**
 
@@ -31,10 +31,11 @@ Progress: [===========--------------] 43.5%
 | 02-error-completion | 4 | 10min | 2.5min |
 | 03-test-infrastructure | 3 | 6min | 2min |
 | 04-utility-tests | 1 | 2min | 2min |
+| 05-type-safety | 1 | 3min | 3min |
 
 **Recent Trend:**
-- Last 5 plans: 04-01 (2min), 03-03 (2min), 03-02 (2min), 03-01 (2min), 02-04 (2min)
-- Trend: Stable (~2min/plan)
+- Last 5 plans: 05-01 (3min), 04-01 (2min), 03-03 (2min), 03-02 (2min), 03-01 (2min)
+- Trend: Stable (~2-3min/plan)
 
 *Updated after each plan completion*
 
@@ -73,6 +74,9 @@ Recent decisions affecting current work:
 - LoadingButton for auth submit, keep manual for Google OAuth - 02-04
 - Use toBeInstanceOf(Date) and value checks for date validation - 04-01
 - Use regex match for time formatting tests (timezone-agnostic) - 04-01
+- Use --linked flag for Supabase type generation (project already linked) - 05-01
+- recurring_schedule_assignments stored inline (not separate table) - 05-01
+- get_group_stats and get_family_weekly_stats not in production (planned features) - 05-01
 
 ### Pending Todos
 
@@ -80,14 +84,15 @@ None yet.
 
 ### Blockers/Concerns
 
-- Research flag: Phase 5 (Type Safety) may need investigation if Supabase type generation has schema-specific issues
-- 32 `as any` casts identified - must be fixed before hook tests for type-safe mocks
+- Types regenerated: 20 tables and 13 RPC functions now typed
+- TypeScript errors exposed in hooks/pages/components due to stricter types - will be fixed in 05-02, 05-03, 05-04
+- 33 `as any`/`as never` casts identified (17 hooks, 12 pages, 4 components) - addressed by Phase 5 plans
 - 76 try-catch blocks with inconsistent patterns - Phase 1 establishes standard (handleError utility and error boundaries now available)
 
 ## Session Continuity
 
 Last session: 2026-01-25
-Stopped at: Phase 4 verified and complete - Utility Tests done
+Stopped at: Completed 05-01-PLAN.md
 Resume file: None
 
 ---
