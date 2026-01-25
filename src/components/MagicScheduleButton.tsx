@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 
 // Sparkle icon
@@ -26,10 +26,19 @@ interface MagicScheduleButtonProps {
 export default function MagicScheduleButton({ onMagicPlan, isEmpty = false, className }: MagicScheduleButtonProps) {
   const [isAnimating, setIsAnimating] = useState(false);
   const [sparkles, setSparkles] = useState<{ id: number; x: number; y: number }[]>([]);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleClick = () => {
     setIsAnimating(true);
-    
+
     // Create sparkle particles
     const newSparkles = Array.from({ length: 8 }, (_, i) => ({
       id: Date.now() + i,
@@ -37,9 +46,12 @@ export default function MagicScheduleButton({ onMagicPlan, isEmpty = false, clas
       y: Math.random() * 100,
     }));
     setSparkles(newSparkles);
-    
-    // Clear animation after delay
-    setTimeout(() => {
+
+    // Clear any pending timeout before setting new one
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    timeoutRef.current = setTimeout(() => {
       setIsAnimating(false);
       setSparkles([]);
       onMagicPlan?.();

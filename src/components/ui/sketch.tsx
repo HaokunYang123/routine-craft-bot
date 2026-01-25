@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 
 // ============= BOLD VECTOR ICONS (Monoline, Uniform Thickness) =============
@@ -386,11 +386,23 @@ interface SketchCheckboxProps {
 
 export const SketchCheckbox = ({ checked, onChange, postponed, disabled, className }: SketchCheckboxProps) => {
   const [animating, setAnimating] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleClick = () => {
     if (onChange && !disabled) {
       setAnimating(true);
-      setTimeout(() => setAnimating(false), 300);
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      timeoutRef.current = setTimeout(() => setAnimating(false), 300);
       onChange();
     }
   };
