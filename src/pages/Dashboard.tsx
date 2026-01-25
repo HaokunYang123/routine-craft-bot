@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton";
 import { Users, ListTodo, CheckCircle2, MessageSquare, Plus, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -16,40 +17,58 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [stats, setStats] = useState<Stats>({ peopleCount: 0, totalTasks: 0, completedTasks: 0 });
   const [displayName, setDisplayName] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
 
     const fetchData = async () => {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("display_name")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      
-      if (profile?.display_name) {
-        setDisplayName(profile.display_name);
+      setLoading(true);
+      try {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("display_name")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (profile?.display_name) {
+          setDisplayName(profile.display_name);
+        }
+
+        const [peopleRes, tasksRes, completedRes] = await Promise.all([
+          supabase.from("people").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+          supabase.from("tasks").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+          supabase.from("tasks").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("is_completed", true),
+        ]);
+
+        setStats({
+          peopleCount: peopleRes.count || 0,
+          totalTasks: tasksRes.count || 0,
+          completedTasks: completedRes.count || 0,
+        });
+      } finally {
+        setLoading(false);
       }
-
-      const [peopleRes, tasksRes, completedRes] = await Promise.all([
-        supabase.from("people").select("id", { count: "exact", head: true }).eq("user_id", user.id),
-        supabase.from("tasks").select("id", { count: "exact", head: true }).eq("user_id", user.id),
-        supabase.from("tasks").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("is_completed", true),
-      ]);
-
-      setStats({
-        peopleCount: peopleRes.count || 0,
-        totalTasks: tasksRes.count || 0,
-        completedTasks: completedRes.count || 0,
-      });
     };
 
     fetchData();
   }, [user]);
 
-  const completionRate = stats.totalTasks > 0 
-    ? Math.round((stats.completedTasks / stats.totalTasks) * 100) 
+  const completionRate = stats.totalTasks > 0
+    ? Math.round((stats.completedTasks / stats.totalTasks) * 100)
     : 0;
+
+  if (loading) {
+    return (
+      <div className="space-y-8">
+        <div>
+          <div className="h-10 w-64 bg-muted animate-pulse rounded" />
+          <div className="h-4 w-48 bg-muted animate-pulse rounded mt-2" />
+        </div>
+        <DashboardSkeleton />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">

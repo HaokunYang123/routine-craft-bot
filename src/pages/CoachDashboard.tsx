@@ -7,6 +7,7 @@ import { useGroups } from "@/hooks/useGroups";
 import { useAssignments } from "@/hooks/useAssignments";
 import { GroupReviewCard, GroupData } from "@/components/groups/GroupReviewCard";
 import { StudentDetailSheet } from "@/components/dashboard/StudentDetailSheet";
+import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -182,8 +183,14 @@ export default function CoachDashboard() {
 
   if (loading || groupsLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-cta-primary" />
+      <div className="space-y-8 pb-20">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="h-8 w-40 bg-muted animate-pulse rounded" />
+            <div className="h-4 w-48 bg-muted animate-pulse rounded mt-2" />
+          </div>
+        </div>
+        <DashboardSkeleton />
       </div>
     );
   }
