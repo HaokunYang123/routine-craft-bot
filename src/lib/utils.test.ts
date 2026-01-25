@@ -90,3 +90,49 @@ describe('safeParseISO', () => {
     expect(result).toBeNull();
   });
 });
+
+describe('safeFormatDate', () => {
+  // Valid date formatting
+  it('formats date with "MMM d, yyyy" format', () => {
+    const result = safeFormatDate('2024-01-15', 'MMM d, yyyy');
+    expect(result).toBe('Jan 15, 2024');
+  });
+
+  it('formats ISO datetime with "yyyy-MM-dd" format', () => {
+    const result = safeFormatDate('2024-01-15T10:30:00Z', 'yyyy-MM-dd');
+    expect(result).toBe('2024-01-15');
+  });
+
+  it('formats ISO datetime with "HH:mm" for time extraction', () => {
+    const result = safeFormatDate('2024-01-15T10:30:00Z', 'HH:mm');
+    // Note: time may vary by timezone, so we just verify it returns a valid time format
+    expect(result).toMatch(/^\d{2}:\d{2}$/);
+  });
+
+  // Invalid input handling
+  it('returns default fallback for null', () => {
+    const result = safeFormatDate(null, 'yyyy-MM-dd');
+    expect(result).toBe('No date');
+  });
+
+  it('returns default fallback for undefined', () => {
+    const result = safeFormatDate(undefined, 'yyyy-MM-dd');
+    expect(result).toBe('No date');
+  });
+
+  it('returns default fallback for invalid date string', () => {
+    const result = safeFormatDate('invalid-date', 'yyyy-MM-dd');
+    expect(result).toBe('No date');
+  });
+
+  // Custom fallback
+  it('returns custom fallback "N/A" for null', () => {
+    const result = safeFormatDate(null, 'yyyy-MM-dd', 'N/A');
+    expect(result).toBe('N/A');
+  });
+
+  it('returns custom fallback "-" for invalid string', () => {
+    const result = safeFormatDate('invalid-date', 'yyyy-MM-dd', '-');
+    expect(result).toBe('-');
+  });
+});
