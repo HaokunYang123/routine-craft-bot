@@ -911,7 +911,7 @@ export default function Tasks() {
                 <Label>Schedule</Label>
                 <Select
                   value={scheduleType}
-                  onValueChange={(v) => setScheduleType(v as any)}
+                  onValueChange={(v) => setScheduleType(v as "once" | "daily" | "weekly" | "custom")}
                 >
                   <SelectTrigger>
                     <SelectValue />

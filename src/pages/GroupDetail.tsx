@@ -88,9 +88,11 @@ interface Note {
     created_at: string;
     from_name?: string;
     to_user_name?: string;
-    visibility: "private" | "shared";
-    tags?: string[];
-    title?: string;
+    visibility: string | null;
+    tags?: string[] | null;
+    title?: string | null;
+    group_id?: string | null;
+    class_session_id?: string | null;
 }
 
 type SortField = "name" | "completion" | "status";
@@ -206,15 +208,15 @@ export default function GroupDetail() {
 
             // 3. Fetch notes for this group
             const { data: notesData } = await supabase
-                .from("notes" as any)
+                .from("notes")
                 .select("*")
                 .eq("group_id", groupId)
                 .order("created_at", { ascending: false });
 
             if (notesData) {
                 // Get names for note authors and recipients
-                const fromIds = [...new Set(notesData.map((n: any) => n.from_user_id))];
-                const toIds = [...new Set(notesData.filter((n: any) => n.to_user_id).map((n: any) => n.to_user_id))];
+                const fromIds = [...new Set(notesData.map((n) => n.from_user_id))];
+                const toIds = [...new Set(notesData.filter((n) => n.to_user_id).map((n) => n.to_user_id))] as string[];
                 const allUserIds = [...new Set([...fromIds, ...toIds])];
 
                 if (allUserIds.length > 0) {
@@ -223,16 +225,16 @@ export default function GroupDetail() {
                         .select("user_id, display_name")
                         .in("user_id", allUserIds);
 
-                    const enrichedNotes = notesData.map((note: any) => ({
+                    const enrichedNotes: Note[] = notesData.map((note) => ({
                         ...note,
-                        from_name: noteProfiles?.find((p: any) => p.user_id === note.from_user_id)?.display_name || "Unknown",
+                        from_name: noteProfiles?.find((p) => p.user_id === note.from_user_id)?.display_name || "Unknown",
                         to_user_name: note.to_user_id
-                            ? noteProfiles?.find((p: any) => p.user_id === note.to_user_id)?.display_name || "Student"
+                            ? noteProfiles?.find((p) => p.user_id === note.to_user_id)?.display_name || "Student"
                             : null
                     }));
                     setNotes(enrichedNotes);
                 } else {
-                    setNotes(notesData);
+                    setNotes(notesData as Note[]);
                 }
             } else {
                 setNotes([]);
@@ -252,7 +254,7 @@ export default function GroupDetail() {
 
         try {
             const targetStudentId = noteTargetStudent === "all" ? null : noteTargetStudent;
-            const { error } = await supabase.from("notes" as any).insert({
+            const { error } = await supabase.from("notes").insert({
                 group_id: groupId,
                 from_user_id: user.id,
                 to_user_id: targetStudentId,

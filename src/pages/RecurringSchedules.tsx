@@ -106,7 +106,7 @@ export default function RecurringSchedules() {
 
     // Fetch classes
     const { data: classData } = await supabase
-      .from("class_sessions" as any)
+      .from("class_sessions")
       .select("id, name")
       .eq("coach_id", user.id)
       .eq("is_active", true);
@@ -114,7 +114,7 @@ export default function RecurringSchedules() {
 
     // Fetch students
     const { data: connections } = await supabase
-      .from("instructor_students" as any)
+      .from("instructor_students")
       .select("student_id")
       .eq("instructor_id", user.id);
 

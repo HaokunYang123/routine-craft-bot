@@ -155,7 +155,7 @@ export default function Assistant() {
 
     // Fetch class sessions
     const { data: classData } = await supabase
-      .from("class_sessions" as any)
+      .from("class_sessions")
       .select("id, name, join_code")
       .eq("coach_id", user!.id)
       .eq("is_active", true);
