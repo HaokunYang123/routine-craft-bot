@@ -32,11 +32,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. Errors display user-friendly toast messages with actionable recovery options
   3. All error events are logged with structured context (component, user action, timestamp)
   4. Error boundaries exist at app root and route level for granular error containment
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 01-01: React Error Boundary implementation
-- [ ] 01-02: Error handling utility with toast + log + retry pattern
+- [ ] 01-01-PLAN.md - React Error Boundary implementation (ErrorFallback, AppErrorBoundary, Sonner config)
+- [ ] 01-02-PLAN.md - Error handling utility with toast + log + retry pattern
 
 ### Phase 2: Error Completion
 **Goal**: All async operations provide clear feedback; JWT and AI errors are handled gracefully
@@ -168,7 +168,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Error Foundation | 0/2 | Not started | - |
+| 1. Error Foundation | 0/2 | Planned | - |
 | 2. Error Completion | 0/3 | Not started | - |
 | 3. Test Infrastructure | 0/3 | Not started | - |
 | 4. Utility Tests | 0/2 | Not started | - |
@@ -181,4 +181,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 
 ---
 *Roadmap created: 2026-01-24*
+*Phase 1 planned: 2026-01-24*
 *Milestone: Reliability Hardening*
