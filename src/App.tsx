@@ -1,8 +1,9 @@
-import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AppErrorBoundary } from "@/components/error/AppErrorBoundary";
+import { RouteErrorBoundary } from "@/components/error/RouteErrorBoundary";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import DashboardLayout from "./pages/DashboardLayout";
@@ -29,52 +30,80 @@ import PolygonShowcase from "./pages/PolygonShowcase";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/login" element={<Index />} />
-          <Route path="/login/coach" element={<Index />} />
-          <Route path="/login/student" element={<Index />} />
-          {/* Teacher/Coach Dashboard */}
-          <Route path="/dashboard" element={<DashboardLayout />}>
-            <Route index element={<CoachDashboard />} />
-            <Route path="calendar" element={<CoachCalendar />} />
-            <Route path="people" element={<People />} />
-            <Route path="templates" element={<Templates />} />
-            <Route path="recurring" element={<RecurringSchedules />} />
-            <Route path="settings" element={<CoachSettings />} />
-            <Route path="tasks" element={<Tasks />} />
-            <Route path="assistant" element={<Assistant />} />
-            <Route path="progress" element={<Progress />} />
-            <Route path="group/:groupId" element={<GroupDetail />} />
-          </Route>
-          {/* Assigner Dashboard Route */}
-          <Route path="/assigner-dashboard" element={<DashboardLayout />}>
-            <Route index element={<AssignerDashboard />} />
-          </Route>
-          {/* Student PWA View */}
-          <Route path="/app" element={<StudentLayout />}>
-            <Route index element={<StudentHome />} />
-            <Route path="calendar" element={<StudentCalendar />} />
-            <Route path="settings" element={<StudentSettings />} />
-            <Route path="privacy" element={<StudentPrivacy />} />
-            <Route path="help" element={<StudentHelp />} />
-          </Route>
-          {/* Assignee Dashboard Route */}
-          <Route path="/assignee-dashboard" element={<StudentLayout />}>
-            <Route index element={<AssigneeDashboard />} />
-          </Route>
-          <Route path="/ui" element={<PolygonShowcase />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <BrowserRouter>
+    <AppErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Sonner />
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/login" element={<Index />} />
+            <Route path="/login/coach" element={<Index />} />
+            <Route path="/login/student" element={<Index />} />
+            {/* Teacher/Coach Dashboard */}
+            <Route
+              path="/dashboard"
+              element={
+                <RouteErrorBoundary>
+                  <DashboardLayout />
+                </RouteErrorBoundary>
+              }
+            >
+              <Route index element={<CoachDashboard />} />
+              <Route path="calendar" element={<CoachCalendar />} />
+              <Route path="people" element={<People />} />
+              <Route path="templates" element={<Templates />} />
+              <Route path="recurring" element={<RecurringSchedules />} />
+              <Route path="settings" element={<CoachSettings />} />
+              <Route path="tasks" element={<Tasks />} />
+              <Route path="assistant" element={<Assistant />} />
+              <Route path="progress" element={<Progress />} />
+              <Route path="group/:groupId" element={<GroupDetail />} />
+            </Route>
+            {/* Assigner Dashboard Route */}
+            <Route
+              path="/assigner-dashboard"
+              element={
+                <RouteErrorBoundary>
+                  <DashboardLayout />
+                </RouteErrorBoundary>
+              }
+            >
+              <Route index element={<AssignerDashboard />} />
+            </Route>
+            {/* Student PWA View */}
+            <Route
+              path="/app"
+              element={
+                <RouteErrorBoundary>
+                  <StudentLayout />
+                </RouteErrorBoundary>
+              }
+            >
+              <Route index element={<StudentHome />} />
+              <Route path="calendar" element={<StudentCalendar />} />
+              <Route path="settings" element={<StudentSettings />} />
+              <Route path="privacy" element={<StudentPrivacy />} />
+              <Route path="help" element={<StudentHelp />} />
+            </Route>
+            {/* Assignee Dashboard Route */}
+            <Route
+              path="/assignee-dashboard"
+              element={
+                <RouteErrorBoundary>
+                  <StudentLayout />
+                </RouteErrorBoundary>
+              }
+            >
+              <Route index element={<AssigneeDashboard />} />
+            </Route>
+            <Route path="/ui" element={<PolygonShowcase />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </AppErrorBoundary>
+  </BrowserRouter>
 );
 
 export default App;
-
