@@ -24,9 +24,9 @@ Requirements for this reliability milestone. Each maps to roadmap phases.
 
 ### Utility Tests
 
-- [ ] **UTIL-01**: safeParseISO has comprehensive tests (valid, invalid, null, undefined)
-- [ ] **UTIL-02**: safeFormatDate has tests (valid dates, invalid dates, custom fallback)
-- [ ] **UTIL-03**: cn() utility has tests (merging, Tailwind conflict resolution)
+- [x] **UTIL-01**: safeParseISO has comprehensive tests (valid, invalid, null, undefined) ✓
+- [x] **UTIL-02**: safeFormatDate has tests (valid dates, invalid dates, custom fallback) ✓
+- [x] **UTIL-03**: cn() utility has tests (merging, Tailwind conflict resolution) ✓
 
 ### Hook Tests
 
@@ -105,9 +105,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TEST-02 | 3 | Test Infrastructure | Complete |
 | TEST-03 | 3 | Test Infrastructure | Complete |
 | TEST-04 | 3 | Test Infrastructure | Complete |
-| UTIL-01 | 4 | Utility Tests | Pending |
-| UTIL-02 | 4 | Utility Tests | Pending |
-| UTIL-03 | 4 | Utility Tests | Pending |
+| UTIL-01 | 4 | Utility Tests | Complete |
+| UTIL-02 | 4 | Utility Tests | Complete |
+| UTIL-03 | 4 | Utility Tests | Complete |
 | TYPE-01 | 5 | Type Safety | Pending |
 | TYPE-02 | 5 | Type Safety | Pending |
 | TYPE-03 | 5 | Type Safety | Pending |
