@@ -87,7 +87,7 @@ export default function People() {
     try {
       // Fetch all class sessions
       const { data: sessionsData, error: sessionsError } = await supabase
-        .from("class_sessions" as any)
+        .from("class_sessions")
         .select("*")
         .eq("coach_id", user!.id)
         .eq("is_active", true)
@@ -99,7 +99,7 @@ export default function People() {
       const groupsWithStudents = await Promise.all(
         (sessionsData || []).map(async (session: any) => {
           const { data: connections } = await supabase
-            .from("instructor_students" as any)
+            .from("instructor_students")
             .select("id, student_id")
             .eq("class_session_id", session.id);
 
@@ -144,21 +144,19 @@ export default function People() {
     setCreating(true);
 
     try {
-      const { data: code } = await supabase.rpc('generate_join_code' as any);
+      const { data: code } = await supabase.rpc('generate_join_code');
 
-      const insertData: any = {
+      const insertData = {
         coach_id: user.id,
         name: newRosterName.trim(),
-        join_code: code,
-        is_active: true
+        join_code: code || "",
+        is_active: true,
+        default_template_id: selectedTemplateId && selectedTemplateId !== "none"
+          ? selectedTemplateId
+          : null
       };
 
-      // Add template if selected
-      if (selectedTemplateId && selectedTemplateId !== "none") {
-        insertData.default_template_id = selectedTemplateId;
-      }
-
-      const { error } = await supabase.from("class_sessions" as any).insert(insertData);
+      const { error } = await supabase.from("class_sessions").insert(insertData);
 
       if (error) throw error;
 
@@ -186,7 +184,7 @@ export default function People() {
   const handleDeleteGroup = async (groupId: string, groupName: string) => {
     try {
       // Use RPC function for reliable deletion (bypasses RLS issues)
-      const { data, error } = await supabase.rpc("delete_class_session" as any, {
+      const { data, error } = await supabase.rpc("delete_class_session", {
         p_session_id: groupId,
       });
 
@@ -211,7 +209,7 @@ export default function People() {
   const handleRemoveStudent = async (connectionId: string, studentName: string, groupId: string) => {
     try {
       // Use RPC function for reliable deletion (bypasses RLS issues)
-      const { data, error } = await supabase.rpc("remove_student_from_class" as any, {
+      const { data, error } = await supabase.rpc("remove_student_from_class", {
         p_connection_id: connectionId,
       });
 
