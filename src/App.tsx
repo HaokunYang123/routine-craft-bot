@@ -1,9 +1,11 @@
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { AppErrorBoundary } from "@/components/error/AppErrorBoundary";
 import { RouteErrorBoundary } from "@/components/error/RouteErrorBoundary";
+import { SessionExpiredModal } from "@/components/auth/SessionExpiredModal";
+import { useAuth } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import DashboardLayout from "./pages/DashboardLayout";
@@ -29,12 +31,38 @@ import PolygonShowcase from "./pages/PolygonShowcase";
 
 const queryClient = new QueryClient();
 
+/**
+ * Handles session expiry detection and modal display.
+ * Must be inside Router context to use hooks.
+ */
+function SessionExpiredHandler() {
+  const { sessionExpired, clearSessionExpired } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Don't show modal on auth pages (already at login)
+  const isAuthPage = location.pathname === '/' || location.pathname.startsWith('/login');
+
+  const handleReLogin = () => {
+    clearSessionExpired();
+    navigate('/login');
+  };
+
+  return (
+    <SessionExpiredModal
+      open={sessionExpired && !isAuthPage}
+      onReLogin={handleReLogin}
+    />
+  );
+}
+
 const App = () => (
   <BrowserRouter>
     <AppErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <Sonner />
+          <SessionExpiredHandler />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Index />} />
