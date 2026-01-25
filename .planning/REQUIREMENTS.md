@@ -11,9 +11,9 @@ Requirements for this reliability milestone. Each maps to roadmap phases.
 
 - [x] **ERR-01**: App has React Error Boundary that catches component errors and shows recovery UI ✓
 - [x] **ERR-02**: Consistent error handling utility exists (toast + structured log + optional retry) ✓
-- [ ] **ERR-03**: All async operations show loading states (buttons, forms, data fetching)
-- [ ] **ERR-04**: JWT errors are handled gracefully with explicit user messaging
-- [ ] **ERR-05**: AI assistant has retry logic with exponential backoff for timeouts
+- [x] **ERR-03**: All async operations show loading states (buttons, forms, data fetching) ✓
+- [x] **ERR-04**: JWT errors are handled gracefully with explicit user messaging ✓
+- [x] **ERR-05**: AI assistant has retry logic with exponential backoff for timeouts ✓
 
 ### Testing Infrastructure
 
@@ -98,9 +98,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|------------|--------|
 | ERR-01 | 1 | Error Foundation | Complete |
 | ERR-02 | 1 | Error Foundation | Complete |
-| ERR-03 | 2 | Error Completion | Pending |
-| ERR-04 | 2 | Error Completion | Pending |
-| ERR-05 | 2 | Error Completion | Pending |
+| ERR-03 | 2 | Error Completion | Complete |
+| ERR-04 | 2 | Error Completion | Complete |
+| ERR-05 | 2 | Error Completion | Complete |
 | TEST-01 | 3 | Test Infrastructure | Pending |
 | TEST-02 | 3 | Test Infrastructure | Pending |
 | TEST-03 | 3 | Test Infrastructure | Pending |

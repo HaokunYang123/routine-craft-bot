@@ -13,7 +13,7 @@ This roadmap delivers comprehensive reliability hardening for the Routine Craft 
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Error Foundation** - React Error Boundary and error handling utility ✓
-- [ ] **Phase 2: Error Completion** - Loading states, JWT handling, AI retry logic
+- [x] **Phase 2: Error Completion** - Loading states, JWT handling, AI retry logic ✓
 - [ ] **Phase 3: Test Infrastructure** - Vitest setup with mocks and test utilities
 - [ ] **Phase 4: Utility Tests** - Tests for pure utility functions
 - [ ] **Phase 5: Type Safety** - Regenerate Supabase types, eliminate `as any` casts
@@ -48,12 +48,13 @@ Plans:
   3. JWT expiry shows explicit "Session expired" message with re-login prompt
   4. AI assistant retries failed requests with exponential backoff before showing error
   5. AI timeout errors suggest reducing request scope (not just generic failure)
-**Plans**: 3 plans
+**Plans**: 4 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — LoadingButton component and skeleton placeholders for data loading
-- [ ] 02-02-PLAN.md — SessionExpiredModal with Supabase auth event detection
-- [ ] 02-03-PLAN.md — AI assistant retry logic with exponential backoff and cancel support
+- [x] 02-01-PLAN.md — LoadingButton component and skeleton placeholders for data loading ✓
+- [x] 02-02-PLAN.md — SessionExpiredModal with Supabase auth event detection ✓
+- [x] 02-03-PLAN.md — AI assistant retry logic with exponential backoff and cancel support ✓
+- [x] 02-04-PLAN.md — Component adoption (LoadingButton in auth forms, skeletons in dashboards) ✓
 
 ### Phase 3: Test Infrastructure
 **Goal**: Testing framework is configured and validated; mock utilities enable testing Supabase-dependent code
@@ -169,7 +170,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Error Foundation | 2/2 | ✓ Complete | 2026-01-24 |
-| 2. Error Completion | 0/3 | Planned | - |
+| 2. Error Completion | 4/4 | ✓ Complete | 2026-01-25 |
 | 3. Test Infrastructure | 0/3 | Not started | - |
 | 4. Utility Tests | 0/2 | Not started | - |
 | 5. Type Safety | 0/4 | Not started | - |
@@ -177,7 +178,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 | 7. Hook Tests | 0/4 | Not started | - |
 | 8. Component Tests | 0/3 | Not started | - |
 
-**Total:** 2/23 plans complete
+**Total:** 6/24 plans complete
 
 ---
 *Roadmap created: 2026-01-24*
