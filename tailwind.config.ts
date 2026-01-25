@@ -91,8 +91,8 @@ export default {
         // Coach Dashboard Design System
         "cta-primary": "#3E7E10",
         "cta-hover": "#2d5e0b",
-        "btn-secondary": "#0E4B7B",
-        "btn-secondary-hover": "#09365a",
+        "btn-secondary": "#60A5FA",
+        "btn-secondary-hover": "#3B82F6",
         urgent: "#CB3D0A",
         "background-main": "#222325",
         "text-main": "#FFFFFF",

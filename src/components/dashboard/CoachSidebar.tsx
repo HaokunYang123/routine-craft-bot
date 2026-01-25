@@ -39,7 +39,7 @@ const navItems = [
 export function CoachSidebar() {
   const location = useLocation();
   const { user, signOut } = useAuth();
-  const { displayName, initials, loading: profileLoading } = useProfile();
+  const { displayName, avatarDisplay, loading: profileLoading } = useProfile();
   const { state, toggleSidebar } = useSidebar();
   const collapsed = state === "collapsed";
 
@@ -138,7 +138,7 @@ export function CoachSidebar() {
           ) : (
             <>
               <div className="w-8 h-8 rounded-full bg-btn-secondary flex items-center justify-center text-white text-xs font-bold shrink-0">
-                {initials}
+                {avatarDisplay}
               </div>
               {!collapsed && (
                 <div className="flex-1 min-w-0">

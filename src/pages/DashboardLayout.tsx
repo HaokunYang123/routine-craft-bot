@@ -7,7 +7,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function DashboardLayout() {
-  const { displayName, initials, loading: profileLoading } = useProfile();
+  const { displayName, avatarDisplay, loading: profileLoading } = useProfile();
 
   return (
     <ProtectedRoute requiredRole="coach">
@@ -40,7 +40,7 @@ export default function DashboardLayout() {
                         {displayName}
                       </span>
                       <div className="w-8 h-8 rounded-full bg-btn-secondary flex items-center justify-center text-white text-xs font-bold">
-                        {initials}
+                        {avatarDisplay}
                       </div>
                     </>
                   )}
