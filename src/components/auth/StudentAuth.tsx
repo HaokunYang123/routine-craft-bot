@@ -26,7 +26,7 @@ export function StudentAuth() {
     const handleQRScan = async (qrData: string) => {
         setIsProcessingQR(true);
         try {
-            const { data, error } = await supabase.rpc("validate_qr_token", { token: qrData }) as { data: any[], error: any };
+            const { data, error } = await supabase.rpc("validate_qr_token", { token: qrData });
 
             if (error || !data || (Array.isArray(data) && data.length === 0)) {
                 toast({ title: "Invalid QR Code", description: "This QR code is invalid or has expired.", variant: "destructive" });
