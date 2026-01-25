@@ -43,10 +43,10 @@ Requirements for this reliability milestone. Each maps to roadmap phases.
 
 ### Type Safety
 
-- [ ] **TYPE-01**: Supabase types are regenerated and up-to-date
-- [ ] **TYPE-02**: All `as any` casts in hooks are replaced with proper types
-- [ ] **TYPE-03**: All `as any` casts in components are replaced with proper types
-- [ ] **TYPE-04**: RPC function calls have typed responses
+- [x] **TYPE-01**: Supabase types are regenerated and up-to-date ✓
+- [x] **TYPE-02**: All `as any` casts in hooks are replaced with proper types ✓
+- [x] **TYPE-03**: All `as any` casts in components are replaced with proper types ✓
+- [x] **TYPE-04**: RPC function calls have typed responses ✓
 
 ### Code Quality
 
@@ -108,10 +108,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UTIL-01 | 4 | Utility Tests | Complete |
 | UTIL-02 | 4 | Utility Tests | Complete |
 | UTIL-03 | 4 | Utility Tests | Complete |
-| TYPE-01 | 5 | Type Safety | Pending |
-| TYPE-02 | 5 | Type Safety | Pending |
-| TYPE-03 | 5 | Type Safety | Pending |
-| TYPE-04 | 5 | Type Safety | Pending |
+| TYPE-01 | 5 | Type Safety | Complete |
+| TYPE-02 | 5 | Type Safety | Complete |
+| TYPE-03 | 5 | Type Safety | Complete |
+| TYPE-04 | 5 | Type Safety | Complete |
 | QUAL-01 | 6 | Code Quality | Pending |
 | QUAL-02 | 6 | Code Quality | Pending |
 | QUAL-03 | 6 | Code Quality | Pending |

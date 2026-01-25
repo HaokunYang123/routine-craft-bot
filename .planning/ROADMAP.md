@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Error Completion** - Loading states, JWT handling, AI retry logic ✓
 - [x] **Phase 3: Test Infrastructure** - Vitest setup with mocks and test utilities ✓
 - [x] **Phase 4: Utility Tests** - Tests for pure utility functions ✓
-- [ ] **Phase 5: Type Safety** - Regenerate Supabase types, eliminate `as any` casts
+- [x] **Phase 5: Type Safety** - Regenerate Supabase types, eliminate `as any` casts ✓
 - [ ] **Phase 6: Code Quality** - Memory leak fixes and structured logging
 - [ ] **Phase 7: Hook Tests** - Tests for critical business logic hooks
 - [ ] **Phase 8: Component Tests** - Tests for core user-facing components
@@ -101,10 +101,10 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 05-01-PLAN.md — Regenerate Supabase types from production database (TYPE-01)
-- [ ] 05-02-PLAN.md — Replace `as any` casts in hooks with proper types (TYPE-02)
-- [ ] 05-03-PLAN.md — Replace `as any` casts in components with proper types (TYPE-03)
-- [ ] 05-04-PLAN.md — Type RPC functions and enable strict mode (TYPE-04)
+- [x] 05-01-PLAN.md — Regenerate Supabase types from production database (TYPE-01) ✓
+- [x] 05-02-PLAN.md — Replace `as any` casts in hooks with proper types (TYPE-02) ✓
+- [x] 05-03-PLAN.md — Replace `as any` casts in components with proper types (TYPE-03) ✓
+- [x] 05-04-PLAN.md — Type RPC functions and enable strict mode (TYPE-04) ✓
 
 ### Phase 6: Code Quality
 **Goal**: No memory leaks from timers; errors logged with structure for debugging
@@ -172,12 +172,12 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 | 2. Error Completion | 4/4 | ✓ Complete | 2026-01-25 |
 | 3. Test Infrastructure | 3/3 | ✓ Complete | 2026-01-25 |
 | 4. Utility Tests | 1/1 | ✓ Complete | 2026-01-25 |
-| 5. Type Safety | 0/4 | Planned | - |
+| 5. Type Safety | 4/4 | ✓ Complete | 2026-01-25 |
 | 6. Code Quality | 0/2 | Not started | - |
 | 7. Hook Tests | 0/4 | Not started | - |
 | 8. Component Tests | 0/3 | Not started | - |
 
-**Total:** 10/23 plans complete
+**Total:** 14/23 plans complete
 
 ---
 *Roadmap created: 2026-01-24*
