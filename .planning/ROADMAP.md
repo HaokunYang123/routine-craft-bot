@@ -67,12 +67,12 @@ Plans:
   4. Supabase mock factory supports full method chaining (from/select/eq/order/single)
   5. Test utilities provide wrapped render with all providers (Router, QueryClient, Toast)
   6. At least one utility test passes, validating the entire setup
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 03-01: Vitest configuration with jsdom and React Testing Library
-- [ ] 03-02: Supabase mock factory with method chaining
-- [ ] 03-03: Test utilities (providers wrapper, data factories)
+- [ ] 03-01-PLAN.md — Vitest configuration with jsdom and React Testing Library
+- [ ] 03-02-PLAN.md — Supabase mock factory with method chaining
+- [ ] 03-03-PLAN.md — Test utilities (providers wrapper, data factories, validation test)
 
 ### Phase 4: Utility Tests
 **Goal**: Pure utility functions have comprehensive test coverage, validating test infrastructure works
@@ -171,7 +171,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 |-------|----------------|--------|-----------|
 | 1. Error Foundation | 2/2 | ✓ Complete | 2026-01-24 |
 | 2. Error Completion | 4/4 | ✓ Complete | 2026-01-25 |
-| 3. Test Infrastructure | 0/3 | Not started | - |
+| 3. Test Infrastructure | 0/3 | Planned | - |
 | 4. Utility Tests | 0/2 | Not started | - |
 | 5. Type Safety | 0/4 | Not started | - |
 | 6. Code Quality | 0/2 | Not started | - |
@@ -184,4 +184,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 *Roadmap created: 2026-01-24*
 *Phase 1 planned: 2026-01-24*
 *Phase 2 planned: 2026-01-25*
+*Phase 3 planned: 2026-01-25*
 *Milestone: Reliability Hardening*
