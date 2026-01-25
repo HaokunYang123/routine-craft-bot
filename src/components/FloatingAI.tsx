@@ -55,10 +55,16 @@ export function FloatingAI({ context = "You are a helpful assistant.", placehold
   }, []);
 
   useEffect(() => {
-    if ('webkitSpeechRecognition' in window) {
-      const recognition = new (window as any).webkitSpeechRecognition();
-      recognition.continuous = false; recognition.interimResults = false; recognition.lang = 'en-US';
-      recognition.onresult = (event: any) => { setInput(prev => prev + event.results[0][0].transcript); setIsListening(false); };
+    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognitionAPI) {
+      const recognition = new SpeechRecognitionAPI();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+      recognition.onresult = (event) => {
+        setInput(prev => prev + event.results[0][0].transcript);
+        setIsListening(false);
+      };
       recognition.onerror = () => setIsListening(false);
       recognition.onend = () => setIsListening(false);
       recognitionRef.current = recognition;

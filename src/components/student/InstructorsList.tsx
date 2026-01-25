@@ -32,7 +32,7 @@ export function InstructorsList({ onSelectInstructor, selectedInstructorId }: In
 
     const fetchInstructors = async () => {
         const { data, error } = await supabase
-            .from("instructor_students" as any)
+            .from("instructor_students")
             .select(`
         id,
         instructor_id,

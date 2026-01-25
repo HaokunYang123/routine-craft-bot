@@ -60,13 +60,6 @@ interface SpeechRecognitionAlternative {
   confidence: number;
 }
 
-declare global {
-  interface Window {
-    SpeechRecognition: any;
-    webkitSpeechRecognition: any;
-  }
-}
-
 export default function Assistant() {
   const { user, session } = useAuth();
   const { toast } = useToast();
