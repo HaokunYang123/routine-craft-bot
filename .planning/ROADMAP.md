@@ -48,12 +48,12 @@ Plans:
   3. JWT expiry shows explicit "Session expired" message with re-login prompt
   4. AI assistant retries failed requests with exponential backoff before showing error
   5. AI timeout errors suggest reducing request scope (not just generic failure)
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 02-01: Loading state implementation for async operations
-- [ ] 02-02: JWT error handling with explicit messaging
-- [ ] 02-03: AI assistant retry logic with exponential backoff
+- [ ] 02-01-PLAN.md — LoadingButton component and skeleton placeholders for data loading
+- [ ] 02-02-PLAN.md — SessionExpiredModal with Supabase auth event detection
+- [ ] 02-03-PLAN.md — AI assistant retry logic with exponential backoff and cancel support
 
 ### Phase 3: Test Infrastructure
 **Goal**: Testing framework is configured and validated; mock utilities enable testing Supabase-dependent code
@@ -169,7 +169,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Error Foundation | 2/2 | ✓ Complete | 2026-01-24 |
-| 2. Error Completion | 0/3 | Not started | - |
+| 2. Error Completion | 0/3 | Planned | - |
 | 3. Test Infrastructure | 0/3 | Not started | - |
 | 4. Utility Tests | 0/2 | Not started | - |
 | 5. Type Safety | 0/4 | Not started | - |
@@ -182,4 +182,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 ---
 *Roadmap created: 2026-01-24*
 *Phase 1 planned: 2026-01-24*
+*Phase 2 planned: 2026-01-25*
 *Milestone: Reliability Hardening*
