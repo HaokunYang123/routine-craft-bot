@@ -94,42 +94,42 @@ Deferred to future release. Tracked but not in current roadmap.
 
 Which phases cover which requirements. Updated during roadmap creation.
 
-| Requirement | Phase | Status |
-|-------------|-------|--------|
-| ERR-01 | Phase 1 | Pending |
-| ERR-02 | Phase 1 | Pending |
-| ERR-03 | Phase 2 | Pending |
-| ERR-04 | Phase 2 | Pending |
-| ERR-05 | Phase 2 | Pending |
-| TEST-01 | Phase 3 | Pending |
-| TEST-02 | Phase 3 | Pending |
-| TEST-03 | Phase 3 | Pending |
-| TEST-04 | Phase 3 | Pending |
-| UTIL-01 | Phase 4 | Pending |
-| UTIL-02 | Phase 4 | Pending |
-| UTIL-03 | Phase 4 | Pending |
-| TYPE-01 | Phase 5 | Pending |
-| TYPE-02 | Phase 5 | Pending |
-| TYPE-03 | Phase 5 | Pending |
-| TYPE-04 | Phase 5 | Pending |
-| QUAL-01 | Phase 6 | Pending |
-| QUAL-02 | Phase 6 | Pending |
-| QUAL-03 | Phase 6 | Pending |
-| QUAL-04 | Phase 6 | Pending |
-| QUAL-05 | Phase 6 | Pending |
-| HOOK-01 | Phase 7 | Pending |
-| HOOK-02 | Phase 7 | Pending |
-| HOOK-03 | Phase 7 | Pending |
-| HOOK-04 | Phase 7 | Pending |
-| COMP-01 | Phase 8 | Pending |
-| COMP-02 | Phase 8 | Pending |
-| COMP-03 | Phase 8 | Pending |
+| Requirement | Phase | Phase Name | Status |
+|-------------|-------|------------|--------|
+| ERR-01 | 1 | Error Foundation | Pending |
+| ERR-02 | 1 | Error Foundation | Pending |
+| ERR-03 | 2 | Error Completion | Pending |
+| ERR-04 | 2 | Error Completion | Pending |
+| ERR-05 | 2 | Error Completion | Pending |
+| TEST-01 | 3 | Test Infrastructure | Pending |
+| TEST-02 | 3 | Test Infrastructure | Pending |
+| TEST-03 | 3 | Test Infrastructure | Pending |
+| TEST-04 | 3 | Test Infrastructure | Pending |
+| UTIL-01 | 4 | Utility Tests | Pending |
+| UTIL-02 | 4 | Utility Tests | Pending |
+| UTIL-03 | 4 | Utility Tests | Pending |
+| TYPE-01 | 5 | Type Safety | Pending |
+| TYPE-02 | 5 | Type Safety | Pending |
+| TYPE-03 | 5 | Type Safety | Pending |
+| TYPE-04 | 5 | Type Safety | Pending |
+| QUAL-01 | 6 | Code Quality | Pending |
+| QUAL-02 | 6 | Code Quality | Pending |
+| QUAL-03 | 6 | Code Quality | Pending |
+| QUAL-04 | 6 | Code Quality | Pending |
+| QUAL-05 | 6 | Code Quality | Pending |
+| HOOK-01 | 7 | Hook Tests | Pending |
+| HOOK-02 | 7 | Hook Tests | Pending |
+| HOOK-03 | 7 | Hook Tests | Pending |
+| HOOK-04 | 7 | Hook Tests | Pending |
+| COMP-01 | 8 | Component Tests | Pending |
+| COMP-02 | 8 | Component Tests | Pending |
+| COMP-03 | 8 | Component Tests | Pending |
 
 **Coverage:**
 - v1 requirements: 27 total
 - Mapped to phases: 27
-- Unmapped: 0 ✓
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-01-24*
-*Last updated: 2026-01-24 after initial definition*
+*Traceability updated: 2026-01-24 (roadmap created)*
