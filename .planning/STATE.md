@@ -19,20 +19,20 @@ Progress: [====----------------] 24%
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
-- Average duration: 3.3 min
-- Total execution time: 0.17 hours
+- Total plans completed: 4
+- Average duration: 2.9 min
+- Total execution time: 0.19 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-error-foundation | 2 | 7min | 3.5min |
-| 02-error-completion | 1 | 3min | 3min |
+| 02-error-completion | 2 | 4.5min | 2.25min |
 
 **Recent Trend:**
-- Last 5 plans: 02-01 (3min), 01-02 (5min), 01-01 (2min)
-- Trend: Consistent (~3min/plan)
+- Last 5 plans: 02-02 (1.5min), 02-01 (3min), 01-02 (5min), 01-01 (2min)
+- Trend: Improving (~2min/plan recent)
 
 *Updated after each plan completion*
 
@@ -54,6 +54,8 @@ Recent decisions affecting current work:
 - Route-based resetKeys for automatic error reset on navigation - 01-01
 - LoadingButton wraps Button rather than modifying base - 02-01
 - Skeleton components match existing dashboard card styling - 02-01
+- Navigate before signOut to prevent false expiry modal - 02-02
+- Use onAuthStateChange SIGNED_OUT event for session expiry detection - 02-02
 
 ### Pending Todos
 
@@ -68,7 +70,7 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-01-25
-Stopped at: Completed 02-01-PLAN.md (Loading State Components)
+Stopped at: Completed 02-02-PLAN.md (Session Expiry Handling)
 Resume file: None
 
 ---
