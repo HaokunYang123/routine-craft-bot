@@ -134,13 +134,13 @@ Plans:
   4. useAssignments tests verify scheduling logic (once, daily, weekly, custom)
   5. useGroups tests cover group creation and member management
   6. useAIAssistant tests verify timeout handling and retry behavior
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 07-01: useAuth tests (auth flow states)
-- [ ] 07-02: useAssignments tests (CRUD and scheduling)
-- [ ] 07-03: useGroups tests (group management)
-- [ ] 07-04: useAIAssistant tests (timeout and retry)
+- [ ] 07-01-PLAN.md — useAuth tests (auth states, session expiry, signOut)
+- [ ] 07-02-PLAN.md — useAssignments tests (CRUD and scheduling logic)
+- [ ] 07-03-PLAN.md — useGroups tests (group management and members)
+- [ ] 07-04-PLAN.md — useAIAssistant tests (timeout, retry, cancellation)
 
 ### Phase 8: Component Tests
 **Goal**: Core user-facing components have behavior tests
@@ -174,7 +174,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 | 4. Utility Tests | 1/1 | ✓ Complete | 2026-01-25 |
 | 5. Type Safety | 4/4 | ✓ Complete | 2026-01-25 |
 | 6. Code Quality | 2/2 | ✓ Complete | 2026-01-25 |
-| 7. Hook Tests | 0/4 | Not started | - |
+| 7. Hook Tests | 0/4 | Planned | - |
 | 8. Component Tests | 0/3 | Not started | - |
 
 **Total:** 16/23 plans complete
@@ -187,4 +187,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 *Phase 4 planned: 2026-01-25*
 *Phase 5 planned: 2026-01-25*
 *Phase 6 planned: 2026-01-25*
+*Phase 7 planned: 2026-01-25*
 *Milestone: Reliability Hardening*
