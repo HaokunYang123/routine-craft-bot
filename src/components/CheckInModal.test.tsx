@@ -142,4 +142,121 @@ describe('CheckInModal', () => {
       expect(screen.getByRole('textbox')).toBeInTheDocument();
     });
   });
+
+  describe('form submission', () => {
+    it('disables submit button until sentiment selected', async () => {
+      render(<CheckInModal {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+      });
+
+      const submitButton = screen.getByRole('button', { name: /log check-in/i });
+      expect(submitButton).toBeDisabled();
+    });
+
+    it('enables submit button after sentiment selection', async () => {
+      const user = userEvent.setup();
+      render(<CheckInModal {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole('button', { name: /great/i }));
+
+      const submitButton = screen.getByRole('button', { name: /log check-in/i });
+      expect(submitButton).not.toBeDisabled();
+    });
+
+    it('submits check-in and calls callbacks on success', async () => {
+      const user = userEvent.setup();
+
+      // Mock successful upsert
+      getMockSupabase().queryBuilder.then.mockImplementationOnce((resolve) =>
+        Promise.resolve({ data: null, error: null }).then(resolve)
+      );
+
+      render(<CheckInModal {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+      });
+
+      // Select sentiment and submit
+      await user.click(screen.getByRole('button', { name: /great/i }));
+      await user.click(screen.getByRole('button', { name: /log check-in/i }));
+
+      await waitFor(() => {
+        expect(defaultProps.onCheckInComplete).toHaveBeenCalledWith('great');
+      });
+      expect(defaultProps.onOpenChange).toHaveBeenCalledWith(false);
+    });
+
+    it('shows success toast for great/okay sentiments', async () => {
+      const user = userEvent.setup();
+
+      // Mock successful upsert
+      getMockSupabase().queryBuilder.then.mockImplementationOnce((resolve) =>
+        Promise.resolve({ data: null, error: null }).then(resolve)
+      );
+
+      render(<CheckInModal {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole('button', { name: /great/i }));
+      await user.click(screen.getByRole('button', { name: /log check-in/i }));
+
+      await waitFor(() => {
+        expect(mockToast).toHaveBeenCalledWith(
+          expect.objectContaining({
+            title: expect.stringMatching(/Let's go/i),
+          })
+        );
+      });
+    });
+
+    it('shows supportive toast for tired/sore sentiments', async () => {
+      const user = userEvent.setup();
+
+      // Mock successful upsert
+      getMockSupabase().queryBuilder.then.mockImplementationOnce((resolve) =>
+        Promise.resolve({ data: null, error: null }).then(resolve)
+      );
+
+      render(<CheckInModal {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole('button', { name: /tired/i }));
+      await user.click(screen.getByRole('button', { name: /log check-in/i }));
+
+      await waitFor(() => {
+        expect(mockToast).toHaveBeenCalledWith(
+          expect.objectContaining({
+            title: expect.stringMatching(/Take it easy/i),
+          })
+        );
+      });
+    });
+  });
+
+  describe('already checked in', () => {
+    it('closes modal when already checked in today (localStorage)', async () => {
+      // Set localStorage to indicate already checked in today
+      const today = new Date().toISOString().split('T')[0];
+      localStorage.setItem('check_in_student-1', today);
+
+      render(<CheckInModal {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(defaultProps.onOpenChange).toHaveBeenCalledWith(false);
+      });
+    });
+  });
 });
