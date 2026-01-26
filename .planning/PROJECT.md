@@ -50,7 +50,14 @@ Error handling: React Error Boundaries + handleError utility (53 call sites)
 
 ### Active
 
-(No active milestone — planning next)
+## Current Milestone: v2.0 Performance
+
+**Goal:** Optimize data fetching, rendering, and large dataset handling for faster, smoother user experience.
+
+**Target features:**
+- Full React Query migration (replace all useState/useEffect data fetching)
+- Pagination for large lists (clients, check-ins, assignments)
+- Memo optimization (React.memo, useMemo, useCallback for expensive renders)
 
 ### Out of Scope
 
@@ -113,4 +120,4 @@ Error handling: React Error Boundaries + handleError utility (53 call sites)
 | React Query for data fetching | Already installed, caching/dedup | — Deferred to v2 |
 
 ---
-*Last updated: 2026-01-25 after v1 milestone*
+*Last updated: 2026-01-25 — v2.0 Performance milestone started*
