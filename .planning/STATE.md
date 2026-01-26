@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-01-25)
 
 **Core value:** Users can reliably complete their daily workflows without encountering errors, crashes, or unexpected behavior.
-**Current focus:** Phase 9 - React Query Foundation
+**Current focus:** Phase 10 - Simple Hook Migration
 
 ## Current Position
 
-Phase: 9 of 14 (React Query Foundation)
-Plan: 01 of 01 complete
-Status: Phase complete
-Last activity: 2026-01-26 - Completed 09-01-PLAN.md
+Phase: 10 of 14 (Simple Hook Migration)
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-01-26 - Phase 9 complete
 
 Progress: [==========---------] 60% (9/14 phases complete)
 
