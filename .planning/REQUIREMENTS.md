@@ -2,7 +2,7 @@
 
 **Milestone:** v2.0 Performance
 **Created:** 2026-01-26
-**Status:** Scoped
+**Status:** Roadmapped
 
 ---
 
@@ -71,28 +71,27 @@
 
 ## Traceability
 
-*Populated by roadmapper after phase creation*
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| RQ-01 | — | Pending |
-| RQ-02 | — | Pending |
-| RQ-03 | — | Pending |
-| RQ-04 | — | Pending |
-| RQ-05 | — | Pending |
-| RQ-06 | — | Pending |
-| RQ-07 | — | Pending |
-| RQ-08 | — | Pending |
-| PAG-01 | — | Pending |
-| PAG-02 | — | Pending |
-| PAG-03 | — | Pending |
-| PAG-04 | — | Pending |
-| PAG-05 | — | Pending |
-| OPT-01 | — | Pending |
-| OPT-02 | — | Pending |
-| OPT-03 | — | Pending |
-| OPT-04 | — | Pending |
+| RQ-01 | Phase 9 | Pending |
+| RQ-02 | Phase 10 | Pending |
+| RQ-03 | Phase 10 | Pending |
+| RQ-04 | Phase 9 | Pending |
+| RQ-05 | Phase 9 | Pending |
+| RQ-06 | Phase 12 | Pending |
+| RQ-07 | Phase 12 | Pending |
+| RQ-08 | Phase 12 | Pending |
+| PAG-01 | Phase 13 | Pending |
+| PAG-02 | Phase 13 | Pending |
+| PAG-03 | Phase 13 | Pending |
+| PAG-04 | Phase 13 | Pending |
+| PAG-05 | Phase 13 | Pending |
+| OPT-01 | Phase 14 | Pending |
+| OPT-02 | Phase 14 | Pending |
+| OPT-03 | Phase 14 | Pending |
+| OPT-04 | Phase 14 | Pending |
 
 ---
 
 *Requirements scoped: 2026-01-26*
+*Roadmap created: 2026-01-26*

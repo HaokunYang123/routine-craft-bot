@@ -5,24 +5,25 @@
 See: .planning/PROJECT.md (updated 2026-01-25)
 
 **Core value:** Users can reliably complete their daily workflows without encountering errors, crashes, or unexpected behavior.
-**Current focus:** Planning next milestone
+**Current focus:** Phase 9 - React Query Foundation
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-01-25 — Milestone v2.0 Performance started
+Phase: 9 of 14 (React Query Foundation)
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-01-26 - v2.0 Performance roadmap created
 
-Progress: Gathering requirements
+Progress: [========----------] 53% (8/14 phases complete)
 
 ## Milestone History
 
 | Version | Name | Phases | Shipped |
 |---------|------|--------|---------|
 | v1 | Reliability Hardening | 1-8 (23 plans) | 2026-01-25 |
+| v2.0 | Performance | 9-14 (TBD plans) | In progress |
 
-See: .planning/MILESTONES.md for full details
+See: .planning/ROADMAP.md for full details
 
 ## Performance Summary (v1)
 
@@ -44,31 +45,31 @@ See: .planning/MILESTONES.md for full details
 See PROJECT.md Key Decisions table for full list with outcomes.
 
 Recent key decisions:
-- Use Vitest over Jest (Vite-native, faster ESM support) — ✓ Good
-- Two-level error boundaries (root + route) — ✓ Good
-- AI retry delays: 1s, 2s, 4s exponential backoff — ✓ Good
-- Only retry transient errors (timeout/5xx) — ✓ Good
-- React Query migration — Deferred to v2
+- Use Vitest over Jest (Vite-native, faster ESM support) - Done
+- Two-level error boundaries (root + route) - Done
+- React Query migration deferred to v2 - Starting now
+- QueryClientProvider already configured in App.tsx - Ready to enhance
 
 ### Pending Todos
 
-None — milestone complete.
+None.
 
 ### Blockers/Concerns
 
-None — all v1 requirements shipped.
+None - v1 shipped, v2.0 ready to start.
 
-**Tech debt to address in future:**
-- CheckInModal not wired into application (tests exist)
-- Large components (CoachCalendar) not refactored
-- Security hardening deferred (v2)
+**Research completed for v2.0:**
+- React Query architecture patterns documented
+- 6 hooks identified for migration (useGroups, useTemplates, useAssignments, useProfile, useStickers, useRecurringSchedules)
+- 4 hooks NOT to migrate (useAuth, useAIAssistant, use-toast, use-mobile)
+- Migration pitfalls documented (13 critical/moderate pitfalls)
 
 ## Session Continuity
 
-Last session: 2026-01-25
-Stopped at: v1 milestone complete
+Last session: 2026-01-26
+Stopped at: v2.0 roadmap created
 Resume file: None
 
 ---
 *State initialized: 2026-01-24*
-*Last updated: 2026-01-25 — v2.0 Performance milestone started*
+*Last updated: 2026-01-26 - v2.0 Performance roadmap created*

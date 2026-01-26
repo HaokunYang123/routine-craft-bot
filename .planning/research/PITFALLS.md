@@ -624,3 +624,639 @@ Before writing any test, ask:
 - TanStack Query testing documentation
 
 **Confidence level:** HIGH for React/Supabase patterns, MEDIUM for RPC-specific issues (would need Supabase local testing to verify)
+
+---
+---
+
+# ADDENDUM: React Query Migration + Performance Optimization Pitfalls
+
+**Domain:** Migrating existing React app from useState/useEffect to React Query v5, adding pagination and memo optimization
+**Researched:** 2026-01-26
+**Context:** Existing 103 tests using vi.mock for hooks, custom hooks with useState/useEffect, React Query v5 already installed but not used for data fetching
+
+---
+
+## Critical Pitfalls (Migration-Specific)
+
+Mistakes that cause test suite breakage, data bugs, or major regressions.
+
+---
+
+### Migration Pitfall M1: Test Suite Breakage from Hook Signature Changes
+
+**What goes wrong:** When migrating hooks like `useGroups`, `useProfile`, `useAssignments` from useState/useEffect to React Query, the return signature changes (e.g., `loading` becomes `isPending`, new properties like `isError`, `refetch` appear). The existing 103 tests use `vi.mock` to mock these hooks with specific return shapes. Tests break silently or produce false positives.
+
+**Why it happens:** Tests mock the OLD hook return value:
+```typescript
+// Current test pattern (from CheckInModal.test.tsx, Dashboard.test.tsx)
+vi.mocked(useAuth).mockReturnValue({
+  user: { id: 'coach-1' },
+  loading: false,  // Will become isPending in React Query
+  // ... missing: isError, isFetching, refetch, etc.
+});
+```
+
+**Consequences:**
+- Tests pass but don't actually test React Query behavior
+- Components may work in tests but fail in production
+- Race conditions and loading states go untested
+
+**Warning signs:**
+- Search for `loading: false` in test files (should become `isPending`)
+- Test files don't import React Query utilities
+- Tests don't await or handle loading states
+
+**Prevention:**
+1. Create a test utility factory for React Query hook mocks:
+   ```typescript
+   // src/test/mocks/react-query-hooks.ts
+   export function createQueryHookMock<T>(data: T, overrides = {}) {
+     return {
+       data,
+       isPending: false,
+       isError: false,
+       isFetching: false,
+       isSuccess: true,
+       refetch: vi.fn(),
+       ...overrides,
+     };
+   }
+   ```
+2. Update all 103 tests incrementally as each hook migrates
+3. Create a migration checklist tracking which tests need updates
+
+**Detection:**
+- Run `npm test` after each hook migration
+- Look for tests that don't await or handle loading states
+
+**Phase:** Address in the FIRST phase alongside each hook migration. Not as cleanup.
+
+---
+
+### Migration Pitfall M2: Duplicate Error Notifications with useEffect
+
+**What goes wrong:** React Query v5 removed `onSuccess`/`onError` callbacks from useQuery. Developers migrate error handling to useEffect. If the custom hook is called from multiple components, each registers an independent effect, causing duplicate error toasts.
+
+**Why it happens:** The existing `handleError` utility is called per-hook-instance:
+```typescript
+// Current pattern in useProfile.ts, useGroups.ts
+} catch (error) {
+  handleError(error, { component: 'useProfile', action: 'fetch profile' });
+}
+```
+
+When migrating to React Query and using useEffect for error handling:
+```typescript
+// BAD: Each component instance triggers toast
+const { data, error } = useProfile();
+useEffect(() => {
+  if (error) handleError(error);
+}, [error]);
+```
+
+**Consequences:**
+- User sees 2-3 identical error toasts
+- Poor UX, looks like multiple things failed
+- Difficult to debug which component caused error
+
+**Warning signs:**
+- Search for `useEffect.*error` patterns in migrated hooks
+- Manual testing: trigger same error from multiple mounted components
+- Watch for "Error" toasts that appear multiple times
+
+**Prevention:**
+1. Use React Query's global `queryCache.onError` for centralized error handling:
+   ```typescript
+   const queryClient = new QueryClient({
+     queryCache: new QueryCache({
+       onError: (error, query) => {
+         handleError(error, { component: String(query.queryKey[0]) });
+       },
+     }),
+   });
+   ```
+2. Keep `handleError` for mutations only (mutations don't have this duplication issue)
+3. If per-query error handling needed, use query-specific `meta` for context
+
+**Phase:** Address in FIRST phase when setting up QueryClient. Document as standard pattern.
+
+---
+
+### Migration Pitfall M3: Stale Closures in Memoized Callbacks
+
+**What goes wrong:** When adding `React.memo`, `useMemo`, and `useCallback`, callbacks capture stale state because dependencies aren't updated properly. This is especially dangerous with the existing imperative fetch patterns.
+
+**Why it happens:** Current hooks use `useCallback` but with manual state management:
+```typescript
+// From useAssignments.ts
+const createAssignment = useCallback(async (input: CreateAssignmentInput) => {
+  if (!user) return null;  // user from closure
+  setLoading(true);
+  // ... uses user.id inside
+}, [user, toast]);
+```
+
+When migrating to React Query's `useMutation`, developers might:
+```typescript
+// BAD: Stale closure
+const { mutate } = useMutation({
+  mutationFn: async (input) => {
+    // user might be stale if not in deps
+    return supabase.from('assignments').insert({ ...input, assigned_by: user.id });
+  }
+});
+
+const handleCreate = useCallback(() => {
+  mutate(formData);  // formData might be stale
+}, []);  // Missing mutate dependency
+```
+
+**Consequences:**
+- Data saved with wrong user ID
+- Forms submit stale data
+- Intermittent bugs that are hard to reproduce
+
+**Warning signs:**
+- ESLint warnings for exhaustive-deps
+- Review all `useCallback` and `useMemo` with empty `[]` dependencies
+- Test by rapidly changing state and submitting
+
+**Prevention:**
+1. ALWAYS include all used values in dependency arrays
+2. Prefer passing values as arguments rather than closing over them:
+   ```typescript
+   // GOOD
+   const { mutate } = useMutation({
+     mutationFn: (input: { data: Input; userId: string }) =>
+       supabase.from('assignments').insert({ ...input.data, assigned_by: input.userId })
+   });
+
+   const handleCreate = useCallback(() => {
+     mutate({ data: formData, userId: user.id });
+   }, [mutate, formData, user.id]);
+   ```
+3. Enable `eslint-plugin-react-hooks` exhaustive-deps rule
+4. Consider React 19 compiler (if upgrading) which auto-memoizes
+
+**Phase:** Address in memo optimization phase. Add ESLint rule BEFORE starting optimization.
+
+---
+
+### Migration Pitfall M4: Cache Invalidation Key Mismatch
+
+**What goes wrong:** After mutations, the UI doesn't update because `invalidateQueries` uses a key that doesn't match the query's actual key structure.
+
+**Why it happens:** Query keys are hierarchical but invalidation often uses exact match:
+```typescript
+// Query defined as:
+useQuery({ queryKey: ['groups', { coachId: user.id }], ... });
+
+// Invalidation attempts:
+queryClient.invalidateQueries({ queryKey: ['groups'] });  // Works (partial match)
+queryClient.invalidateQueries({ queryKey: ['groups', 'list'] });  // FAILS (wrong structure)
+```
+
+With the existing hooks structure (useGroups fetches with coach_id filter), key management becomes complex.
+
+**Consequences:**
+- User creates/updates/deletes item but list doesn't refresh
+- Manual page refresh required
+- Appears as a "data not saving" bug
+
+**Warning signs:**
+- After mutation, check if list updates without manual refresh
+- Use React Query DevTools to see if queries are invalidated
+- Search for `invalidateQueries` calls and verify key matches
+
+**Prevention:**
+1. Create a centralized query key factory:
+   ```typescript
+   // src/lib/query-keys.ts
+   export const queryKeys = {
+     groups: {
+       all: ['groups'] as const,
+       list: (coachId: string) => ['groups', 'list', { coachId }] as const,
+       detail: (groupId: string) => ['groups', 'detail', groupId] as const,
+     },
+     // ... other entities
+   };
+   ```
+2. Use `queryKeys.groups.all` for broad invalidation after mutations
+3. Document invalidation strategy in each mutation
+
+**Phase:** Establish query key factory in FIRST phase before any migrations.
+
+---
+
+### Migration Pitfall M5: Infinite Scroll Loading Entire Dataset
+
+**What goes wrong:** When adding pagination with `useInfiniteQuery`, the `getNextPageParam` function doesn't return `undefined` when there are no more pages, causing infinite requests or loading all data at once.
+
+**Why it happens:** Supabase pagination with `.range(from, to)` returns partial data even on last page. Without checking actual count, you can't tell when to stop:
+```typescript
+// BAD: Never stops fetching
+getNextPageParam: (lastPage, allPages) => {
+  return allPages.length; // Always returns next page number
+}
+```
+
+**Consequences:**
+- Hundreds of API requests for large datasets
+- Browser memory exhaustion
+- Server overload
+- Supabase rate limiting
+
+**Warning signs:**
+- Network tab shows repeated requests to same endpoint
+- DevTools memory usage grows continuously
+- React Query DevTools shows pages array growing indefinitely
+
+**Prevention:**
+1. Include total count in query response:
+   ```typescript
+   const { data, count } = await supabase
+     .from('task_instances')
+     .select('*', { count: 'exact' })
+     .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+
+   return { data, count, page };
+   ```
+2. Calculate if more pages exist:
+   ```typescript
+   getNextPageParam: (lastPage, allPages) => {
+     const totalFetched = allPages.flatMap(p => p.data).length;
+     return totalFetched < lastPage.count ? allPages.length : undefined;
+   }
+   ```
+3. Set `initialPageParam: 0` explicitly (v5 requirement)
+
+**Phase:** Address when implementing pagination. Create a standard pagination helper.
+
+---
+
+## Moderate Pitfalls (Migration-Specific)
+
+Mistakes that cause delays, technical debt, or degraded UX.
+
+---
+
+### Migration Pitfall M6: React.memo on Components with Non-Primitive Props
+
+**What goes wrong:** Wrapping components in `React.memo` but passing inline objects/arrays/functions as props, defeating memoization.
+
+**Why it happens:** Easy to miss inline definitions:
+```typescript
+// BAD: New object every render, memo useless
+<TaskCard
+  task={task}
+  onComplete={() => handleComplete(task.id)}  // New function every render
+  style={{ margin: 10 }}  // New object every render
+/>
+```
+
+The existing codebase passes callbacks inline in many places (e.g., `ManualTemplateBuilder.tsx`, `Dashboard.tsx`).
+
+**Consequences:**
+- Performance optimization has no effect
+- False confidence in optimization
+- Wasted development time
+
+**Warning signs:**
+- React DevTools shows component re-rendering despite memo
+- Search for `React.memo` components and check their parent's JSX for inline definitions
+- Profile before/after to verify improvement
+
+**Prevention:**
+1. Use `useCallback` for all callbacks passed to memoized components
+2. Define static objects outside component or with `useMemo`
+3. Audit props before applying `React.memo`:
+   ```typescript
+   // GOOD
+   const handleComplete = useCallback((id: string) => {
+     updateTaskStatus(id, 'completed');
+   }, [updateTaskStatus]);
+
+   const cardStyle = useMemo(() => ({ margin: 10 }), []);
+   ```
+4. Consider using React DevTools Profiler to verify memo is working
+
+**Phase:** Must establish useCallback/useMemo patterns BEFORE adding React.memo.
+
+---
+
+### Migration Pitfall M7: Premature Optimization with useMemo
+
+**What goes wrong:** Adding `useMemo` to simple calculations where the overhead of memoization exceeds the calculation cost.
+
+**Why it happens:** Defensive programming - "memoize everything to be safe":
+```typescript
+// BAD: Memoization cost > calculation cost
+const displayName = useMemo(() =>
+  profile?.display_name || 'Coach',
+  [profile?.display_name]
+);
+```
+
+**Consequences:**
+- Slightly slower initial render
+- More memory usage
+- Harder to read code
+- No measurable performance benefit
+
+**Warning signs:**
+- Code review: `useMemo` with simple expressions
+- React DevTools Profiler shows no improvement
+- Look for useMemo with primitive return values (strings, numbers, booleans)
+
+**Prevention:**
+1. Profile FIRST, optimize SECOND
+2. Only memoize:
+   - Expensive calculations (array sorting/filtering of 100+ items)
+   - Object/array references passed to memoized children
+   - Values used in other hooks' dependency arrays
+3. Rule of thumb: if calculation is O(1) or O(n) where n < 50, don't memoize
+
+**Phase:** Address in memo optimization phase with clear guidelines.
+
+---
+
+### Migration Pitfall M8: gcTime (cacheTime) Misconfiguration
+
+**What goes wrong:** Setting `gcTime` too short causes repeated fetches; too long causes memory bloat and stale data.
+
+**Why it happens:** Misunderstanding what `gcTime` means:
+- `staleTime`: How long data is considered fresh (won't refetch)
+- `gcTime`: How long UNUSED queries stay in cache before garbage collection
+
+The project's current test-utils.tsx sets `gcTime: 0` for tests, which is correct. But production config needs thought.
+
+**Consequences:**
+- Short gcTime: User navigates away and back, data refetches unnecessarily
+- Long gcTime: Memory grows with many queries, stale data shows after logout
+
+**Warning signs:**
+- Memory profiling over extended use
+- Check if data refetches on navigation
+- Review React Query DevTools cache state
+
+**Prevention:**
+1. Set appropriate defaults in QueryClient:
+   ```typescript
+   const queryClient = new QueryClient({
+     defaultOptions: {
+       queries: {
+         staleTime: 1000 * 60 * 5,  // 5 minutes
+         gcTime: 1000 * 60 * 30,    // 30 minutes
+       },
+     },
+   });
+   ```
+2. Shorter gcTime for frequently-changing data (task instances)
+3. Longer gcTime for stable data (user profile)
+4. Clear cache on logout
+
+**Phase:** Configure in FIRST phase when setting up QueryClient.
+
+---
+
+### Migration Pitfall M9: Test QueryClient Cache Pollution
+
+**What goes wrong:** Tests share QueryClient state, causing test interdependencies and flaky tests.
+
+**Why it happens:** The current test-utils.tsx correctly creates fresh QueryClient per test, but developers might reuse clients:
+```typescript
+// BAD: Shared client
+const queryClient = new QueryClient();
+
+describe('tests', () => {
+  it('test 1', () => {
+    render(<Component />, { queryClient }); // Pollutes cache
+  });
+
+  it('test 2', () => {
+    render(<Component />, { queryClient }); // Sees test 1's cached data
+  });
+});
+```
+
+**Consequences:**
+- Tests pass individually but fail when run together
+- Test order matters (flaky CI)
+- Cache from one test affects another
+
+**Warning signs:**
+- Tests pass with `npm test -- path/to/test` but fail with `npm test`
+- Random test failures in CI
+
+**Prevention:**
+1. Keep using `createTestQueryClient()` pattern from test-utils.tsx
+2. Never share QueryClient between tests
+3. Clear cache in afterEach if client is reused:
+   ```typescript
+   afterEach(() => {
+     queryClient.clear();
+   });
+   ```
+
+**Phase:** Already handled in existing test-utils.tsx. Document as standard.
+
+---
+
+### Migration Pitfall M10: keepPreviousData Migration Confusion
+
+**What goes wrong:** Migrating from v4's `keepPreviousData: true` to v5's `placeholderData: keepPreviousData` but losing the `dataUpdatedAt` timestamp.
+
+**Why it happens:** Different behavior between options:
+- v4 `keepPreviousData`: Provided `dataUpdatedAt` of previous data
+- v5 `placeholderData: keepPreviousData`: `dataUpdatedAt` stays at 0
+
+**Consequences:**
+- UI shows "last updated: never" or incorrect timestamps
+- Confusing UX when showing data freshness indicators
+
+**Warning signs:**
+- UI shows "Updated: Invalid Date" or "0"
+- Check components that display data freshness
+
+**Prevention:**
+1. If showing data timestamps, track manually:
+   ```typescript
+   const [lastFetched, setLastFetched] = useState<Date | null>(null);
+
+   const { data, isFetching } = useQuery({
+     queryKey: ['groups'],
+     queryFn: fetchGroups,
+     placeholderData: keepPreviousData,
+   });
+
+   useEffect(() => {
+     if (!isFetching && data) setLastFetched(new Date());
+   }, [isFetching, data]);
+   ```
+2. Don't display timestamps that rely on `dataUpdatedAt` with placeholder data
+
+**Phase:** Address if/when showing data timestamps. Low priority for this app.
+
+---
+
+## Minor Pitfalls (Migration-Specific)
+
+Mistakes that cause annoyance but are easily fixable.
+
+---
+
+### Migration Pitfall M11: isLoading vs isPending Confusion
+
+**What goes wrong:** Using `isLoading` when meaning `isPending`, or vice versa, causing incorrect loading states.
+
+**Why it happens:** React Query v5 renamed `isLoading` to `isPending`. Then added a NEW `isLoading` that means `isPending && isFetching` (same as old `isInitialLoading`).
+
+```typescript
+// Confusing:
+isPending  // Query has no data yet (loading OR error possible)
+isLoading  // Query has no data AND is currently fetching (truly loading)
+isFetching // Query is fetching (could be background refetch)
+```
+
+**Consequences:**
+- Loading spinner shows during background refetches (wrong)
+- Loading spinner doesn't show during initial load (wrong)
+
+**Warning signs:**
+- Loading spinner appears on every refetch
+- No loading state on initial render
+
+**Prevention:**
+1. Use `isPending` for "no data yet, show skeleton"
+2. Use `isLoading` for "actively loading for first time"
+3. Use `isFetching` for "any fetch in progress" (for spinners)
+4. Create typed wrapper hooks that expose clear names:
+   ```typescript
+   const { isInitialLoad, isRefreshing } = useGroupsQuery();
+   ```
+
+**Phase:** Document naming convention early. Apply consistently.
+
+---
+
+### Migration Pitfall M12: Suspense Hooks vs Regular Hooks Confusion
+
+**What goes wrong:** Using `useQuery` with `suspense: true` instead of the new `useSuspenseQuery`, causing TypeScript issues and unexpected behavior.
+
+**Why it happens:** v4 pattern was `useQuery({ ..., suspense: true })`. v5 introduces dedicated hooks.
+
+**Consequences:**
+- Data might be `undefined` when Suspense should guarantee it
+- TypeScript types don't narrow correctly
+
+**Warning signs:**
+- TypeScript errors about data possibly being undefined inside Suspense boundary
+- Console warnings about deprecated suspense option
+
+**Prevention:**
+1. Use `useSuspenseQuery` when component is wrapped in Suspense
+2. Use `useQuery` for components handling their own loading states
+3. Never mix approaches in same component tree
+
+**Phase:** Decide upfront whether to use Suspense. If not using, ignore this.
+
+---
+
+### Migration Pitfall M13: Forgetting initialPageParam in Infinite Queries
+
+**What goes wrong:** v5 requires `initialPageParam` for `useInfiniteQuery`. Omitting it causes runtime error.
+
+**Why it happens:** v4 defaulted to `undefined`, v5 requires explicit value.
+
+```typescript
+// BAD: v5 throws error
+useInfiniteQuery({
+  queryKey: ['tasks'],
+  queryFn: fetchTasks,
+  getNextPageParam: (lastPage) => lastPage.nextCursor,
+  // Missing initialPageParam!
+});
+
+// GOOD
+useInfiniteQuery({
+  queryKey: ['tasks'],
+  queryFn: fetchTasks,
+  initialPageParam: 0,  // Required in v5
+  getNextPageParam: (lastPage) => lastPage.nextCursor,
+});
+```
+
+**Consequences:**
+- Runtime error on component mount
+- Easy to miss in development if not testing pagination
+
+**Warning signs:**
+- TypeScript error at definition
+- Runtime error "initialPageParam is required"
+
+**Phase:** Will be caught by TypeScript. Document in pagination guidelines.
+
+---
+
+## Migration Phase-Specific Warnings
+
+| Phase Topic | Likely Pitfall | Mitigation |
+|-------------|---------------|------------|
+| QueryClient Setup | Error handling duplication (M2) | Use queryCache.onError, not useEffect |
+| Query Key Strategy | Cache invalidation mismatch (M4) | Create query key factory first |
+| First Hook Migration | Test suite breakage (M1) | Update tests alongside hook |
+| Mutation Patterns | Stale closures (M3) | Pass values as arguments, verify deps |
+| Pagination | Infinite loading (M5) | Include count, return undefined |
+| React.memo | Non-primitive props (M6) | Audit props before memoizing |
+| useMemo/useCallback | Premature optimization (M7) | Profile first, optimize second |
+| Cache Configuration | gcTime confusion (M8) | Set sensible defaults, document |
+
+---
+
+## Migration Pre-Flight Checklist
+
+Before migrating a hook to React Query:
+
+1. **Do tests exist for this hook?**
+   - If yes: plan to update mocks simultaneously
+   - If no: consider writing tests first
+
+2. **What loading/error UI does this hook drive?**
+   - Map `loading` to `isPending`
+   - Plan error handling (global vs local)
+
+3. **What invalidates this data?**
+   - Identify all mutations that should refetch this query
+   - Plan query key structure
+
+4. **What's the stale/cache time?**
+   - How often does this data change?
+   - How fresh does it need to be?
+
+5. **Are there closure dependencies?**
+   - Audit useCallback/useMemo in consuming components
+   - Check for stale values
+
+---
+
+## Sources (Migration-Specific)
+
+### Official Documentation (HIGH confidence)
+- [TanStack Query v5 Migration Guide](https://tanstack.com/query/latest/docs/framework/react/guides/migrating-to-v5)
+- [TanStack Query Testing Guide](https://tanstack.com/query/v4/docs/framework/react/guides/testing)
+- [TanStack Query Infinite Queries](https://tanstack.com/query/latest/docs/framework/react/guides/infinite-queries)
+- [Vitest Mocking Guide](https://vitest.dev/guide/mocking)
+
+### Community Sources (MEDIUM confidence)
+- [TkDodo: Testing React Query](https://tkdodo.eu/blog/testing-react-query)
+- [TkDodo: Automatic Query Invalidation](https://tkdodo.eu/blog/automatic-query-invalidation-after-mutations)
+- [Migrating to TanStack Query v5 (BigBinary)](https://www.bigbinary.com/blog/migrating-to-tanstack-query-v5)
+- [React Query Cache Invalidation (Stackademic)](https://blog.stackademic.com/react-query-cache-invalidation-why-your-mutations-work-but-your-ui-doesnt-update-a1ad23bc7ef1)
+- [Stop Misusing Memoization in React (Medium)](https://medium.com/@dipanshushukla50/stop-misusing-memoization-in-react-react-memo-vs-usememo-vs-usecallback-explained-simply-902699eca267)
+- [How to useMemo and useCallback: you can remove most of them (developerway.com)](https://www.developerway.com/posts/how-to-use-memo-use-callback)
+
+### Codebase Analysis (HIGH confidence)
+- Examined existing hooks: `useAssignments.ts`, `useGroups.ts`, `useProfile.ts`
+- Examined existing tests: `CheckInModal.test.tsx`, `Dashboard.test.tsx`, `useAssignments.test.tsx`
+- Examined test utilities: `test-utils.tsx`, `supabase.ts` mock
+- Verified React Query v5 already installed (`@tanstack/react-query: ^5.83.0`)
