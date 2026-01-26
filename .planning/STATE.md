@@ -106,6 +106,8 @@ Recent decisions affecting current work:
 - Use then() mockImplementationOnce for count queries with head:true option - 08-03
 - Verify animate-pulse class for loading skeleton detection - 08-03
 - Use getByRole('link') with href attribute check for link verification - 08-03
+- renderWithRoutes helper for route-aware component testing - 08-01
+- Cast user object with 'as ReturnType<typeof useAuth>['user']' for type safety - 08-01
 
 ### Pending Todos
 
@@ -136,10 +138,10 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-26
-Stopped at: Completed 08-03-PLAN.md - Phase 8 complete, all 23 plans executed
+Last session: 2026-01-25
+Stopped at: Completed 08-01-PLAN.md - ProtectedRoute tests (8 tests)
 Resume file: None
 
 ---
 *State initialized: 2026-01-24*
-*Last updated: 2026-01-26*
+*Last updated: 2026-01-25*
