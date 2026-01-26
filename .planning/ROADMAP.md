@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: Utility Tests** - Tests for pure utility functions ✓
 - [x] **Phase 5: Type Safety** - Regenerate Supabase types, eliminate `as any` casts ✓
 - [x] **Phase 6: Code Quality** - Memory leak fixes and structured logging ✓
-- [ ] **Phase 7: Hook Tests** - Tests for critical business logic hooks
+- [x] **Phase 7: Hook Tests** - Tests for critical business logic hooks ✓
 - [ ] **Phase 8: Component Tests** - Tests for core user-facing components
 
 ## Phase Details
@@ -137,10 +137,10 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 07-01-PLAN.md — useAuth tests (auth states, session expiry, signOut)
-- [ ] 07-02-PLAN.md — useAssignments tests (CRUD and scheduling logic)
-- [ ] 07-03-PLAN.md — useGroups tests (group management and members)
-- [ ] 07-04-PLAN.md — useAIAssistant tests (timeout, retry, cancellation)
+- [x] 07-01-PLAN.md — useAuth tests (auth states, session expiry, signOut) ✓
+- [x] 07-02-PLAN.md — useAssignments tests (CRUD and scheduling logic) ✓
+- [x] 07-03-PLAN.md — useGroups tests (group management and members) ✓
+- [x] 07-04-PLAN.md — useAIAssistant tests (timeout, retry, cancellation) ✓
 
 ### Phase 8: Component Tests
 **Goal**: Core user-facing components have behavior tests
@@ -174,10 +174,10 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 | 4. Utility Tests | 1/1 | ✓ Complete | 2026-01-25 |
 | 5. Type Safety | 4/4 | ✓ Complete | 2026-01-25 |
 | 6. Code Quality | 2/2 | ✓ Complete | 2026-01-25 |
-| 7. Hook Tests | 0/4 | Planned | - |
+| 7. Hook Tests | 4/4 | ✓ Complete | 2026-01-25 |
 | 8. Component Tests | 0/3 | Not started | - |
 
-**Total:** 16/23 plans complete
+**Total:** 20/23 plans complete
 
 ---
 *Roadmap created: 2026-01-24*

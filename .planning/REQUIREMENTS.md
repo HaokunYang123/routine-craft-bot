@@ -30,10 +30,10 @@ Requirements for this reliability milestone. Each maps to roadmap phases.
 
 ### Hook Tests
 
-- [ ] **HOOK-01**: useAuth has tests for all states (loading, authenticated, unauthenticated, error)
-- [ ] **HOOK-02**: useAssignments has tests for CRUD operations and scheduling logic
-- [ ] **HOOK-03**: useGroups has tests for group management and member operations
-- [ ] **HOOK-04**: useAIAssistant has tests for timeout handling and error states
+- [x] **HOOK-01**: useAuth has tests for all states (loading, authenticated, unauthenticated, error) ✓
+- [x] **HOOK-02**: useAssignments has tests for CRUD operations and scheduling logic ✓
+- [x] **HOOK-03**: useGroups has tests for group management and member operations ✓
+- [x] **HOOK-04**: useAIAssistant has tests for timeout handling and error states ✓
 
 ### Component Tests
 
@@ -117,10 +117,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | QUAL-03 | 6 | Code Quality | Complete |
 | QUAL-04 | 6 | Code Quality | Complete |
 | QUAL-05 | 6 | Code Quality | Complete |
-| HOOK-01 | 7 | Hook Tests | Pending |
-| HOOK-02 | 7 | Hook Tests | Pending |
-| HOOK-03 | 7 | Hook Tests | Pending |
-| HOOK-04 | 7 | Hook Tests | Pending |
+| HOOK-01 | 7 | Hook Tests | Complete |
+| HOOK-02 | 7 | Hook Tests | Complete |
+| HOOK-03 | 7 | Hook Tests | Complete |
+| HOOK-04 | 7 | Hook Tests | Complete |
 | COMP-01 | 8 | Component Tests | Pending |
 | COMP-02 | 8 | Component Tests | Pending |
 | COMP-03 | 8 | Component Tests | Pending |
