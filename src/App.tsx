@@ -1,6 +1,7 @@
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, QueryCache } from "@tanstack/react-query";
+import { handleError } from "@/lib/error";
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { AppErrorBoundary } from "@/components/error/AppErrorBoundary";
 import { RouteErrorBoundary } from "@/components/error/RouteErrorBoundary";
@@ -29,7 +30,52 @@ import StudentHelp from "./pages/student/StudentHelp";
 import AssigneeDashboard from "./pages/AssigneeDashboard";
 import PolygonShowcase from "./pages/PolygonShowcase";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  queryCache: new QueryCache({
+    onError: (error, query) => {
+      // Global error handler - prevents duplicate toasts when multiple components
+      // use the same failing query (see PITFALLS.md M2)
+      handleError(error, {
+        component: String(query.queryKey[0]),
+        action: 'fetch',
+        // Don't show retry in global handler - let individual components decide
+        silent: false,
+      });
+    },
+  }),
+  defaultOptions: {
+    queries: {
+      // Data freshness: consider data fresh for 5 minutes
+      staleTime: 5 * 60 * 1000,
+      // Cache garbage collection: keep unused data for 30 minutes
+      gcTime: 30 * 60 * 1000,
+      // Refetch behavior
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
+      // Retry logic: don't retry auth errors
+      retry: (failureCount, error) => {
+        // Don't retry on auth errors (401, 403)
+        if (error instanceof Error) {
+          const msg = error.message.toLowerCase();
+          if (
+            msg.includes('401') ||
+            msg.includes('403') ||
+            msg.includes('unauthorized') ||
+            msg.includes('forbidden')
+          ) {
+            return false;
+          }
+        }
+        // Retry other errors up to 2 times
+        return failureCount < 2;
+      },
+    },
+    mutations: {
+      // Mutations don't need global error handler - handled per-mutation
+      // (prevents double toasts when mutation has its own onError)
+    },
+  },
+});
 
 /**
  * Handles session expiry detection and modal display.
