@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Calendar, Clock, CheckCircle2, UserPlus, Users, ChevronDown, ChevronUp, User, AlertTriangle } from "lucide-react";
+import { Loader2, Calendar, Clock, CheckCircle2, UserPlus, Users, ChevronDown, ChevronUp, User, AlertTriangle, MessageSquare } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { handleError } from "@/lib/error";
@@ -42,6 +42,16 @@ interface JoinResult {
   group_name?: string;
 }
 
+interface CoachNote {
+  id: string;
+  content: string;
+  title: string | null;
+  created_at: string;
+  coach_name: string;
+  group_name: string | null;
+  is_new: boolean;
+}
+
 export default function StudentHome() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -54,6 +64,8 @@ export default function StudentHome() {
   const [joiningGroup, setJoiningGroup] = useState(false);
   const [showConnections, setShowConnections] = useState(false);
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
+  const [coachNotes, setCoachNotes] = useState<CoachNote[]>([]);
+  const [showNotes, setShowNotes] = useState(true);
 
   const toggleTaskExpanded = (taskId: string) => {
     setExpandedTasks(prev => {
@@ -71,6 +83,7 @@ export default function StudentHome() {
     if (!user) return;
     fetchTasks();
     fetchConnectedGroups();
+    fetchCoachNotes();
   }, [user]);
 
   const fetchConnectedGroups = async () => {
@@ -125,6 +138,108 @@ export default function StudentHome() {
       setConnectedGroups(connectedGroups);
     } catch (error) {
       handleError(error, { component: 'StudentHome', action: 'fetch connected groups', silent: true });
+    }
+  };
+
+  const fetchCoachNotes = async () => {
+    if (!user) return;
+
+    try {
+      // Get the student's group memberships first
+      const { data: memberships } = await supabase
+        .from("group_members")
+        .select("group_id")
+        .eq("user_id", user.id);
+
+      const groupIds = memberships?.map((m: any) => m.group_id) || [];
+
+      let allNotes: any[] = [];
+
+      // 1. Notes targeted directly to this student
+      const { data: targetedNotes } = await supabase
+        .from("notes")
+        .select("id, content, title, created_at, from_user_id, group_id")
+        .eq("to_user_id", user.id)
+        .eq("visibility", "shared")
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      if (targetedNotes) allNotes = [...targetedNotes];
+
+      // 2. Broadcast notes to student's groups (to_user_id is null)
+      if (groupIds.length > 0) {
+        const { data: broadcastNotes } = await supabase
+          .from("notes")
+          .select("id, content, title, created_at, from_user_id, group_id")
+          .in("group_id", groupIds)
+          .is("to_user_id", null)
+          .eq("visibility", "shared")
+          .order("created_at", { ascending: false })
+          .limit(5);
+
+        if (broadcastNotes) {
+          // Merge and deduplicate
+          const existingIds = new Set(allNotes.map(n => n.id));
+          broadcastNotes.forEach(note => {
+            if (!existingIds.has(note.id)) {
+              allNotes.push(note);
+            }
+          });
+        }
+      }
+
+      if (allNotes.length === 0) {
+        setCoachNotes([]);
+        return;
+      }
+
+      // Sort by created_at descending and limit to 5
+      allNotes.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      allNotes = allNotes.slice(0, 5);
+
+      // Get coach names
+      const coachIds = [...new Set(allNotes.map(n => n.from_user_id).filter(Boolean))];
+      const noteGroupIds = [...new Set(allNotes.map(n => n.group_id).filter(Boolean))];
+
+      let coachMap: Record<string, string> = {};
+      let groupMap: Record<string, string> = {};
+
+      if (coachIds.length > 0) {
+        const { data: coaches } = await supabase
+          .from("profiles")
+          .select("user_id, display_name")
+          .in("user_id", coachIds);
+        coaches?.forEach((c: any) => {
+          coachMap[c.user_id] = c.display_name || "Coach";
+        });
+      }
+
+      if (noteGroupIds.length > 0) {
+        const { data: groups } = await supabase
+          .from("groups")
+          .select("id, name")
+          .in("id", noteGroupIds);
+        groups?.forEach((g: any) => {
+          groupMap[g.id] = g.name;
+        });
+      }
+
+      // Consider notes from last 24 hours as "new"
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+      const enrichedNotes: CoachNote[] = allNotes.map(note => ({
+        id: note.id,
+        content: note.content,
+        title: note.title,
+        created_at: note.created_at,
+        coach_name: coachMap[note.from_user_id] || "Coach",
+        group_name: note.group_id ? groupMap[note.group_id] || null : null,
+        is_new: new Date(note.created_at) > oneDayAgo,
+      }));
+
+      setCoachNotes(enrichedNotes);
+    } catch (error) {
+      handleError(error, { component: 'StudentHome', action: 'fetch coach notes', silent: true });
     }
   };
 
@@ -457,6 +572,76 @@ export default function StudentHome() {
           )}
         </CardContent>
       </Card>
+
+      {/* Coach's Notes */}
+      {coachNotes.length > 0 && (
+        <Card className="border-l-4 border-l-amber-500">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <MessageSquare className="w-5 h-5 text-amber-500" />
+                Coach's Notes
+                {coachNotes.some(n => n.is_new) && (
+                  <Badge className="bg-amber-500 text-white text-xs">New</Badge>
+                )}
+              </CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowNotes(!showNotes)}
+                className="text-muted-foreground"
+              >
+                {showNotes ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </Button>
+            </div>
+          </CardHeader>
+          {showNotes && (
+            <CardContent className="space-y-3">
+              {coachNotes.map((note) => (
+                <div
+                  key={note.id}
+                  className={cn(
+                    "p-3 rounded-lg border",
+                    note.is_new
+                      ? "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800"
+                      : "bg-muted/30 border-border"
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      {note.title && (
+                        <p className="font-medium text-foreground">{note.title}</p>
+                      )}
+                      <p className={cn(
+                        "text-sm whitespace-pre-wrap",
+                        note.title ? "text-muted-foreground mt-1" : "text-foreground"
+                      )}>
+                        {note.content}
+                      </p>
+                      <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                        <span>{note.coach_name}</span>
+                        {note.group_name && (
+                          <>
+                            <span>•</span>
+                            <span>{note.group_name}</span>
+                          </>
+                        )}
+                        <span>•</span>
+                        <span>{format(new Date(note.created_at), "MMM d, h:mm a")}</span>
+                      </div>
+                    </div>
+                    {note.is_new && (
+                      <Badge variant="outline" className="shrink-0 text-amber-600 border-amber-300 text-xs">
+                        New
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          )}
+        </Card>
+      )}
 
       {/* Today's Tasks (and Overdue) */}
       <Card>
