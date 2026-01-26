@@ -175,4 +175,32 @@ describe('useAuth', () => {
       expect(getMockSupabase().auth.signOut).toHaveBeenCalled();
     });
   });
+
+  describe('cleanup', () => {
+    it('unsubscribes on unmount', async () => {
+      // Create a mock unsubscribe function to track cleanup
+      const mockUnsubscribe = vi.fn();
+      const mock = getMockSupabase();
+      mock.auth.onAuthStateChange.mockImplementation((callback) => {
+        authStateCallback = callback;
+        return { data: { subscription: { unsubscribe: mockUnsubscribe } } };
+      });
+
+      getMockSupabase().auth.getSession.mockResolvedValue({
+        data: { session: null },
+        error: null,
+      });
+
+      const { unmount } = renderHook(() => useAuth(), { wrapper: createWrapper() });
+
+      // Wait for initial load to complete
+      await waitFor(() => expect(authStateCallback).not.toBeNull());
+
+      // Unmount the hook
+      unmount();
+
+      // Verify unsubscribe was called
+      expect(mockUnsubscribe).toHaveBeenCalled();
+    });
+  });
 });
