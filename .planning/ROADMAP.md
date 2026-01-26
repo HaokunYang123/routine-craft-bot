@@ -153,12 +153,12 @@ Plans:
   4. CheckInModal allows sentiment selection and submission
   5. CheckInModal shows success feedback after submission
   6. Dashboard components render correct data and respond to user interactions
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 08-01: ProtectedRoute tests (auth flow)
-- [ ] 08-02: CheckInModal tests (user interaction)
-- [ ] 08-03: Dashboard component tests
+- [ ] 08-01-PLAN.md — ProtectedRoute tests (auth flow, redirect, role-based access)
+- [ ] 08-02-PLAN.md — CheckInModal tests (sentiment selection, submission, feedback)
+- [ ] 08-03-PLAN.md — Dashboard component tests (loading, data display, UI elements)
 
 ## Progress
 
@@ -175,7 +175,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 | 5. Type Safety | 4/4 | ✓ Complete | 2026-01-25 |
 | 6. Code Quality | 2/2 | ✓ Complete | 2026-01-25 |
 | 7. Hook Tests | 4/4 | ✓ Complete | 2026-01-25 |
-| 8. Component Tests | 0/3 | Not started | - |
+| 8. Component Tests | 0/3 | Planned | - |
 
 **Total:** 20/23 plans complete
 
@@ -188,4 +188,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 *Phase 5 planned: 2026-01-25*
 *Phase 6 planned: 2026-01-25*
 *Phase 7 planned: 2026-01-25*
+*Phase 8 planned: 2026-01-25*
 *Milestone: Reliability Hardening*
