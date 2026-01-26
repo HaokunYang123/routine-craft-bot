@@ -29,6 +29,7 @@ import {
 } from "date-fns";
 import { cn, safeParseISO } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { handleError } from "@/lib/error";
 import { Button } from "@/components/ui/button";
 
 interface TaskInstance {
@@ -72,7 +73,7 @@ export default function StudentCalendar() {
       if (error) throw error;
       setTasks(data || []);
     } catch (error) {
-      console.error("Error fetching tasks:", error);
+      handleError(error, { component: 'StudentCalendar', action: 'fetch tasks', silent: true });
     } finally {
       setLoading(false);
     }

@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { handleError } from "@/lib/error";
 
 interface Profile {
     display_name: string | null;
@@ -67,7 +68,7 @@ export default function StudentSettings() {
             setProfile(data);
             setNewDisplayName(data.display_name || "");
         } catch (error) {
-            console.error("Error fetching profile:", error);
+            handleError(error, { component: 'StudentSettings', action: 'fetch profile', silent: true });
         } finally {
             setLoading(false);
         }
@@ -112,7 +113,7 @@ export default function StudentSettings() {
             await signOut();
             navigate("/", { replace: true });
         } catch (error) {
-            console.error("Error signing out:", error);
+            handleError(error, { component: 'StudentSettings', action: 'sign out', silent: true });
         }
     };
 
@@ -123,13 +124,8 @@ export default function StudentSettings() {
             if (error) throw error;
             await signOut();
             navigate("/", { replace: true });
-        } catch (e: any) {
-            console.error(e);
-            toast({
-                title: "Error",
-                description: "Failed to delete account. Please try again.",
-                variant: "destructive",
-            });
+        } catch (error) {
+            handleError(error, { component: 'StudentSettings', action: 'delete account' });
         } finally {
             setDeleting(false);
             setShowDeleteDialog(false);

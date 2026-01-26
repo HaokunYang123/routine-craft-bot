@@ -50,6 +50,7 @@ import {
 } from "@/components/ui/collapsible";
 import { Progress } from "@/components/ui/progress";
 import { cn, safeParseISO } from "@/lib/utils";
+import { handleError } from "@/lib/error";
 import {
   format,
   startOfWeek,
@@ -229,7 +230,7 @@ export default function CoachCalendar() {
 
       setTasks(mappedTasks);
     } catch (error) {
-      console.error("Error fetching tasks:", error);
+      handleError(error, { component: 'CoachCalendar', action: 'fetch tasks', silent: true });
     } finally {
       setLoading(false);
     }
@@ -691,13 +692,8 @@ function DaySheetContent({
       });
       setEditingTask(null);
       onRefresh();
-    } catch (error: any) {
-      console.error("Error updating task:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update task",
-        variant: "destructive",
-      });
+    } catch (error) {
+      handleError(error, { component: 'DayViewModal', action: 'update task' });
     } finally {
       setSaving(false);
     }
@@ -744,7 +740,7 @@ function DaySheetContent({
       if (error) throw error;
       onRefresh();
     } catch (error) {
-      console.error("Error updating task:", error);
+      handleError(error, { component: 'DayViewModal', action: 'toggle task complete', silent: true });
     }
   };
 
@@ -1352,13 +1348,8 @@ function TaskList({
       });
       setEditingTask(null);
       onRefresh();
-    } catch (error: any) {
-      console.error("Error updating task:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update task",
-        variant: "destructive",
-      });
+    } catch (error) {
+      handleError(error, { component: 'TaskSidebar', action: 'update task' });
     } finally {
       setSaving(false);
     }
@@ -1377,7 +1368,7 @@ function TaskList({
       if (error) throw error;
       onRefresh();
     } catch (error) {
-      console.error("Error updating task:", error);
+      handleError(error, { component: 'TaskSidebar', action: 'toggle task complete', silent: true });
     }
   };
 

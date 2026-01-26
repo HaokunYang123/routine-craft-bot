@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Loader2, Calendar, Clock, CheckCircle2, UserPlus, Users, ChevronDown, ChevronUp, User } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
+import { handleError } from "@/lib/error";
 
 interface TaskInstance {
   id: string;
@@ -123,7 +124,7 @@ export default function StudentHome() {
 
       setConnectedGroups(connectedGroups);
     } catch (error) {
-      console.error("Error fetching connected groups:", error);
+      handleError(error, { component: 'StudentHome', action: 'fetch connected groups', silent: true });
     }
   };
 
@@ -250,12 +251,7 @@ export default function StudentHome() {
       setTasks((todayData || []).map(enrichTask));
       setUpcomingTasks((upcomingData || []).map(enrichTask));
     } catch (error) {
-      console.error("Error fetching tasks:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load tasks",
-        variant: "destructive",
-      });
+      handleError(error, { component: 'StudentHome', action: 'fetch tasks' });
     } finally {
       setLoading(false);
     }

@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send, Sparkles, Loader2, Trash2, User, Mic, MicOff, BookOpen, Users, ListTodo } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { handleError } from "@/lib/error";
 
 interface Message {
   id?: string;
@@ -93,11 +94,12 @@ export default function Assistant() {
       };
 
       recognitionRef.current.onerror = (event: any) => {
-        console.error("Speech error:", event.error);
+        handleError(new Error(`Speech recognition error: ${event.error}`), {
+          component: 'Assistant',
+          action: 'speech recognition',
+          silent: event.error === "aborted"
+        });
         setIsListening(false);
-        if (event.error !== "aborted") {
-          toast({ title: "Voice Error", description: `Could not recognize speech: ${event.error}`, variant: "destructive" });
-        }
       };
 
       recognitionRef.current.onend = () => {
@@ -184,7 +186,7 @@ export default function Assistant() {
         recognitionRef.current.start();
         setIsListening(true);
       } catch (error) {
-        console.error("Speech start error:", error);
+        handleError(error, { component: 'Assistant', action: 'start speech recognition', silent: true });
         setIsListening(false);
       }
     }
@@ -235,13 +237,8 @@ export default function Assistant() {
         role: "assistant",
         content: assistantMessage,
       });
-    } catch (error: any) {
-      console.error("Chat error:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to get response",
-        variant: "destructive",
-      });
+    } catch (error) {
+      handleError(error, { component: 'Assistant', action: 'send chat message' });
       // Remove optimistic message on error
       setMessages(messages);
     } finally {

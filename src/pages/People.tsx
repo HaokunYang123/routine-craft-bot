@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/select";
 import { Copy, Users, Plus, Loader2, ChevronDown, ChevronRight, Trash2, User, Mail, UserMinus, Library } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { handleError } from "@/lib/error";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTemplates } from "@/hooks/useTemplates";
 
@@ -131,8 +132,8 @@ export default function People() {
       );
 
       setGroups(groupsWithStudents);
-    } catch (error: any) {
-      console.error("Error fetching data:", error);
+    } catch (error) {
+      handleError(error, { component: 'People', action: 'fetch data', silent: true });
     } finally {
       setLoading(false);
     }
@@ -198,9 +199,8 @@ export default function People() {
       // Only update local state after successful deletion
       setGroups(prev => prev.filter(g => g.id !== groupId));
       toast({ title: "Group Deleted", description: `${groupName} has been removed.` });
-    } catch (error: any) {
-      console.error("Delete group error:", error);
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } catch (error) {
+      handleError(error, { component: 'People', action: 'delete group' });
       // Refresh to ensure UI matches database state
       fetchData();
     }
@@ -232,9 +232,8 @@ export default function People() {
       }));
 
       toast({ title: "Student Removed", description: `${studentName} has been removed from the group.` });
-    } catch (error: any) {
-      console.error("Remove student error:", error);
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } catch (error) {
+      handleError(error, { component: 'People', action: 'remove student' });
       // Refresh to ensure UI matches database state
       fetchData();
     }

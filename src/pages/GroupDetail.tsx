@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { handleError } from "@/lib/error";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -241,9 +242,8 @@ export default function GroupDetail() {
                 setNotes([]);
             }
 
-        } catch (error: any) {
-            console.error("Error fetching group:", error);
-            toast({ title: "Error", description: "Failed to load group.", variant: "destructive" });
+        } catch (error) {
+            handleError(error, { component: 'GroupDetail', action: 'fetch group' });
         } finally {
             setLoading(false);
         }

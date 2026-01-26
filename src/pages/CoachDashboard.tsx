@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/select";
 import { Users, Plus, Loader2, Sparkles, FileText } from "lucide-react";
 import { format } from "date-fns";
+import { handleError } from "@/lib/error";
 
 const GROUP_COLORS = [
   { value: "#3B82F6", label: "Blue" },
@@ -105,7 +106,7 @@ export default function CoachDashboard() {
       const stats = await Promise.all(statsPromises);
       setGroupsWithStats(stats);
     } catch (error) {
-      console.error("Error loading group stats:", error);
+      handleError(error, { component: 'CoachDashboard', action: 'load group stats', silent: true });
     } finally {
       setLoading(false);
     }
@@ -154,13 +155,8 @@ export default function CoachDashboard() {
       if (error) throw error;
 
       setWeeklySummary(data.result || "Unable to generate summary. Please try again.");
-    } catch (error: any) {
-      console.error("Error generating summary:", error);
-      toast({
-        title: "Error",
-        description: "Failed to generate weekly summary",
-        variant: "destructive",
-      });
+    } catch (error) {
+      handleError(error, { component: 'CoachDashboard', action: 'generate weekly summary' });
       setWeeklySummary("Unable to generate summary. Please try again later.");
     } finally {
       setGeneratingSummary(false);

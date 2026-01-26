@@ -54,6 +54,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { format, addDays } from "date-fns";
 import { cn } from "@/lib/utils";
+import { handleError } from "@/lib/error";
 
 interface Template {
   id: string;
@@ -174,7 +175,7 @@ export default function Tasks() {
       if (error) throw error;
       setTemplates(data || []);
     } catch (error) {
-      console.error("Error fetching templates:", error);
+      handleError(error, { component: 'Tasks', action: 'fetch templates', silent: true });
     }
   };
 
@@ -199,7 +200,7 @@ export default function Tasks() {
 
       setGroupsWithMembers(groupsData);
     } catch (error) {
-      console.error("Error loading groups:", error);
+      handleError(error, { component: 'Tasks', action: 'load groups', silent: true });
     } finally {
       setLoading(false);
     }
@@ -249,7 +250,7 @@ export default function Tasks() {
       if (error) throw error;
       setTemplateTasks(data || []);
     } catch (error) {
-      console.error("Error fetching template tasks:", error);
+      handleError(error, { component: 'Tasks', action: 'fetch template tasks', silent: true });
     }
   };
 
@@ -308,19 +309,16 @@ export default function Tasks() {
 
       // Handle function invocation error
       if (error) {
-        console.error("AI function error:", error);
         throw new Error(error.message || "Failed to connect to AI service");
       }
 
       // Handle error in response body
       if (data?.error) {
-        console.error("AI response error:", data.error);
         throw new Error(data.error);
       }
 
       // Validate result exists and is a string
       if (!data?.result || typeof data.result !== "string") {
-        console.error("Invalid AI response:", data);
         throw new Error("AI returned an unexpected response format");
       }
 
@@ -336,16 +334,8 @@ export default function Tasks() {
         title: "Task Enhanced!",
         description: "AI created a kid-friendly description.",
       });
-    } catch (error: any) {
-      console.error("Error enhancing task:", error);
-      const errorMessage = error.message || "Could not enhance task";
-      toast({
-        title: "Enhancement Failed",
-        description: errorMessage.includes("timeout")
-          ? "AI took too long. Try a simpler task name."
-          : errorMessage,
-        variant: "destructive",
-      });
+    } catch (error) {
+      handleError(error, { component: 'Tasks', action: 'enhance task with AI' });
     } finally {
       setEnhancingIndex(null);
     }
@@ -438,8 +428,8 @@ export default function Tasks() {
         setAssignDialogOpen(false);
         loadGroupsWithMembers();
       }
-    } catch (err) {
-      console.error("[Tasks] Error in handleAssign:", err);
+    } catch (error) {
+      handleError(error, { component: 'Tasks', action: 'assign tasks' });
     } finally {
       setSaving(false);
     }

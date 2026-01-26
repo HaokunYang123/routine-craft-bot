@@ -21,6 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import { safeFormatDate } from "@/lib/utils";
+import { handleError } from "@/lib/error";
 
 // Use task_instances table - these have the correctly calculated scheduled_date
 interface TaskInstance {
@@ -180,12 +181,7 @@ export default function AssigneeDashboard() {
         );
       }
     } catch (error) {
-      console.error("Error fetching dashboard data:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load dashboard",
-        variant: "destructive",
-      });
+      handleError(error, { component: 'AssigneeDashboard', action: 'fetch dashboard data' });
     } finally {
       setLoading(false);
     }

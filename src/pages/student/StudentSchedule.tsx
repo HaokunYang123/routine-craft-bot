@@ -15,6 +15,7 @@ import { InstructorsList } from "@/components/student/InstructorsList";
 import { JoinInstructor } from "@/components/student/JoinInstructor";
 import { useToast } from "@/hooks/use-toast";
 import { cn, safeParseISO, safeFormatDate } from "@/lib/utils";
+import { handleError } from "@/lib/error";
 
 // Safe date check helpers
 const safeDateCheck = (dateStr: string | null | undefined, checkFn: (d: Date) => boolean): boolean => {
@@ -171,12 +172,7 @@ export default function StudentSchedule() {
 
             setTasks(filteredTasks);
         } catch (error) {
-            console.error("Error fetching schedule:", error);
-            toast({
-                title: "Error",
-                description: "Failed to load your schedule.",
-                variant: "destructive",
-            });
+            handleError(error, { component: 'StudentSchedule', action: 'fetch schedule' });
         } finally {
             setLoading(false);
         }

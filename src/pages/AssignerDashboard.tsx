@@ -28,6 +28,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
+import { handleError } from "@/lib/error";
 
 interface StudentStats {
   id: string;
@@ -156,12 +157,7 @@ export default function AssignerDashboard() {
 
       setStudents(studentStatsList);
     } catch (error) {
-      console.error("Error fetching dashboard data:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load dashboard data",
-        variant: "destructive",
-      });
+      handleError(error, { component: 'AssignerDashboard', action: 'fetch dashboard data' });
     } finally {
       setLoading(false);
     }
