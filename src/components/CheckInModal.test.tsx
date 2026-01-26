@@ -62,4 +62,84 @@ describe('CheckInModal', () => {
     // Set default supabase response (no existing check-in)
     getMockSupabase().setResponse({ data: null, error: null });
   });
+
+  describe('rendering', () => {
+    it('renders dialog with title when open', async () => {
+      render(<CheckInModal {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+      });
+
+      expect(screen.getByText('How are you feeling today?')).toBeInTheDocument();
+    });
+
+    it('does not render when open is false', () => {
+      render(<CheckInModal {...defaultProps} open={false} />);
+
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
+    it('shows all sentiment options', async () => {
+      render(<CheckInModal {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+      });
+
+      expect(screen.getByRole('button', { name: /great/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /okay/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /tired/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /sore/i })).toBeInTheDocument();
+    });
+  });
+
+  describe('sentiment selection', () => {
+    it('highlights selected sentiment', async () => {
+      const user = userEvent.setup();
+      render(<CheckInModal {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+      });
+
+      const greatButton = screen.getByRole('button', { name: /great/i });
+      await user.click(greatButton);
+
+      expect(greatButton.className).toContain('border-primary');
+    });
+
+    it('shows notes field for tired sentiment', async () => {
+      const user = userEvent.setup();
+      render(<CheckInModal {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+      });
+
+      // No textbox initially
+      expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+
+      // Click tired button
+      await user.click(screen.getByRole('button', { name: /tired/i }));
+
+      // Textbox appears
+      const textbox = screen.getByRole('textbox');
+      expect(textbox).toBeInTheDocument();
+      expect(textbox).toHaveAttribute('placeholder', expect.stringMatching(/sleep well/i));
+    });
+
+    it('shows notes field for sore sentiment', async () => {
+      const user = userEvent.setup();
+      render(<CheckInModal {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole('button', { name: /sore/i }));
+
+      expect(screen.getByRole('textbox')).toBeInTheDocument();
+    });
+  });
 });
