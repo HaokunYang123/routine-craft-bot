@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useQRScanner } from "@/hooks/useQRScanner";
+import { handleError } from "@/lib/error";
 import { Button } from "@/components/ui/button";
 import { Camera, X, Loader2, AlertCircle } from "lucide-react";
 
@@ -22,7 +23,7 @@ export function QRScanner({ onScan, onCancel, isProcessing }: QRScannerProps) {
             onScan(decodedText);
         },
         onError: (err) => {
-            console.error("QR Scanner error:", err);
+            handleError(new Error(err), { component: 'QRScanner', action: 'scan QR code', silent: true });
         },
     });
 

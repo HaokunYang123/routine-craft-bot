@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { handleError } from "@/lib/error";
 import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { Input } from "@/components/ui/input";
@@ -39,9 +40,8 @@ export function StudentAuth() {
 
             toast({ title: "Joined Class!", description: `Welcome to ${session?.session_name || 'Class'}` });
             navigate("/app");
-        } catch (err) {
-            console.error(err);
-            toast({ title: "Error", description: "Failed to process QR code.", variant: "destructive" });
+        } catch (error) {
+            handleError(error, { component: 'StudentAuth', action: 'process QR code' });
         } finally {
             setIsProcessingQR(false);
             setView("options");

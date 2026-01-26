@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { handleError } from "@/lib/error";
 import { Smile, Meh, Frown, Heart } from "lucide-react";
 
 type Sentiment = "great" | "okay" | "tired" | "sore";
@@ -70,8 +71,7 @@ export function CheckInModal({ open, onOpenChange, onCheckInComplete }: CheckInM
             onOpenChange(false);
         } else if (error) {
             // If API fails (e.g. JWT error), we just let them try to log again or ignore
-            console.error("Check-in check failed:", error);
-            // Don't show toast for this background check to avoid annoying the user
+            handleError(error, { component: 'CheckInModal', action: 'check today log', silent: true });
         }
     };
 
@@ -92,16 +92,7 @@ export function CheckInModal({ open, onOpenChange, onCheckInComplete }: CheckInM
         });
 
         if (error) {
-            console.error("Check-in submit error:", error);
-            if (error.message.includes("JWT")) {
-                toast({
-                    title: "Session Expired",
-                    description: "Please go to Settings > Sign Out and log in again.",
-                    variant: "destructive"
-                });
-            } else {
-                toast({ title: "Error", description: error.message, variant: "destructive" });
-            }
+            handleError(error, { component: 'CheckInModal', action: 'submit check-in' });
         } else {
             // Success
             localStorage.setItem(storageKey, today);

@@ -26,6 +26,7 @@ import {
 import { format, parseISO, subDays, isAfter } from "date-fns";
 import { cn, safeFormatDate } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { handleError } from "@/lib/error";
 
 interface TaskInstance {
   id: string;
@@ -94,7 +95,7 @@ export function StudentDetailSheet({
       if (error) throw error;
       setTasks(data || []);
     } catch (error) {
-      console.error("Error fetching student tasks:", error);
+      handleError(error, { component: 'StudentDetailSheet', action: 'fetch student tasks', silent: true });
     } finally {
       setLoading(false);
     }
@@ -131,13 +132,8 @@ export function StudentDetailSheet({
 
       if (error) throw error;
       setAiSummary(data.result || "Unable to generate summary.");
-    } catch (error: any) {
-      console.error("Error generating summary:", error);
-      toast({
-        title: "Error",
-        description: "Failed to generate summary",
-        variant: "destructive",
-      });
+    } catch (error) {
+      handleError(error, { component: 'StudentDetailSheet', action: 'generate AI summary' });
     } finally {
       setGeneratingSummary(false);
     }
