@@ -307,6 +307,34 @@ export default function GroupDetail() {
         setRemoving(true);
 
         try {
+            // First, delete pending task_instances for this student in this group
+            // This prevents "zombie tasks" from remaining after student removal
+            const today = format(new Date(), "yyyy-MM-dd");
+
+            // Get assignments for this group to find related tasks
+            const { data: groupAssignments } = await supabase
+                .from("assignments")
+                .select("id")
+                .eq("group_id", groupId);
+
+            if (groupAssignments && groupAssignments.length > 0) {
+                const assignmentIds = groupAssignments.map(a => a.id);
+
+                // Delete pending tasks for this student from group assignments
+                const { error: deleteTasksError } = await supabase
+                    .from("task_instances")
+                    .delete()
+                    .in("assignment_id", assignmentIds)
+                    .eq("assignee_id", studentToRemove.student_id)
+                    .eq("status", "pending")
+                    .gte("scheduled_date", today);
+
+                if (deleteTasksError) {
+                    console.warn("Could not delete pending tasks for student:", deleteTasksError.message);
+                    // Continue anyway - membership removal is more important
+                }
+            }
+
             // Remove from group_members table
             const { error } = await supabase
                 .from("group_members")
@@ -320,7 +348,7 @@ export default function GroupDetail() {
 
             toast({
                 title: "Student Removed",
-                description: `${studentToRemove.display_name} has been removed from the group.`
+                description: `${studentToRemove.display_name} has been removed from the group and their pending tasks have been cleared.`
             });
         } catch (error: any) {
             toast({ title: "Error", description: error.message, variant: "destructive" });

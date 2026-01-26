@@ -67,6 +67,9 @@ export default function CoachDashboard() {
   const [studentSheetOpen, setStudentSheetOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<{ id: string; name: string } | null>(null);
 
+  // Live date/time state (updates every minute)
+  const [currentDate, setCurrentDate] = useState(new Date());
+
   useEffect(() => {
     if (!groupsLoading && groups.length > 0) {
       loadGroupStats();
@@ -74,6 +77,42 @@ export default function CoachDashboard() {
       setLoading(false);
     }
   }, [groups, groupsLoading]);
+
+  // Real-time subscription for task completions
+  useEffect(() => {
+    if (!user || groups.length === 0) return;
+
+    // Subscribe to task_instances changes for real-time updates
+    const channel = supabase
+      .channel('coach-dashboard-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'task_instances',
+        },
+        (payload) => {
+          console.log('[CoachDashboard] Real-time update received:', payload.eventType);
+          // Refresh stats when tasks are updated (completed, etc.)
+          loadGroupStats();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, groups]);
+
+  // Update date header every minute (prevents frozen date display)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentDate(new Date());
+    }, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, []);
 
   const loadGroupStats = async () => {
     setLoading(true);
@@ -96,9 +135,12 @@ export default function CoachDashboard() {
             name: m.name,
             completedToday: m.completedToday,
             totalToday: m.totalToday,
+            overdueCount: (m as any).overdueCount || 0,
           })),
+          // Flag members who have overdue tasks (not just low completion today)
+          // This prevents "morning panic" where everyone is flagged at 8AM
           flaggedMembers: progress.members.filter(
-            (m) => m.totalToday > 0 && (m.completedToday / m.totalToday) < 0.5
+            (m) => ((m as any).overdueCount || 0) > 0
           ).length,
         };
       });
@@ -203,7 +245,7 @@ export default function CoachDashboard() {
         <div>
           <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
           <p className="text-muted-foreground mt-1">
-            {format(new Date(), "EEEE, MMMM d, yyyy")}
+            {format(currentDate, "EEEE, MMMM d, yyyy")}
           </p>
         </div>
         <div className="flex items-center gap-2">

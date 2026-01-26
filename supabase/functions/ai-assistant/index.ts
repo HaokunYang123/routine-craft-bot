@@ -156,8 +156,20 @@ Keep under 100 words. No generic praise - use the actual data.`;
       let result = generatedText;
       if (action === "generate_plan" || action === "modify_plan") {
         try {
-          // Clean markdown code blocks if present
-          const jsonStr = generatedText.replace(/```json\n?|\n?```/g, "").trim();
+          // Robust JSON extraction: handle markdown blocks, preamble text, etc.
+          let jsonStr = generatedText;
+
+          // Remove markdown code blocks if present
+          jsonStr = jsonStr.replace(/```json\n?|\n?```/g, "").trim();
+
+          // If there's still non-JSON text, find the first [ and last ]
+          const firstBracket = jsonStr.indexOf('[');
+          const lastBracket = jsonStr.lastIndexOf(']');
+
+          if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
+            jsonStr = jsonStr.substring(firstBracket, lastBracket + 1);
+          }
+
           const parsed = JSON.parse(jsonStr);
           // Ensure we return an array of tasks directly
           result = Array.isArray(parsed) ? parsed : (parsed.tasks || []);

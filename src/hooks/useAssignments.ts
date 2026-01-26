@@ -319,7 +319,20 @@ export function useAssignments() {
 
         console.log("[useAssignments] Task instances insert result - data:", insertedInstances, "error:", instancesError);
 
-        if (instancesError) throw instancesError;
+        if (instancesError) {
+          // Rollback: Delete the orphaned assignment header if task creation fails
+          console.log("[useAssignments] Task creation failed, rolling back assignment...");
+          const { error: rollbackError } = await supabase
+            .from("assignments")
+            .delete()
+            .eq("id", assignment.id);
+
+          if (rollbackError) {
+            console.error("[useAssignments] Rollback failed:", rollbackError);
+          }
+
+          throw instancesError;
+        }
       } else {
         console.log("[useAssignments] No task instances to create - skipping insert");
       }
@@ -434,7 +447,7 @@ export function useAssignments() {
         .eq("group_id", groupId);
 
       if (!members || members.length === 0) {
-        return { completed: 0, total: 0, members: [] };
+        return { completed: 0, total: 0, members: [], overdueCount: 0 };
       }
 
       const memberIds = members.map((m) => m.user_id);
@@ -452,38 +465,68 @@ export function useAssignments() {
         profileMap[p.user_id] = p.display_name || emailPrefix || "Student";
       });
 
-      // Get task instances for the date
-      const { data: instances } = await supabase
+      // Get task instances for the date (scheduled for today)
+      const { data: todayInstances } = await supabase
         .from("task_instances")
         .select("*")
         .in("assignee_id", memberIds)
         .eq("scheduled_date", targetDate);
 
+      // Also get overdue tasks (scheduled before today, still pending)
+      // This captures "catch-up" work students do on old tasks
+      const { data: overdueInstances } = await supabase
+        .from("task_instances")
+        .select("*")
+        .in("assignee_id", memberIds)
+        .lt("scheduled_date", targetDate)
+        .eq("status", "pending");
+
+      // Get tasks completed TODAY that were originally scheduled for earlier dates
+      // (catch-up completions)
+      const todayStr = format(new Date(), "yyyy-MM-dd");
+      const { data: catchupInstances } = await supabase
+        .from("task_instances")
+        .select("*")
+        .in("assignee_id", memberIds)
+        .lt("scheduled_date", targetDate)
+        .eq("status", "completed")
+        .gte("completed_at", `${todayStr}T00:00:00`);
+
+      // Combine today's instances with catch-up completions for a full picture
+      const allRelevantInstances = [
+        ...(todayInstances || []),
+        ...(catchupInstances || []),
+      ];
+
       // Calculate per-member stats
       const memberStats = memberIds.map((userId) => {
-        const userTasks = (instances || []).filter((t) => t.assignee_id === userId);
+        const userTasks = allRelevantInstances.filter((t) => t.assignee_id === userId);
         const completed = userTasks.filter((t) => t.status === "completed").length;
         const total = userTasks.length;
+        const userOverdue = (overdueInstances || []).filter((t) => t.assignee_id === userId).length;
 
         return {
           id: userId,
           name: profileMap[userId] || "Student",
           completedToday: completed,
           totalToday: total,
+          overdueCount: userOverdue,
         };
       });
 
       const totalCompleted = memberStats.reduce((sum, m) => sum + m.completedToday, 0);
       const totalTasks = memberStats.reduce((sum, m) => sum + m.totalToday, 0);
+      const totalOverdue = memberStats.reduce((sum, m) => sum + (m.overdueCount || 0), 0);
 
       return {
         completed: totalCompleted,
         total: totalTasks,
         members: memberStats,
+        overdueCount: totalOverdue,
       };
     } catch (error) {
       handleError(error, { component: 'useAssignments', action: 'get group progress', silent: true });
-      return { completed: 0, total: 0, members: [] };
+      return { completed: 0, total: 0, members: [], overdueCount: 0 };
     }
   }, []);
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { format, isToday, isTomorrow, differenceInDays, parseISO, isValid } from "date-fns";
+import { format, isToday, isTomorrow, differenceInDays, parseISO, isValid, isBefore, startOfDay } from "date-fns";
 import { cn, safeParseISO } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Calendar, Clock, CheckCircle2, UserPlus, Users, ChevronDown, ChevronUp, User } from "lucide-react";
+import { Loader2, Calendar, Clock, CheckCircle2, UserPlus, Users, ChevronDown, ChevronUp, User, AlertTriangle } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { handleError } from "@/lib/error";
@@ -178,7 +178,8 @@ export default function StudentHome() {
     const nextWeek = format(new Date(Date.now() + 7 * 86400000), "yyyy-MM-dd");
 
     try {
-      // Fetch today's tasks with assignment info
+      // Fetch today's tasks AND overdue pending tasks (scheduled_date <= today with status pending)
+      // This ensures students see tasks they missed from previous days
       const { data: todayData, error: todayError } = await supabase
         .from("task_instances")
         .select(`
@@ -186,7 +187,9 @@ export default function StudentHome() {
           assignments!inner(assigned_by, group_id)
         `)
         .eq("assignee_id", user.id)
-        .eq("scheduled_date", today)
+        .lte("scheduled_date", today)  // Include today and earlier
+        .in("status", ["pending", "completed"]) // Show pending (including overdue) and today's completed
+        .order("scheduled_date", { ascending: true })
         .order("scheduled_time", { ascending: true });
 
       if (todayError) throw todayError;
@@ -455,11 +458,11 @@ export default function StudentHome() {
         </CardContent>
       </Card>
 
-      {/* Today's Tasks */}
+      {/* Today's Tasks (and Overdue) */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center justify-between">
-            <span>Today's Tasks</span>
+            <span>Tasks to Do</span>
             <span className="text-sm font-normal text-muted-foreground">
               {completedCount}/{totalCount}
             </span>
@@ -483,6 +486,9 @@ export default function StudentHome() {
               {tasks.map((task) => {
                 const isExpanded = expandedTasks.has(task.id);
                 const hasDescription = !!task.description;
+                // Check if task is overdue (scheduled before today and still pending)
+                const taskDate = safeParseISO(task.scheduled_date);
+                const isOverdue = taskDate && task.status === "pending" && isBefore(taskDate, startOfDay(new Date()));
 
                 return (
                   <div
@@ -491,11 +497,13 @@ export default function StudentHome() {
                       "p-4 rounded-lg border transition-all",
                       task.status === "completed"
                         ? "bg-muted/30 border-border"
+                        : isOverdue
+                        ? "bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-800"
                         : "bg-card border-border hover:border-cta-primary/30"
                     )}
                     style={{
                       borderLeftWidth: "4px",
-                      borderLeftColor: task.group_color || "#6366f1",
+                      borderLeftColor: isOverdue ? "#ef4444" : (task.group_color || "#6366f1"),
                     }}
                   >
                     <div className="flex items-start gap-3">
@@ -531,6 +539,12 @@ export default function StudentHome() {
 
                         {/* Meta info */}
                         <div className="flex items-center gap-2 mt-2">
+                          {isOverdue && (
+                            <Badge variant="destructive" className="text-xs gap-1">
+                              <AlertTriangle className="w-3 h-3" />
+                              Overdue
+                            </Badge>
+                          )}
                           {task.scheduled_time && (
                             <Badge variant="outline" className="text-xs gap-1">
                               <Clock className="w-3 h-3" />

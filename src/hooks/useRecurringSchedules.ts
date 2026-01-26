@@ -177,6 +177,21 @@ export function useRecurringSchedules() {
     updates: Partial<CreateRecurringScheduleInput & { is_active: boolean }>
   ): Promise<boolean> => {
     try {
+      // Delete future pending task_instances for this schedule before updating
+      // This prevents "ghost tasks" from remaining when schedule pattern changes
+      const today = new Date().toISOString().split("T")[0];
+      const { error: deleteError } = await supabase
+        .from("task_instances")
+        .delete()
+        .eq("schedule_id", id)
+        .eq("status", "pending")
+        .gt("scheduled_date", today);
+
+      if (deleteError) {
+        console.warn("Could not delete future tasks for schedule:", deleteError.message);
+        // Continue anyway - the schedule update is more important
+      }
+
       const { error } = await supabase
         .from("recurring_schedules")
         .update(updates)
@@ -186,7 +201,7 @@ export function useRecurringSchedules() {
 
       toast({
         title: "Schedule Updated",
-        description: "Recurring schedule has been updated.",
+        description: "Recurring schedule has been updated. Future pending tasks have been cleared.",
       });
 
       await fetchSchedules();
@@ -199,6 +214,21 @@ export function useRecurringSchedules() {
 
   const deleteSchedule = async (id: string): Promise<boolean> => {
     try {
+      // Delete all pending task_instances for this schedule first
+      // This prevents "ghost tasks" from remaining after schedule deletion
+      const today = new Date().toISOString().split("T")[0];
+      const { error: deleteTasksError } = await supabase
+        .from("task_instances")
+        .delete()
+        .eq("schedule_id", id)
+        .eq("status", "pending")
+        .gte("scheduled_date", today);
+
+      if (deleteTasksError) {
+        console.warn("Could not delete pending tasks for schedule:", deleteTasksError.message);
+        // Continue anyway - the schedule deletion is more important
+      }
+
       const { error } = await supabase
         .from("recurring_schedules")
         .delete()
@@ -208,7 +238,7 @@ export function useRecurringSchedules() {
 
       toast({
         title: "Schedule Deleted",
-        description: "Recurring schedule has been removed.",
+        description: "Recurring schedule and pending tasks have been removed.",
       });
 
       setSchedules((prev) => prev.filter((s) => s.id !== id));

@@ -17,12 +17,12 @@ import { useToast } from "@/hooks/use-toast";
 import { cn, safeParseISO, safeFormatDate } from "@/lib/utils";
 import { handleError } from "@/lib/error";
 
-// Safe date check helpers
+// Safe date check helpers - using safeParseISO to handle local time correctly
 const safeDateCheck = (dateStr: string | null | undefined, checkFn: (d: Date) => boolean): boolean => {
     if (!dateStr) return false;
     try {
-        const parsed = parseISO(dateStr);
-        return isValid(parsed) && checkFn(parsed);
+        const parsed = safeParseISO(dateStr);
+        return parsed !== null && checkFn(parsed);
     } catch {
         return false;
     }
