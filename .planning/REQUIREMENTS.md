@@ -37,9 +37,9 @@ Requirements for this reliability milestone. Each maps to roadmap phases.
 
 ### Component Tests
 
-- [ ] **COMP-01**: ProtectedRoute has tests for auth flow (redirect, allow, loading)
-- [ ] **COMP-02**: CheckInModal has tests for user interaction (sentiment selection, submit)
-- [ ] **COMP-03**: Critical dashboard components have behavior tests
+- [x] **COMP-01**: ProtectedRoute has tests for auth flow (redirect, allow, loading) ✓
+- [x] **COMP-02**: CheckInModal has tests for user interaction (sentiment selection, submit) ✓
+- [x] **COMP-03**: Critical dashboard components have behavior tests ✓
 
 ### Type Safety
 
@@ -121,9 +121,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | HOOK-02 | 7 | Hook Tests | Complete |
 | HOOK-03 | 7 | Hook Tests | Complete |
 | HOOK-04 | 7 | Hook Tests | Complete |
-| COMP-01 | 8 | Component Tests | Pending |
-| COMP-02 | 8 | Component Tests | Pending |
-| COMP-03 | 8 | Component Tests | Pending |
+| COMP-01 | 8 | Component Tests | Complete |
+| COMP-02 | 8 | Component Tests | Complete |
+| COMP-03 | 8 | Component Tests | Complete |
 
 **Coverage:**
 - v1 requirements: 27 total
