@@ -119,7 +119,7 @@ None yet.
   - Consistent error handling pattern across 23 files
 - Phase 7 Hook Tests IN PROGRESS:
   - 07-01: useAuth tests - 5 tests covering auth state, session expiry, signOut
-  - 07-02: useAssignments tests - pending (verify if completed)
+  - 07-02: useAssignments tests - 15 tests covering CRUD, scheduling, group/template
   - 07-03: useGroups tests - 18 tests covering CRUD and member management
 
 ## Session Continuity
