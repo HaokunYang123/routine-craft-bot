@@ -153,4 +153,111 @@ describe('useAIAssistant', () => {
       expect(result.current.loading).toBe(false);
     });
   });
+
+  describe('retry behavior', () => {
+    it('retries on transient errors with exponential backoff', async () => {
+      // First call fails with timeout, second succeeds
+      mockFunctionsInvoke
+        .mockRejectedValueOnce({ name: 'AbortError', message: 'timeout' })
+        .mockResolvedValueOnce({
+          data: { result: { name: 'Success Plan', tasks: [] } },
+          error: null,
+        });
+
+      const { result } = renderHook(() => useAIAssistant());
+
+      let response: Awaited<ReturnType<typeof result.current.generatePlan>>;
+      const requestPromise = act(async () => {
+        response = await result.current.generatePlan('test');
+      });
+
+      // Run timers to allow retry
+      await vi.runAllTimersAsync();
+      await requestPromise;
+
+      expect(response!.success).toBe(true);
+      expect(response!.data?.name).toBe('Success Plan');
+      expect(mockFunctionsInvoke).toHaveBeenCalledTimes(2); // Initial + 1 retry
+    });
+
+    it('retries on 5xx server errors', async () => {
+      // First call returns 500, second succeeds
+      mockFunctionsInvoke
+        .mockResolvedValueOnce({
+          data: { error: 'Internal server error', status: 500 },
+          error: null,
+        })
+        .mockResolvedValueOnce({
+          data: { result: { name: 'Recovered Plan', tasks: [] } },
+          error: null,
+        });
+
+      const { result } = renderHook(() => useAIAssistant());
+
+      let response: Awaited<ReturnType<typeof result.current.generatePlan>>;
+      const requestPromise = act(async () => {
+        response = await result.current.generatePlan('test');
+      });
+
+      await vi.runAllTimersAsync();
+      await requestPromise;
+
+      expect(response!.success).toBe(true);
+      expect(response!.data?.name).toBe('Recovered Plan');
+      expect(mockFunctionsInvoke).toHaveBeenCalledTimes(2);
+    });
+
+    it('does NOT retry auth errors (401)', async () => {
+      mockFunctionsInvoke.mockResolvedValue({
+        data: null,
+        error: { message: 'Unauthorized', status: 401 },
+      });
+
+      const { result } = renderHook(() => useAIAssistant());
+
+      let response: Awaited<ReturnType<typeof result.current.generatePlan>>;
+      await act(async () => {
+        response = await result.current.generatePlan('test');
+      });
+
+      expect(response!.success).toBe(false);
+      expect(response!.error).toContain('Session expired');
+      expect(mockFunctionsInvoke).toHaveBeenCalledTimes(1); // No retry
+    });
+
+    it('does NOT retry rate limit errors (429)', async () => {
+      mockFunctionsInvoke.mockResolvedValue({
+        data: null,
+        error: { message: 'Too many requests', status: 429 },
+      });
+
+      const { result } = renderHook(() => useAIAssistant());
+
+      let response: Awaited<ReturnType<typeof result.current.generatePlan>>;
+      await act(async () => {
+        response = await result.current.generatePlan('test');
+      });
+
+      expect(response!.success).toBe(false);
+      expect(response!.error).toContain('Too many requests');
+      expect(mockFunctionsInvoke).toHaveBeenCalledTimes(1); // No retry
+    });
+
+    it('does NOT retry 4xx client errors', async () => {
+      mockFunctionsInvoke.mockResolvedValue({
+        data: null,
+        error: { message: 'Bad request', status: 400 },
+      });
+
+      const { result } = renderHook(() => useAIAssistant());
+
+      let response: Awaited<ReturnType<typeof result.current.generatePlan>>;
+      await act(async () => {
+        response = await result.current.generatePlan('test');
+      });
+
+      expect(response!.success).toBe(false);
+      expect(mockFunctionsInvoke).toHaveBeenCalledTimes(1); // No retry
+    });
+  });
 });
