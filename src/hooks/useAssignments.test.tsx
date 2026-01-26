@@ -497,4 +497,158 @@ describe('useAssignments', () => {
       });
     });
   });
+
+  describe('group assignments', () => {
+    let capturedTaskInstances: Array<{ assignee_id: string; name: string; scheduled_date: string }>;
+
+    beforeEach(() => {
+      capturedTaskInstances = [];
+
+      vi.mocked(useAuth).mockReturnValue({
+        user: { id: 'coach-1', email: 'coach@example.com' } as any,
+        session: { access_token: 'token' } as any,
+        loading: false,
+        signOut: vi.fn(),
+        sessionExpired: false,
+        clearSessionExpired: vi.fn(),
+      });
+    });
+
+    it('creates task instances for all group members', async () => {
+      const mock = getMockSupabase();
+
+      // Mock assignment insert
+      mock.queryBuilder.single.mockResolvedValueOnce({
+        data: { id: 'assignment-1', assigned_by: 'coach-1' },
+        error: null,
+      });
+
+      // Mock group members fetch - 3 students in group
+      mock.queryBuilder.then
+        .mockImplementationOnce((resolve: (value: unknown) => void) => {
+          return Promise.resolve({
+            data: [
+              { user_id: 'student-1' },
+              { user_id: 'student-2' },
+              { user_id: 'student-3' },
+            ],
+            error: null,
+          }).then(resolve);
+        })
+        // Mock task instances insert
+        .mockImplementation((resolve: (value: unknown) => void) => {
+          const insertCalls = mock.queryBuilder.insert.mock.calls;
+          const lastCall = insertCalls[insertCalls.length - 1];
+          if (lastCall && Array.isArray(lastCall[0])) {
+            capturedTaskInstances = lastCall[0];
+          }
+          return Promise.resolve({
+            data: capturedTaskInstances,
+            error: null,
+          }).then(resolve);
+        });
+
+      const { result } = renderHook(() => useAssignments(), {
+        wrapper: createWrapper(),
+      });
+
+      await act(async () => {
+        await result.current.createAssignment({
+          group_id: 'group-1',
+          schedule_type: 'once',
+          start_date: '2026-01-25',
+          tasks: [{ name: 'Group task', day_offset: 0 }],
+        });
+      });
+
+      // Should create 3 task instances (one per member)
+      expect(capturedTaskInstances).toHaveLength(3);
+      expect(capturedTaskInstances.map(t => t.assignee_id).sort()).toEqual([
+        'student-1',
+        'student-2',
+        'student-3',
+      ]);
+      // All should have the same task name
+      capturedTaskInstances.forEach(t => {
+        expect(t.name).toBe('Group task');
+      });
+    });
+  });
+
+  describe('template assignments', () => {
+    let capturedTaskInstances: Array<{ name: string; scheduled_date: string; description: string | null }>;
+
+    beforeEach(() => {
+      capturedTaskInstances = [];
+
+      vi.mocked(useAuth).mockReturnValue({
+        user: { id: 'coach-1', email: 'coach@example.com' } as any,
+        session: { access_token: 'token' } as any,
+        loading: false,
+        signOut: vi.fn(),
+        sessionExpired: false,
+        clearSessionExpired: vi.fn(),
+      });
+    });
+
+    it('uses template tasks with day_offset for scheduling', async () => {
+      const mock = getMockSupabase();
+
+      // Mock assignment insert
+      mock.queryBuilder.single.mockResolvedValueOnce({
+        data: { id: 'assignment-1', assigned_by: 'coach-1' },
+        error: null,
+      });
+
+      // Mock template tasks fetch - 3 tasks with different day_offsets
+      mock.queryBuilder.then
+        .mockImplementationOnce((resolve: (value: unknown) => void) => {
+          return Promise.resolve({
+            data: [
+              { title: 'Day 1 Task', description: 'First task', duration_minutes: 30, day_offset: 0, sort_order: 1 },
+              { title: 'Day 3 Task', description: 'Second task', duration_minutes: 45, day_offset: 2, sort_order: 2 },
+              { title: 'Day 5 Task', description: 'Third task', duration_minutes: 60, day_offset: 4, sort_order: 3 },
+            ],
+            error: null,
+          }).then(resolve);
+        })
+        // Mock task instances insert
+        .mockImplementation((resolve: (value: unknown) => void) => {
+          const insertCalls = mock.queryBuilder.insert.mock.calls;
+          const lastCall = insertCalls[insertCalls.length - 1];
+          if (lastCall && Array.isArray(lastCall[0])) {
+            capturedTaskInstances = lastCall[0];
+          }
+          return Promise.resolve({
+            data: capturedTaskInstances,
+            error: null,
+          }).then(resolve);
+        });
+
+      const { result } = renderHook(() => useAssignments(), {
+        wrapper: createWrapper(),
+      });
+
+      await act(async () => {
+        await result.current.createAssignment({
+          template_id: 'template-1',
+          assignee_id: 'student-1',
+          schedule_type: 'once',
+          start_date: '2026-01-25',
+        });
+      });
+
+      // Should create 3 task instances with dates based on day_offset
+      expect(capturedTaskInstances).toHaveLength(3);
+
+      // Verify scheduled dates based on day_offset from start_date 2026-01-25
+      const tasksByName = Object.fromEntries(
+        capturedTaskInstances.map(t => [t.name, t])
+      );
+
+      expect(tasksByName['Day 1 Task'].scheduled_date).toBe('2026-01-25'); // offset 0
+      expect(tasksByName['Day 3 Task'].scheduled_date).toBe('2026-01-27'); // offset 2
+      expect(tasksByName['Day 5 Task'].scheduled_date).toBe('2026-01-29'); // offset 4
+    });
+  });
 });
