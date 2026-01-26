@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-25)
 ## Current Position
 
 Phase: 9 of 14 (React Query Foundation)
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-01-26 - v2.0 Performance roadmap created
+Plan: 01 of 01 complete
+Status: Phase complete
+Last activity: 2026-01-26 - Completed 09-01-PLAN.md
 
-Progress: [========----------] 53% (8/14 phases complete)
+Progress: [==========---------] 60% (9/14 phases complete)
 
 ## Milestone History
 
@@ -38,6 +38,13 @@ See: .planning/ROADMAP.md for full details
 - Error handling: 53 handleError call sites
 - Memory leaks fixed: 4 components
 
+## v2.0 Progress
+
+**Phase 9 Complete:**
+- Query key factory: `src/lib/queries/keys.ts`
+- QueryClient production config: staleTime, gcTime, retry, global error handling
+- All 103 tests still passing
+
 ## Accumulated Context
 
 ### Decisions
@@ -48,7 +55,10 @@ Recent key decisions:
 - Use Vitest over Jest (Vite-native, faster ESM support) - Done
 - Two-level error boundaries (root + route) - Done
 - React Query migration deferred to v2 - Starting now
-- QueryClientProvider already configured in App.tsx - Ready to enhance
+- QueryClientProvider already configured in App.tsx - Enhanced in 09-01
+- 5-minute staleTime for data freshness (D-0901-01)
+- Skip retry for 401/403 auth errors (D-0901-02)
+- Global queryCache.onError with handleError (D-0901-03)
 
 ### Pending Todos
 
@@ -56,7 +66,7 @@ None.
 
 ### Blockers/Concerns
 
-None - v1 shipped, v2.0 ready to start.
+None - Phase 9 complete, ready for Phase 10 (Group Hooks Migration).
 
 **Research completed for v2.0:**
 - React Query architecture patterns documented
@@ -67,9 +77,9 @@ None - v1 shipped, v2.0 ready to start.
 ## Session Continuity
 
 Last session: 2026-01-26
-Stopped at: v2.0 roadmap created
+Stopped at: Completed 09-01-PLAN.md
 Resume file: None
 
 ---
 *State initialized: 2026-01-24*
-*Last updated: 2026-01-26 - v2.0 Performance roadmap created*
+*Last updated: 2026-01-26 - Phase 9 complete*
