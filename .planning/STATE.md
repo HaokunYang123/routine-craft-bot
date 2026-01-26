@@ -2,146 +2,73 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-01-24)
+See: .planning/PROJECT.md (updated 2026-01-25)
 
-**Core value:** Users can reliably complete their daily workflows (task assignment, task completion, group management) without encountering errors, crashes, or unexpected behavior.
-**Current focus:** Milestone Complete
+**Core value:** Users can reliably complete their daily workflows without encountering errors, crashes, or unexpected behavior.
+**Current focus:** Planning next milestone
 
 ## Current Position
 
-Phase: 8 of 8 (Component Tests)
-Plan: 3 of 3 in current phase
-Status: Milestone complete
-Last activity: 2026-01-26 - Milestone verification passed
+Phase: N/A (milestone complete)
+Plan: N/A
+Status: Ready to plan next milestone
+Last activity: 2026-01-25 — v1 milestone complete
 
-Progress: [========================] 100%
+Progress: Milestone v1 shipped
 
-## Performance Metrics
+## Milestone History
+
+| Version | Name | Phases | Shipped |
+|---------|------|--------|---------|
+| v1 | Reliability Hardening | 1-8 (23 plans) | 2026-01-25 |
+
+See: .planning/MILESTONES.md for full details
+
+## Performance Summary (v1)
 
 **Velocity:**
 - Total plans completed: 23
-- Average duration: 2.8 min
-- Total execution time: 1.1 hours
+- Average duration: 2.8 min/plan
+- Total execution time: ~1.1 hours
 
-**By Phase:**
-
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| 01-error-foundation | 2 | 7min | 3.5min |
-| 02-error-completion | 4 | 10min | 2.5min |
-| 03-test-infrastructure | 3 | 6min | 2min |
-| 04-utility-tests | 1 | 2min | 2min |
-| 05-type-safety | 4 | 23min | 5.8min |
-| 06-code-quality | 2 | 6min | 3min |
-| 07-hook-tests | 4 | 12min | 3min |
-| 08-component-tests | 3 | 9min | 3min |
-
-**Recent Trend:**
-- Last 5 plans: 08-03 (3min), 08-02 (3min), 08-01 (3min), 07-04 (3min), 07-03 (3min)
-- Trend: Component testing phase complete at consistent 3min/plan
-
-*Updated after each plan completion*
+**Key Metrics:**
+- Tests: 103 passing
+- Type safety: 0 `as any` casts
+- Error handling: 53 handleError call sites
+- Memory leaks fixed: 4 components
 
 ## Accumulated Context
 
 ### Decisions
 
-Decisions are logged in PROJECT.md Key Decisions table.
-Recent decisions affecting current work:
+See PROJECT.md Key Decisions table for full list with outcomes.
 
-- Use Vitest over Jest (Vite-native, faster ESM support) - Confirmed, implemented 03-01
-- Vitest globals: true for cleaner test syntax - 03-01
-- Mock next-themes globally in setup (Sonner toaster dependency) - 03-01
-- Separate tsconfig.test.json for test-specific types - 03-01
-- Supabase mock uses mockReturnValue for chaining, mockResolvedValue for terminals - 03-02
-- Singleton getMockSupabase() for consistent mock state across test files - 03-02
-- Include storage mock for upload/download/getPublicUrl - 03-02
-- Fresh QueryClient per test to avoid cache pollution - 03-03
-- Return userEvent from render for convenient async interactions - 03-03
-- TooltipProvider with delayDuration=0 for faster tests - 03-03
-- React Query for data fetching - Deferred to v2 (focus on reliability first)
-- Address all CONCERNS.md issues - In progress via 8 phases
-- User-friendly messages hide technical details (security + UX) - 01-02
-- Retry is opt-in via context.retry parameter - 01-02
-- Silent mode available for background operations - 01-02
-- Single toast system: Sonner only, Radix Toaster removed - 01-01
-- Two-level error boundary hierarchy (root + route level) - 01-01
-- Route-based resetKeys for automatic error reset on navigation - 01-01
-- LoadingButton wraps Button rather than modifying base - 02-01
-- Skeleton components match existing dashboard card styling - 02-01
-- Navigate before signOut to prevent false expiry modal - 02-02
-- Use onAuthStateChange SIGNED_OUT event for session expiry detection - 02-02
-- AI retry delays: 1s, 2s, 4s exponential backoff - 02-03
-- Only retry transient errors (timeout/5xx); fail fast on auth/rate-limit - 02-03
-- Silent retries: loading state unchanged between attempts - 02-03
-- LoadingButton for auth submit, keep manual for Google OAuth - 02-04
-- Use toBeInstanceOf(Date) and value checks for date validation - 04-01
-- Use regex match for time formatting tests (timezone-agnostic) - 04-01
-- Use --linked flag for Supabase type generation (project already linked) - 05-01
-- recurring_schedule_assignments stored inline (not separate table) - 05-01
-- get_group_stats and get_family_weekly_stats not in production (planned features) - 05-01
-- Use Tables<'name'> type helper from Supabase for database row types - 05-02
-- Use type guards instead of type casts for filtering nullable values - 05-02
-- Extend database types for additional computed/joined fields - 05-02
-- Central browser.d.ts for non-standard browser APIs (webkitSpeechRecognition, navigator.standalone) - 05-03
-- Update local interfaces to match database schema (Note.visibility: string|null) - 05-03
-- Cast Select values to union type instead of any for type safety - 05-03
-- Enable strict: true but keep noUnusedLocals: false - 05-04
-- Use 'as unknown as Type' for RPC JSON returns - 05-04
-- Update local interfaces to use string|null for database nullable columns - 05-04
-- Use generic status: string instead of union type for DB compatibility - 05-04
-- Use ReturnType<typeof setTimeout> for type-safe timeout refs - 06-01
-- Map for StudentSchedule per-task timeout tracking (multiple concurrent timeouts) - 06-01
-- Clear previous timeout before setting new one to handle rapid clicks - 06-01
-- Use silent mode for background fetch operations (handleError) - 06-02
-- Keep error boundaries with console.error for debugging - 06-02
-- Keep AI retry loop logging for specialized retry tracking - 06-02
-- Dynamic import inside vi.mock factory for hoisting workaround - 07-01
-- Capture onAuthStateChange callback for testing auth events - 07-01
-- Use .tsx extension for test files with JSX wrapper components - 07-03
-- Use async vi.mock with dynamic import to avoid hoisting issues - 07-03
-- Use vi.runAllTimersAsync for retry loop testing (avoids test timeout) - 07-04
-- Use controllable promises for cancellation tests (resolve after abort) - 07-04
-- Mock supabase.functions.invoke directly instead of using mock factory - 07-04
-- Use then() mockImplementationOnce for count queries with head:true option - 08-03
-- Verify animate-pulse class for loading skeleton detection - 08-03
-- Use getByRole('link') with href attribute check for link verification - 08-03
-- renderWithRoutes helper for route-aware component testing - 08-01
-- Cast user object with 'as ReturnType<typeof useAuth>['user']' for type safety - 08-01
+Recent key decisions:
+- Use Vitest over Jest (Vite-native, faster ESM support) — ✓ Good
+- Two-level error boundaries (root + route) — ✓ Good
+- AI retry delays: 1s, 2s, 4s exponential backoff — ✓ Good
+- Only retry transient errors (timeout/5xx) — ✓ Good
+- React Query migration — Deferred to v2
 
 ### Pending Todos
 
-None yet.
+None — milestone complete.
 
 ### Blockers/Concerns
 
-- Phase 5 Type Safety COMPLETE:
-  - Types regenerated: 20 tables and 13 RPC functions now typed
-  - Zero 'as any' casts remaining in src/ (excluding .d.ts)
-  - Zero 'as never' casts
-  - TypeScript strict mode enabled
-  - tsc --noEmit passes with exit code 0
-  - npm run build succeeds
-- Phase 6 Code Quality COMPLETE:
-  - 4 setTimeout refs now use ReturnType<typeof setTimeout>
-  - 53 console.error calls migrated to handleError with context
-  - Consistent error handling pattern across 23 files
-- Phase 7 Hook Tests COMPLETE:
-  - 07-01: useAuth tests - 5 tests covering auth state, session expiry, signOut
-  - 07-02: useAssignments tests - 15 tests covering CRUD, scheduling, group/template
-  - 07-03: useGroups tests - 18 tests covering CRUD and member management
-  - 07-04: useAIAssistant tests - 13 tests covering timeout, retry, cancellation
-- Phase 8 Component Tests COMPLETE:
-  - 08-01: ProtectedRoute tests - loading, redirect, role-based access
-  - 08-02: CheckInModal tests - sentiment selection, form submission, toast feedback
-  - 08-03: Dashboard tests - 7 tests covering loading, stats, completion rate, quick actions
+None — all v1 requirements shipped.
+
+**Tech debt to address in future:**
+- CheckInModal not wired into application (tests exist)
+- Large components (CoachCalendar) not refactored
+- Security hardening deferred (v2)
 
 ## Session Continuity
 
-Last session: 2026-01-26
-Stopped at: Milestone complete - all 8 phases verified
+Last session: 2026-01-25
+Stopped at: v1 milestone complete
 Resume file: None
 
 ---
 *State initialized: 2026-01-24*
-*Last updated: 2026-01-26*
+*Last updated: 2026-01-25 after v1 milestone completion*

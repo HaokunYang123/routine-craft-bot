@@ -1,3 +1,13 @@
+# Requirements Archive: v1 Reliability Hardening
+
+**Archived:** 2026-01-25
+**Status:** SHIPPED
+
+This is the archived requirements specification for v1.
+For current requirements, see `.planning/REQUIREMENTS.md` (created for next milestone).
+
+---
+
 # Requirements: Routine Craft Bot — Reliability Milestone
 
 **Defined:** 2026-01-24
@@ -9,52 +19,52 @@ Requirements for this reliability milestone. Each maps to roadmap phases.
 
 ### Error Handling
 
-- [x] **ERR-01**: App has React Error Boundary that catches component errors and shows recovery UI ✓
-- [x] **ERR-02**: Consistent error handling utility exists (toast + structured log + optional retry) ✓
-- [x] **ERR-03**: All async operations show loading states (buttons, forms, data fetching) ✓
-- [x] **ERR-04**: JWT errors are handled gracefully with explicit user messaging ✓
-- [x] **ERR-05**: AI assistant has retry logic with exponential backoff for timeouts ✓
+- [x] **ERR-01**: App has React Error Boundary that catches component errors and shows recovery UI
+- [x] **ERR-02**: Consistent error handling utility exists (toast + structured log + optional retry)
+- [x] **ERR-03**: All async operations show loading states (buttons, forms, data fetching)
+- [x] **ERR-04**: JWT errors are handled gracefully with explicit user messaging
+- [x] **ERR-05**: AI assistant has retry logic with exponential backoff for timeouts
 
 ### Testing Infrastructure
 
-- [x] **TEST-01**: Vitest is configured with React Testing Library and jsdom ✓
-- [x] **TEST-02**: Supabase mock factory supports method chaining (from/select/eq/etc) ✓
-- [x] **TEST-03**: Test utilities exist (wrapper with providers, factories for mock data) ✓
-- [x] **TEST-04**: Test scripts added to package.json (test, test:coverage, test:watch) ✓
+- [x] **TEST-01**: Vitest is configured with React Testing Library and jsdom
+- [x] **TEST-02**: Supabase mock factory supports method chaining (from/select/eq/etc)
+- [x] **TEST-03**: Test utilities exist (wrapper with providers, factories for mock data)
+- [x] **TEST-04**: Test scripts added to package.json (test, test:coverage, test:watch)
 
 ### Utility Tests
 
-- [x] **UTIL-01**: safeParseISO has comprehensive tests (valid, invalid, null, undefined) ✓
-- [x] **UTIL-02**: safeFormatDate has tests (valid dates, invalid dates, custom fallback) ✓
-- [x] **UTIL-03**: cn() utility has tests (merging, Tailwind conflict resolution) ✓
+- [x] **UTIL-01**: safeParseISO has comprehensive tests (valid, invalid, null, undefined)
+- [x] **UTIL-02**: safeFormatDate has tests (valid dates, invalid dates, custom fallback)
+- [x] **UTIL-03**: cn() utility has tests (merging, Tailwind conflict resolution)
 
 ### Hook Tests
 
-- [x] **HOOK-01**: useAuth has tests for all states (loading, authenticated, unauthenticated, error) ✓
-- [x] **HOOK-02**: useAssignments has tests for CRUD operations and scheduling logic ✓
-- [x] **HOOK-03**: useGroups has tests for group management and member operations ✓
-- [x] **HOOK-04**: useAIAssistant has tests for timeout handling and error states ✓
+- [x] **HOOK-01**: useAuth has tests for all states (loading, authenticated, unauthenticated, error)
+- [x] **HOOK-02**: useAssignments has tests for CRUD operations and scheduling logic
+- [x] **HOOK-03**: useGroups has tests for group management and member operations
+- [x] **HOOK-04**: useAIAssistant has tests for timeout handling and error states
 
 ### Component Tests
 
-- [x] **COMP-01**: ProtectedRoute has tests for auth flow (redirect, allow, loading) ✓
-- [x] **COMP-02**: CheckInModal has tests for user interaction (sentiment selection, submit) ✓
-- [x] **COMP-03**: Critical dashboard components have behavior tests ✓
+- [x] **COMP-01**: ProtectedRoute has tests for auth flow (redirect, allow, loading)
+- [x] **COMP-02**: CheckInModal has tests for user interaction (sentiment selection, submit)
+- [x] **COMP-03**: Critical dashboard components have behavior tests
 
 ### Type Safety
 
-- [x] **TYPE-01**: Supabase types are regenerated and up-to-date ✓
-- [x] **TYPE-02**: All `as any` casts in hooks are replaced with proper types ✓
-- [x] **TYPE-03**: All `as any` casts in components are replaced with proper types ✓
-- [x] **TYPE-04**: RPC function calls have typed responses ✓
+- [x] **TYPE-01**: Supabase types are regenerated and up-to-date
+- [x] **TYPE-02**: All `as any` casts in hooks are replaced with proper types
+- [x] **TYPE-03**: All `as any` casts in components are replaced with proper types
+- [x] **TYPE-04**: RPC function calls have typed responses
 
 ### Code Quality
 
-- [x] **QUAL-01**: Memory leaks fixed in sketch.tsx (setTimeout cleanup) ✓
-- [x] **QUAL-02**: Memory leaks fixed in MagicScheduleButton.tsx ✓
-- [x] **QUAL-03**: Memory leaks fixed in StudentSchedule.tsx ✓
-- [x] **QUAL-04**: Memory leaks fixed in StickerBook.tsx ✓
-- [x] **QUAL-05**: Structured logging utility replaces console.error calls ✓
+- [x] **QUAL-01**: Memory leaks fixed in sketch.tsx (setTimeout cleanup)
+- [x] **QUAL-02**: Memory leaks fixed in MagicScheduleButton.tsx
+- [x] **QUAL-03**: Memory leaks fixed in StudentSchedule.tsx
+- [x] **QUAL-04**: Memory leaks fixed in StickerBook.tsx
+- [x] **QUAL-05**: Structured logging utility replaces console.error calls
 
 ## v2 Requirements
 
@@ -92,7 +102,7 @@ Deferred to future release. Tracked but not in current roadmap.
 
 ## Traceability
 
-Which phases cover which requirements. Updated during roadmap creation.
+Which phases cover which requirements.
 
 | Requirement | Phase | Phase Name | Status |
 |-------------|-------|------------|--------|
@@ -128,8 +138,17 @@ Which phases cover which requirements. Updated during roadmap creation.
 **Coverage:**
 - v1 requirements: 27 total
 - Mapped to phases: 27
-- Unmapped: 0
+- Shipped: 27 (100%)
 
 ---
-*Requirements defined: 2026-01-24*
-*Traceability updated: 2026-01-24 (roadmap created)*
+
+## Milestone Summary
+
+**Shipped:** 27 of 27 v1 requirements (100%)
+
+**Adjusted:** None — all requirements delivered as specified
+
+**Dropped:** None
+
+---
+*Archived: 2026-01-25 as part of v1 milestone completion*
