@@ -387,4 +387,278 @@ describe('useGroups', () => {
       });
     });
   });
+
+  describe('addMember', () => {
+    it('adds member to group', async () => {
+      const mock = getMockSupabase();
+
+      // Mock initial fetchGroups
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: [], error: null }).then(resolve);
+      });
+
+      const { result } = renderHook(() => useGroups(), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      // Mock insert member response
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: null, error: null }).then(resolve);
+      });
+
+      // Mock fetchGroups after addMember
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: [], error: null }).then(resolve);
+      });
+
+      let success: boolean | undefined;
+      await act(async () => {
+        success = await result.current.addMember('group-1', 'student-1');
+      });
+
+      expect(success).toBe(true);
+      expect(mock.client.from).toHaveBeenCalledWith('group_members');
+      expect(mock.queryBuilder.insert).toHaveBeenCalledWith({
+        group_id: 'group-1',
+        user_id: 'student-1',
+        role: 'member',
+      });
+      expect(mockToast).toHaveBeenCalledWith({
+        title: 'Member Added',
+        description: 'Member has been added to the group',
+      });
+    });
+
+    it('handles duplicate member error', async () => {
+      const mock = getMockSupabase();
+
+      // Mock initial fetchGroups
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: [], error: null }).then(resolve);
+      });
+
+      const { result } = renderHook(() => useGroups(), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      // Mock insert error (duplicate key)
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: null, error: { message: 'duplicate key value violates unique constraint' } }).then(resolve);
+      });
+
+      let success: boolean | undefined;
+      await act(async () => {
+        success = await result.current.addMember('group-1', 'student-1');
+      });
+
+      expect(success).toBe(false);
+      expect(mockToast).toHaveBeenCalledWith({
+        title: 'Error',
+        description: 'duplicate key value violates unique constraint',
+        variant: 'destructive',
+      });
+    });
+  });
+
+  describe('removeMember', () => {
+    it('removes member from group', async () => {
+      const mock = getMockSupabase();
+
+      // Mock initial fetchGroups
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: [], error: null }).then(resolve);
+      });
+
+      const { result } = renderHook(() => useGroups(), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      // Mock delete member response
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: null, error: null }).then(resolve);
+      });
+
+      // Mock fetchGroups after removeMember
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: [], error: null }).then(resolve);
+      });
+
+      let success: boolean | undefined;
+      await act(async () => {
+        success = await result.current.removeMember('group-1', 'student-1');
+      });
+
+      expect(success).toBe(true);
+      expect(mock.client.from).toHaveBeenCalledWith('group_members');
+      expect(mock.queryBuilder.delete).toHaveBeenCalled();
+      expect(mock.queryBuilder.eq).toHaveBeenCalledWith('group_id', 'group-1');
+      expect(mock.queryBuilder.eq).toHaveBeenCalledWith('user_id', 'student-1');
+      expect(mockToast).toHaveBeenCalledWith({
+        title: 'Member Removed',
+        description: 'Member has been removed from the group',
+      });
+    });
+
+    it('shows error toast on remove failure', async () => {
+      const mock = getMockSupabase();
+
+      // Mock initial fetchGroups
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: [], error: null }).then(resolve);
+      });
+
+      const { result } = renderHook(() => useGroups(), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      // Mock delete error
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: null, error: { message: 'Cannot remove member' } }).then(resolve);
+      });
+
+      let success: boolean | undefined;
+      await act(async () => {
+        success = await result.current.removeMember('group-1', 'student-1');
+      });
+
+      expect(success).toBe(false);
+      expect(mockToast).toHaveBeenCalledWith({
+        title: 'Error',
+        description: 'Cannot remove member',
+        variant: 'destructive',
+      });
+    });
+  });
+
+  describe('getGroupMembers', () => {
+    it('returns members with display names', async () => {
+      const mock = getMockSupabase();
+
+      // Mock initial fetchGroups
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: [], error: null }).then(resolve);
+      });
+
+      const { result } = renderHook(() => useGroups(), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      // Mock group_members query
+      const mockMembers = [
+        { id: 'member-1', group_id: 'group-1', user_id: 'user-1', role: 'member', joined_at: '2026-01-01' },
+        { id: 'member-2', group_id: 'group-1', user_id: 'user-2', role: 'member', joined_at: '2026-01-02' },
+      ];
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: mockMembers, error: null }).then(resolve);
+      });
+
+      // Mock profiles query for display names
+      const mockProfiles = [
+        { user_id: 'user-1', display_name: 'John Doe', email: 'john@example.com' },
+        { user_id: 'user-2', display_name: 'Jane Smith', email: 'jane@example.com' },
+      ];
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: mockProfiles, error: null }).then(resolve);
+      });
+
+      let members: unknown;
+      await act(async () => {
+        members = await result.current.getGroupMembers('group-1');
+      });
+
+      expect(members).toHaveLength(2);
+      expect((members as Array<{ display_name: string }>)[0].display_name).toBe('John Doe');
+      expect((members as Array<{ display_name: string }>)[1].display_name).toBe('Jane Smith');
+    });
+
+    it('falls back to email prefix when no display name', async () => {
+      const mock = getMockSupabase();
+
+      // Mock initial fetchGroups
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: [], error: null }).then(resolve);
+      });
+
+      const { result } = renderHook(() => useGroups(), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      // Mock group_members query
+      const mockMembers = [
+        { id: 'member-1', group_id: 'group-1', user_id: 'user-1', role: 'member', joined_at: '2026-01-01' },
+      ];
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: mockMembers, error: null }).then(resolve);
+      });
+
+      // Mock profiles query - no display_name, only email
+      const mockProfiles = [
+        { user_id: 'user-1', display_name: null, email: 'testuser@example.com' },
+      ];
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: mockProfiles, error: null }).then(resolve);
+      });
+
+      let members: unknown;
+      await act(async () => {
+        members = await result.current.getGroupMembers('group-1');
+      });
+
+      expect(members).toHaveLength(1);
+      // Should use email prefix when display_name is null
+      expect((members as Array<{ display_name: string }>)[0].display_name).toBe('testuser');
+    });
+
+    it('returns empty array when no members', async () => {
+      const mock = getMockSupabase();
+
+      // Mock initial fetchGroups
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: [], error: null }).then(resolve);
+      });
+
+      const { result } = renderHook(() => useGroups(), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      // Mock empty group_members query
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: [], error: null }).then(resolve);
+      });
+
+      let members: unknown;
+      await act(async () => {
+        members = await result.current.getGroupMembers('group-1');
+      });
+
+      expect(members).toEqual([]);
+    });
+
+    it('falls back to Student when no profile found', async () => {
+      const mock = getMockSupabase();
+
+      // Mock initial fetchGroups
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: [], error: null }).then(resolve);
+      });
+
+      const { result } = renderHook(() => useGroups(), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      // Mock group_members query
+      const mockMembers = [
+        { id: 'member-1', group_id: 'group-1', user_id: 'user-1', role: 'member', joined_at: '2026-01-01' },
+      ];
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: mockMembers, error: null }).then(resolve);
+      });
+
+      // Mock empty profiles response (user not found)
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: [], error: null }).then(resolve);
+      });
+
+      let members: unknown;
+      await act(async () => {
+        members = await result.current.getGroupMembers('group-1');
+      });
+
+      expect(members).toHaveLength(1);
+      // Should fall back to "Student" when profile not found
+      expect((members as Array<{ display_name: string }>)[0].display_name).toBe('Student');
+    });
+  });
 });
