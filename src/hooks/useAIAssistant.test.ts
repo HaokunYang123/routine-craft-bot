@@ -260,4 +260,152 @@ describe('useAIAssistant', () => {
       expect(mockFunctionsInvoke).toHaveBeenCalledTimes(1); // No retry
     });
   });
+
+  describe('cancellation and cleanup', () => {
+    it('cancel() aborts pending request', async () => {
+      // Use a controllable promise that we can resolve after cancel
+      let resolveInvoke: (value: unknown) => void;
+      mockFunctionsInvoke.mockImplementation(() => {
+        return new Promise((resolve) => {
+          resolveInvoke = resolve;
+        });
+      });
+
+      const { result } = renderHook(() => useAIAssistant());
+
+      let response: Awaited<ReturnType<typeof result.current.generatePlan>>;
+
+      // Start a request (don't await yet)
+      const requestPromise = act(async () => {
+        response = await result.current.generatePlan('test');
+      });
+
+      // Wait a tick for the request to start
+      await vi.advanceTimersByTimeAsync(10);
+
+      // Cancel the request - this sets aborted flag
+      act(() => {
+        result.current.cancel();
+      });
+
+      // Now resolve the invoke (hook should detect aborted state)
+      resolveInvoke!({ data: { result: { name: 'Plan', tasks: [] } }, error: null });
+
+      // Run timers and wait for promise
+      await vi.runAllTimersAsync();
+      await requestPromise;
+
+      expect(response!.success).toBe(false);
+      expect(response!.error).toBe('Request cancelled');
+      expect(result.current.loading).toBe(false);
+    });
+
+    it('returns cancelled on abort during retry wait', async () => {
+      // First call fails with transient error, then we cancel during retry delay
+      let callCount = 0;
+      let resolveSecond: (value: unknown) => void;
+
+      mockFunctionsInvoke.mockImplementation(() => {
+        callCount++;
+        if (callCount === 1) {
+          // First call rejects immediately with transient error
+          return Promise.reject({ name: 'AbortError', message: 'timeout' });
+        }
+        // Second call hangs until we resolve it
+        return new Promise((resolve) => {
+          resolveSecond = resolve;
+        });
+      });
+
+      const { result } = renderHook(() => useAIAssistant());
+
+      let response: Awaited<ReturnType<typeof result.current.generatePlan>>;
+
+      // Start request
+      const requestPromise = act(async () => {
+        response = await result.current.generatePlan('test');
+      });
+
+      // First call rejects, wait for retry delay to start
+      await vi.advanceTimersByTimeAsync(500); // Partway through 1000ms delay
+
+      // Cancel during retry wait
+      act(() => {
+        result.current.cancel();
+      });
+
+      // Run remaining timers
+      await vi.runAllTimersAsync();
+
+      // If second call was made, resolve it
+      if (resolveSecond!) {
+        resolveSecond({ data: { result: { name: 'Plan', tasks: [] } }, error: null });
+      }
+
+      await requestPromise;
+
+      expect(response!.success).toBe(false);
+      expect(response!.error).toBe('Request cancelled');
+    });
+
+    it('aborts request on unmount (cleanup)', async () => {
+      // Use a controllable promise
+      let resolveInvoke: (value: unknown) => void;
+      mockFunctionsInvoke.mockImplementation(() => {
+        return new Promise((resolve) => {
+          resolveInvoke = resolve;
+        });
+      });
+
+      const { result, unmount } = renderHook(() => useAIAssistant());
+
+      let response: Awaited<ReturnType<typeof result.current.generatePlan>>;
+
+      // Store result.current reference before unmount
+      const generatePlanFn = result.current.generatePlan;
+
+      // Start a request using the stored function
+      const requestPromise = act(async () => {
+        response = await generatePlanFn('test');
+      });
+
+      // Wait for request to start
+      await vi.advanceTimersByTimeAsync(10);
+
+      // Unmount the hook (calls cleanup which aborts)
+      unmount();
+
+      // Resolve the invoke
+      resolveInvoke!({ data: { result: { name: 'Plan', tasks: [] } }, error: null });
+
+      await vi.runAllTimersAsync();
+      await requestPromise;
+
+      expect(response!.success).toBe(false);
+      expect(response!.error).toBe('Request cancelled');
+    });
+
+    it('clears error state on cancel', async () => {
+      // First set an error state
+      mockFunctionsInvoke.mockResolvedValue({
+        data: null,
+        error: { message: 'Some error', status: 400 },
+      });
+
+      const { result } = renderHook(() => useAIAssistant());
+
+      await act(async () => {
+        await result.current.generatePlan('test');
+      });
+
+      expect(result.current.error).not.toBeNull();
+
+      // Now cancel should clear error
+      act(() => {
+        result.current.cancel();
+      });
+
+      expect(result.current.error).toBeNull();
+    });
+  });
 });
