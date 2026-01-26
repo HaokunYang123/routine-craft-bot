@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Test Infrastructure** - Vitest setup with mocks and test utilities ✓
 - [x] **Phase 4: Utility Tests** - Tests for pure utility functions ✓
 - [x] **Phase 5: Type Safety** - Regenerate Supabase types, eliminate `as any` casts ✓
-- [ ] **Phase 6: Code Quality** - Memory leak fixes and structured logging
+- [x] **Phase 6: Code Quality** - Memory leak fixes and structured logging ✓
 - [ ] **Phase 7: Hook Tests** - Tests for critical business logic hooks
 - [ ] **Phase 8: Component Tests** - Tests for core user-facing components
 
@@ -120,8 +120,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 06-01-PLAN.md — Memory leak fixes (setTimeout cleanup in 4 files)
-- [ ] 06-02-PLAN.md — Structured logging migration (59 console.error to handleError)
+- [x] 06-01-PLAN.md — Memory leak fixes (setTimeout cleanup in 4 files) ✓
+- [x] 06-02-PLAN.md — Structured logging migration (53 console.error to handleError) ✓
 
 ### Phase 7: Hook Tests
 **Goal**: Critical business logic hooks have comprehensive test coverage
@@ -173,11 +173,11 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 | 3. Test Infrastructure | 3/3 | ✓ Complete | 2026-01-25 |
 | 4. Utility Tests | 1/1 | ✓ Complete | 2026-01-25 |
 | 5. Type Safety | 4/4 | ✓ Complete | 2026-01-25 |
-| 6. Code Quality | 0/2 | Planned | - |
+| 6. Code Quality | 2/2 | ✓ Complete | 2026-01-25 |
 | 7. Hook Tests | 0/4 | Not started | - |
 | 8. Component Tests | 0/3 | Not started | - |
 
-**Total:** 14/23 plans complete
+**Total:** 16/23 plans complete
 
 ---
 *Roadmap created: 2026-01-24*

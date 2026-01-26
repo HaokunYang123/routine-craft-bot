@@ -50,11 +50,11 @@ Requirements for this reliability milestone. Each maps to roadmap phases.
 
 ### Code Quality
 
-- [ ] **QUAL-01**: Memory leaks fixed in sketch.tsx (setTimeout cleanup)
-- [ ] **QUAL-02**: Memory leaks fixed in MagicScheduleButton.tsx
-- [ ] **QUAL-03**: Memory leaks fixed in StudentSchedule.tsx
-- [ ] **QUAL-04**: Memory leaks fixed in StickerBook.tsx
-- [ ] **QUAL-05**: Structured logging utility replaces console.error calls
+- [x] **QUAL-01**: Memory leaks fixed in sketch.tsx (setTimeout cleanup) ✓
+- [x] **QUAL-02**: Memory leaks fixed in MagicScheduleButton.tsx ✓
+- [x] **QUAL-03**: Memory leaks fixed in StudentSchedule.tsx ✓
+- [x] **QUAL-04**: Memory leaks fixed in StickerBook.tsx ✓
+- [x] **QUAL-05**: Structured logging utility replaces console.error calls ✓
 
 ## v2 Requirements
 
@@ -112,11 +112,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TYPE-02 | 5 | Type Safety | Complete |
 | TYPE-03 | 5 | Type Safety | Complete |
 | TYPE-04 | 5 | Type Safety | Complete |
-| QUAL-01 | 6 | Code Quality | Pending |
-| QUAL-02 | 6 | Code Quality | Pending |
-| QUAL-03 | 6 | Code Quality | Pending |
-| QUAL-04 | 6 | Code Quality | Pending |
-| QUAL-05 | 6 | Code Quality | Pending |
+| QUAL-01 | 6 | Code Quality | Complete |
+| QUAL-02 | 6 | Code Quality | Complete |
+| QUAL-03 | 6 | Code Quality | Complete |
+| QUAL-04 | 6 | Code Quality | Complete |
+| QUAL-05 | 6 | Code Quality | Complete |
 | HOOK-01 | 7 | Hook Tests | Pending |
 | HOOK-02 | 7 | Hook Tests | Pending |
 | HOOK-03 | 7 | Hook Tests | Pending |
