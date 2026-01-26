@@ -113,12 +113,12 @@ Plans:
   2. User sees error message when useGroups fetch fails
   3. User sees cached group data instantly on navigation (no spinner within 5min)
   4. Component interfaces unchanged (backward compatible)
-**Plans**: TBD
+**Plans**: 3 plans (3 waves)
 
 Plans:
-- [ ] 10-01: useProfile Migration
-- [ ] 10-02: useGroups Migration
-- [ ] 10-03: useTemplates Migration
+- [ ] 10-01-PLAN.md — useProfile migration + tests
+- [ ] 10-02-PLAN.md — useGroups migration + test updates
+- [ ] 10-03-PLAN.md — useTemplates migration + tests
 
 ### Phase 11: Complex Hook Migration
 **Goal**: Migrate high-complexity hooks with nested queries.
