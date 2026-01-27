@@ -125,7 +125,9 @@ export function useGroups() {
       await queryClient.invalidateQueries({ queryKey: queryKeys.groups.list(user.id) });
       return true;
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Failed to update group";
+      const message = error && typeof error === 'object' && 'message' in error
+        ? (error as { message: string }).message
+        : "Failed to update group";
       toast({
         title: "Error",
         description: message,
@@ -154,7 +156,9 @@ export function useGroups() {
       await queryClient.invalidateQueries({ queryKey: queryKeys.groups.list(user.id) });
       return true;
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Failed to delete group";
+      const message = error && typeof error === 'object' && 'message' in error
+        ? (error as { message: string }).message
+        : "Failed to delete group";
       toast({
         title: "Error",
         description: message,
@@ -186,7 +190,9 @@ export function useGroups() {
       await queryClient.invalidateQueries({ queryKey: queryKeys.groups.list(user.id) });
       return true;
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Failed to add member";
+      const message = error && typeof error === 'object' && 'message' in error
+        ? (error as { message: string }).message
+        : "Failed to add member";
       toast({
         title: "Error",
         description: message,
@@ -216,7 +222,9 @@ export function useGroups() {
       await queryClient.invalidateQueries({ queryKey: queryKeys.groups.list(user.id) });
       return true;
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Failed to remove member";
+      const message = error && typeof error === 'object' && 'message' in error
+        ? (error as { message: string }).message
+        : "Failed to remove member";
       toast({
         title: "Error",
         description: message,
