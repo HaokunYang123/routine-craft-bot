@@ -333,7 +333,16 @@ export default function People() {
         </Dialog>
       </div>
 
-      {groups.length === 0 ? (
+      {groups.length > 0 && (
+        <PageSizeSelector
+          value={pageSize}
+          onChange={setPageSize}
+          totalCount={totalCount}
+          loadedCount={groups.length}
+        />
+      )}
+
+      {groups.length === 0 && !isPending ? (
         <div className="text-center py-16 border-2 border-dashed rounded-xl bg-secondary/20">
           <Users className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
           <h3 className="text-xl font-medium mb-2">No Groups Yet</h3>
@@ -345,7 +354,7 @@ export default function People() {
             Create Your First Group
           </Button>
         </div>
-      ) : (
+      ) : groups.length > 0 ? (
         <div className="space-y-4">
           {groups.map((group) => (
             <Card key={group.id}>
@@ -470,8 +479,23 @@ export default function People() {
               </Collapsible>
             </Card>
           ))}
+
+          {/* Pagination controls */}
+          <InfiniteScrollSentinel
+            onLoadMore={fetchNextPage}
+            hasMore={hasNextPage ?? false}
+            isLoading={isFetchingNextPage}
+          />
+
+          <ListStatus
+            isLoading={isFetchingNextPage}
+            hasMore={hasNextPage ?? false}
+            itemCount={groups.length}
+            error={isError ? (error as Error) : null}
+            onRetry={() => refetch()}
+          />
         </div>
-      )}
+      ) : null}
 
       {/* Student Detail Modal */}
       <Dialog open={!!selectedStudent} onOpenChange={() => setSelectedStudent(null)}>
