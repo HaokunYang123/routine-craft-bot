@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-01-25)
 ## Current Position
 
 Phase: 11 of 14 (Complex Hook Migration)
-Plan: 03 of 5 complete
+Plan: 01, 03 of 5 complete
 Status: In progress
-Last activity: 2026-01-27 - Completed 11-03-PLAN.md (useStickers migration)
+Last activity: 2026-01-27 - Completed 11-01-PLAN.md (useAssignments migration)
 
 Progress: [===========---------] 71% (10/14 phases complete)
 
@@ -51,8 +51,9 @@ See: .planning/ROADMAP.md for full details
 - All 141 tests passing
 
 **Phase 11 In Progress:**
+- Plan 01 complete: useAssignments migrated to React Query fetchQuery pattern (25 tests)
 - Plan 03 complete: useStickers migrated to React Query useQueries with combine (30 tests)
-- All 171 tests passing
+- All 209 tests passing
 
 ## Accumulated Context
 
@@ -72,6 +73,9 @@ Recent key decisions:
 - Use invalidateQueries for cache sync after mutations (D-1001-02)
 - Handle Supabase errors as objects with message property (D-1002-01)
 - Handle PGRST205 gracefully by returning empty array (D-1003-01)
+- Use fetchQuery for utility hooks that don't auto-fetch (D-1101-01)
+- 30s staleTime for task instances, 60s for group progress (D-1101-02)
+- Filter params in queryKeys.assignments.instances for cache granularity (D-1101-03)
 - Export calculateStreak as pure function for testability (D-1103-01)
 - Use useQueries combine for parallel fetching with derived state (D-1103-02)
 
@@ -81,7 +85,7 @@ None.
 
 ### Blockers/Concerns
 
-None - Phase 11 plan 03 complete, ready for plan 04 (useRecurringSchedules migration).
+None - Phase 11 plans 01, 03 complete, ready for plan 02 (useRecurringSchedules) or plan 04.
 
 **Research completed for v2.0:**
 - React Query architecture patterns documented
@@ -91,6 +95,7 @@ None - Phase 11 plan 03 complete, ready for plan 04 (useRecurringSchedules migra
 
 **Migration patterns established:**
 - Simple hooks (10-01, 10-02, 10-03): Extract queryFn, replace useState/useEffect with useQuery
+- Utility hooks (11-01): fetchQuery for on-demand caching, not useQuery
 - Complex hooks with parallel fetching (11-03): useQueries with combine for multiple data sources and derived state
 - Keep return interface for backward compatibility
 - Add new properties (isFetching, isError, error) for enhanced UI
@@ -100,9 +105,9 @@ None - Phase 11 plan 03 complete, ready for plan 04 (useRecurringSchedules migra
 ## Session Continuity
 
 Last session: 2026-01-27
-Stopped at: Completed 11-03-PLAN.md (useStickers migration)
+Stopped at: Completed 11-01-PLAN.md (useAssignments migration)
 Resume file: None
 
 ---
 *State initialized: 2026-01-24*
-*Last updated: 2026-01-27 - Completed 11-03 useStickers migration*
+*Last updated: 2026-01-27 - Completed 11-01 useAssignments migration*
