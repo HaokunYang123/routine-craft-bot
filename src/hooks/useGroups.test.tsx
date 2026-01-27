@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { User, Session } from '@supabase/supabase-js';
 import React from 'react';
 
@@ -25,8 +26,17 @@ import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
 
 function createWrapper() {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
   return ({ children }: { children: React.ReactNode }) => (
-    <MemoryRouter>{children}</MemoryRouter>
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>{children}</MemoryRouter>
+    </QueryClientProvider>
   );
 }
 
@@ -127,6 +137,41 @@ describe('useGroups', () => {
       expect(mock.client.from).not.toHaveBeenCalledWith('groups');
       expect(result.current.groups).toEqual([]);
     });
+
+    it('exposes isFetching for background refresh indicator', async () => {
+      const mock = getMockSupabase();
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: [], error: null }).then(resolve);
+      });
+
+      const { result } = renderHook(() => useGroups(), { wrapper: createWrapper() });
+
+      // isFetching should be true during initial fetch
+      expect(result.current.isFetching).toBe(true);
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      // After fetch completes, isFetching should be false
+      expect(result.current.isFetching).toBe(false);
+    });
+
+    it('exposes isError on fetch failure', async () => {
+      const mock = getMockSupabase();
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: null, error: { message: 'Fetch failed' } }).then(resolve);
+      });
+
+      const { result } = renderHook(() => useGroups(), { wrapper: createWrapper() });
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      expect(result.current.isError).toBe(true);
+      expect(result.current.error).toBeTruthy();
+    });
   });
 
   describe('createGroup', () => {
@@ -158,7 +203,7 @@ describe('useGroups', () => {
       };
       mock.queryBuilder.single.mockResolvedValueOnce({ data: newGroup, error: null });
 
-      // Mock fetchGroups after create (returns new group)
+      // Mock fetchGroups after create (returns new group) - React Query will refetch
       mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
         return Promise.resolve({ data: [newGroup], error: null }).then(resolve);
       });
@@ -227,6 +272,52 @@ describe('useGroups', () => {
 
       expect(createdGroup).toBeNull();
     });
+
+    it('invalidates query cache after successful create', async () => {
+      const mock = getMockSupabase();
+
+      // Mock initial fetchGroups
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: [], error: null }).then(resolve);
+      });
+
+      const { result } = renderHook(() => useGroups(), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      // Mock RPC for join code generation
+      mock.client.rpc.mockResolvedValueOnce({ data: 'NEW123', error: null });
+
+      // Mock insert response
+      const newGroup = {
+        id: 'new-group-1',
+        name: 'New Group',
+        color: '#0000FF',
+        icon: 'users',
+        coach_id: 'coach-1',
+        join_code: 'NEW123',
+        created_at: '2026-01-15',
+        qr_token: null,
+      };
+      mock.queryBuilder.single.mockResolvedValueOnce({ data: newGroup, error: null });
+
+      // Mock the refetch after invalidation
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: [newGroup], error: null }).then(resolve);
+      });
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ count: 0, data: null, error: null }).then(resolve);
+      });
+
+      await act(async () => {
+        await result.current.createGroup('New Group', '#0000FF', 'users');
+      });
+
+      // After invalidation, groups should be refetched and contain the new group
+      await waitFor(() => {
+        expect(result.current.groups).toHaveLength(1);
+        expect(result.current.groups[0].id).toBe('new-group-1');
+      });
+    });
   });
 
   describe('updateGroup', () => {
@@ -259,7 +350,7 @@ describe('useGroups', () => {
         return Promise.resolve({ data: null, error: null }).then(resolve);
       });
 
-      // Mock fetchGroups after update
+      // Mock fetchGroups after update (React Query refetch)
       mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
         return Promise.resolve({ data: [{ ...existingGroup, name: 'Updated Name' }], error: null }).then(resolve);
       });
@@ -309,10 +400,30 @@ describe('useGroups', () => {
         variant: 'destructive',
       });
     });
+
+    it('returns false when user is not authenticated', async () => {
+      vi.mocked(useAuth).mockReturnValue({
+        user: null,
+        session: null,
+        loading: false,
+        signOut: vi.fn(),
+        sessionExpired: false,
+        clearSessionExpired: vi.fn(),
+      });
+
+      const { result } = renderHook(() => useGroups(), { wrapper: createWrapper() });
+
+      let success: boolean | undefined;
+      await act(async () => {
+        success = await result.current.updateGroup('group-1', { name: 'New Name' });
+      });
+
+      expect(success).toBe(false);
+    });
   });
 
   describe('deleteGroup', () => {
-    it('removes group and updates state', async () => {
+    it('removes group and invalidates cache', async () => {
       const mock = getMockSupabase();
 
       // Mock initial fetchGroups with two groups
@@ -340,6 +451,14 @@ describe('useGroups', () => {
         return Promise.resolve({ data: null, error: null }).then(resolve);
       });
 
+      // Mock fetchGroups after delete (React Query refetch - returns only group-2)
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: [groups[1]], error: null }).then(resolve);
+      });
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ count: 3, data: null, error: null }).then(resolve);
+      });
+
       let success: boolean | undefined;
       await act(async () => {
         success = await result.current.deleteGroup('group-1');
@@ -353,9 +472,11 @@ describe('useGroups', () => {
         description: 'Group has been removed',
       });
 
-      // Verify local state updated (filtered out deleted group)
-      expect(result.current.groups).toHaveLength(1);
-      expect(result.current.groups[0].id).toBe('group-2');
+      // Verify cache was invalidated and refetched (now only one group)
+      await waitFor(() => {
+        expect(result.current.groups).toHaveLength(1);
+        expect(result.current.groups[0].id).toBe('group-2');
+      });
     });
 
     it('shows error toast on delete failure', async () => {
@@ -386,6 +507,26 @@ describe('useGroups', () => {
         variant: 'destructive',
       });
     });
+
+    it('returns false when user is not authenticated', async () => {
+      vi.mocked(useAuth).mockReturnValue({
+        user: null,
+        session: null,
+        loading: false,
+        signOut: vi.fn(),
+        sessionExpired: false,
+        clearSessionExpired: vi.fn(),
+      });
+
+      const { result } = renderHook(() => useGroups(), { wrapper: createWrapper() });
+
+      let success: boolean | undefined;
+      await act(async () => {
+        success = await result.current.deleteGroup('group-1');
+      });
+
+      expect(success).toBe(false);
+    });
   });
 
   describe('addMember', () => {
@@ -405,7 +546,7 @@ describe('useGroups', () => {
         return Promise.resolve({ data: null, error: null }).then(resolve);
       });
 
-      // Mock fetchGroups after addMember
+      // Mock fetchGroups after addMember (React Query refetch)
       mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
         return Promise.resolve({ data: [], error: null }).then(resolve);
       });
@@ -456,6 +597,26 @@ describe('useGroups', () => {
         variant: 'destructive',
       });
     });
+
+    it('returns false when user is not authenticated', async () => {
+      vi.mocked(useAuth).mockReturnValue({
+        user: null,
+        session: null,
+        loading: false,
+        signOut: vi.fn(),
+        sessionExpired: false,
+        clearSessionExpired: vi.fn(),
+      });
+
+      const { result } = renderHook(() => useGroups(), { wrapper: createWrapper() });
+
+      let success: boolean | undefined;
+      await act(async () => {
+        success = await result.current.addMember('group-1', 'student-1');
+      });
+
+      expect(success).toBe(false);
+    });
   });
 
   describe('removeMember', () => {
@@ -475,7 +636,7 @@ describe('useGroups', () => {
         return Promise.resolve({ data: null, error: null }).then(resolve);
       });
 
-      // Mock fetchGroups after removeMember
+      // Mock fetchGroups after removeMember (React Query refetch)
       mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
         return Promise.resolve({ data: [], error: null }).then(resolve);
       });
@@ -523,6 +684,26 @@ describe('useGroups', () => {
         description: 'Cannot remove member',
         variant: 'destructive',
       });
+    });
+
+    it('returns false when user is not authenticated', async () => {
+      vi.mocked(useAuth).mockReturnValue({
+        user: null,
+        session: null,
+        loading: false,
+        signOut: vi.fn(),
+        sessionExpired: false,
+        clearSessionExpired: vi.fn(),
+      });
+
+      const { result } = renderHook(() => useGroups(), { wrapper: createWrapper() });
+
+      let success: boolean | undefined;
+      await act(async () => {
+        success = await result.current.removeMember('group-1', 'student-1');
+      });
+
+      expect(success).toBe(false);
     });
   });
 
