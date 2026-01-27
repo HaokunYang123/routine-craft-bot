@@ -83,6 +83,8 @@ export default function People() {
 
   // Students fetched per group (keyed by group id)
   const [studentsMap, setStudentsMap] = useState<Record<string, Student[]>>({});
+  // Loading state for student fetching (keyed by group id)
+  const [loadingStudents, setLoadingStudents] = useState<Record<string, boolean>>({});
 
   // Selected student for detail view
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
@@ -95,8 +97,10 @@ export default function People() {
   const [creating, setCreating] = useState(false);
 
   const fetchStudentsForGroup = async (groupId: string) => {
-    // Skip if already fetched
-    if (studentsMap[groupId]) return;
+    // Skip if already fetched or currently loading
+    if (studentsMap[groupId] || loadingStudents[groupId]) return;
+
+    setLoadingStudents((prev) => ({ ...prev, [groupId]: true }));
 
     try {
       const { data: connections } = await supabase
@@ -128,6 +132,8 @@ export default function People() {
     } catch (error) {
       handleError(error, { component: 'People', action: 'fetch students', silent: true });
       setStudentsMap((prev) => ({ ...prev, [groupId]: [] }));
+    } finally {
+      setLoadingStudents((prev) => ({ ...prev, [groupId]: false }));
     }
   };
 
@@ -421,7 +427,11 @@ export default function People() {
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <CardContent className="pt-0">
-                    {(studentsMap[group.id] || []).length === 0 ? (
+                    {loadingStudents[group.id] ? (
+                      <div className="flex items-center justify-center py-4">
+                        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : (studentsMap[group.id] || []).length === 0 ? (
                       <p className="text-muted-foreground text-center py-4 text-sm">
                         No students yet. Share the code: <strong className="font-mono">{group.join_code}</strong>
                       </p>
