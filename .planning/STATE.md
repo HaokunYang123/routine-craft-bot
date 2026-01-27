@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-25)
 
 **Core value:** Users can reliably complete their daily workflows without encountering errors, crashes, or unexpected behavior.
-**Current focus:** Phase 11 - Complex Hook Migration
+**Current focus:** Phase 12 - Mutations & Optimistic Updates
 
 ## Current Position
 
-Phase: 11 of 14 (Complex Hook Migration)
-Plan: 01, 02, 03 of 5 complete
-Status: In progress
-Last activity: 2026-01-27 - Completed 11-02-PLAN.md (useRecurringSchedules migration)
+Phase: 12 of 14 (Mutations & Optimistic Updates)
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-01-26 - Phase 11 complete
 
-Progress: [===========---------] 71% (10/14 phases complete)
+Progress: [============--------] 79% (11/14 phases complete)
 
 ## Milestone History
 
@@ -48,12 +48,11 @@ See: .planning/ROADMAP.md for full details
 - useProfile migrated to React Query (14 tests)
 - useGroups migrated to React Query (25 tests, 5 mutations)
 - useTemplates migrated to React Query (17 tests, 3 mutations)
-- All 141 tests passing
 
-**Phase 11 In Progress:**
-- Plan 01 complete: useAssignments migrated to React Query fetchQuery pattern (25 tests)
-- Plan 02 complete: useRecurringSchedules migrated with parallel enrichment (28 tests)
-- Plan 03 complete: useStickers migrated to React Query useQueries with combine (30 tests)
+**Phase 11 Complete:**
+- useAssignments migrated (utility pattern with fetchQuery, 25 tests)
+- useRecurringSchedules migrated (useQuery + Promise.all enrichment, 28 tests)
+- useStickers migrated (useQueries + combine, 30 tests)
 - All 209 tests passing
 
 ## Accumulated Context
@@ -65,7 +64,7 @@ See PROJECT.md Key Decisions table for full list with outcomes.
 Recent key decisions:
 - Use Vitest over Jest (Vite-native, faster ESM support) - Done
 - Two-level error boundaries (root + route) - Done
-- React Query migration deferred to v2 - Done (Phase 9-10)
+- React Query migration deferred to v2 - Done (Phase 9-11)
 - QueryClientProvider already configured in App.tsx - Enhanced in 09-01
 - 5-minute staleTime for data freshness (D-0901-01)
 - Skip retry for 401/403 auth errors (D-0901-02)
@@ -77,9 +76,9 @@ Recent key decisions:
 - Use fetchQuery for utility hooks that don't auto-fetch (D-1101-01)
 - 30s staleTime for task instances, 60s for group progress (D-1101-02)
 - Filter params in queryKeys.assignments.instances for cache granularity (D-1101-03)
+- Use Promise.all for parallel enrichment queries (D-1102-01)
 - Export calculateStreak as pure function for testability (D-1103-01)
 - Use useQueries combine for parallel fetching with derived state (D-1103-02)
-- Use Promise.all for parallel enrichment queries (D-1102-01)
 
 ### Pending Todos
 
@@ -87,13 +86,12 @@ None.
 
 ### Blockers/Concerns
 
-None - Phase 11 plans 01, 02, 03 complete, ready for plan 04 or 05.
+None - Phase 11 complete, ready for Phase 12 (Mutations & Optimistic Updates).
 
 **Research completed for v2.0:**
 - React Query architecture patterns documented
-- 6 hooks identified for migration (useGroups, useTemplates, useAssignments, useProfile, useStickers, useRecurringSchedules)
+- 6 hooks migrated (useProfile, useGroups, useTemplates, useAssignments, useRecurringSchedules, useStickers)
 - 4 hooks NOT to migrate (useAuth, useAIAssistant, use-toast, use-mobile)
-- Migration pitfalls documented (13 critical/moderate pitfalls)
 
 **Migration patterns established:**
 - Simple hooks (10-01, 10-02, 10-03): Extract queryFn, replace useState/useEffect with useQuery
@@ -107,10 +105,10 @@ None - Phase 11 plans 01, 02, 03 complete, ready for plan 04 or 05.
 
 ## Session Continuity
 
-Last session: 2026-01-27
-Stopped at: Completed 11-02-PLAN.md (useRecurringSchedules migration)
+Last session: 2026-01-26
+Stopped at: Completed Phase 11
 Resume file: None
 
 ---
 *State initialized: 2026-01-24*
-*Last updated: 2026-01-27 - Completed 11-02 useRecurringSchedules migration*
+*Last updated: 2026-01-26 - Phase 11 complete*
