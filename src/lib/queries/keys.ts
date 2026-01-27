@@ -68,4 +68,10 @@ export const queryKeys = {
     lists: () => [...queryKeys.recurringSchedules.all, 'list'] as const,
     list: (userId: string) => [...queryKeys.recurringSchedules.lists(), userId] as const,
   },
+  // Clients (class_sessions for pagination)
+  clients: {
+    all: ['clients'] as const,
+    infinite: (userId: string, pageSize: number) =>
+      [...queryKeys.clients.all, 'infinite', userId, pageSize] as const,
+  },
 } as const;
