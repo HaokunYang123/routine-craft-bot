@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { useToast } from "./use-toast";
 import { handleError } from "@/lib/error";
+import { queryKeys } from '@/lib/queries/keys';
 
 export interface TemplateTask {
   id?: string;
@@ -31,65 +32,58 @@ export interface Template {
   tasks?: TemplateTask[];
 }
 
+/**
+ * Fetch templates with their nested tasks for a user
+ */
+async function fetchTemplatesWithTasks(userId: string): Promise<Template[]> {
+  const { data: templatesData, error: templatesError } = await supabase
+    .from("templates")
+    .select("*")
+    .eq("coach_id", userId)
+    .order("created_at", { ascending: false });
+
+  // Table doesn't exist yet - return empty (not an error)
+  if (templatesError) {
+    if (templatesError.code === "PGRST205" || templatesError.message?.includes("not find")) {
+      console.log("Templates table not yet created - run the SQL migration");
+      return [];
+    }
+    throw templatesError;
+  }
+
+  // Fetch tasks for each template
+  const templatesWithTasks = await Promise.all(
+    (templatesData || []).map(async (template) => {
+      const { data: tasksData } = await supabase
+        .from("template_tasks")
+        .select("*")
+        .eq("template_id", template.id)
+        .order("day_offset", { ascending: true })
+        .order("sort_order", { ascending: true });
+      return { ...template, tasks: tasksData || [] };
+    })
+  );
+
+  return templatesWithTasks;
+}
+
 export function useTemplates() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [templates, setTemplates] = useState<Template[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    if (user) {
-      fetchTemplates();
-    }
-  }, [user]);
-
-  const fetchTemplates = async () => {
-    if (!user) return;
-
-    setLoading(true);
-    try {
-      // Fetch templates
-      const { data: templatesData, error: templatesError } = await supabase
-        .from("templates")
-        .select("*")
-        .eq("coach_id", user.id)
-        .order("created_at", { ascending: false });
-
-      // If table doesn't exist yet, just return empty array (no error toast)
-      if (templatesError) {
-        if (templatesError.code === "PGRST205" || templatesError.message?.includes("not find")) {
-          console.log("Templates table not yet created - run the SQL migration");
-          setTemplates([]);
-          setLoading(false);
-          return;
-        }
-        throw templatesError;
-      }
-
-      // Fetch tasks for each template
-      const templatesWithTasks = await Promise.all(
-        (templatesData || []).map(async (template) => {
-          const { data: tasksData } = await supabase
-            .from("template_tasks")
-            .select("*")
-            .eq("template_id", template.id)
-            .order("day_offset", { ascending: true })
-            .order("sort_order", { ascending: true });
-
-          return {
-            ...template,
-            tasks: tasksData || [],
-          };
-        })
-      );
-
-      setTemplates(templatesWithTasks);
-    } catch (error) {
-      handleError(error, { component: 'useTemplates', action: 'fetch templates' });
-    } finally {
-      setLoading(false);
-    }
-  };
+  const {
+    data: templates,
+    isPending,
+    isFetching,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: queryKeys.templates.list(user?.id ?? ''),
+    queryFn: () => fetchTemplatesWithTasks(user!.id),
+    enabled: !!user,
+  });
 
   const createTemplate = async (
     name: string,
@@ -135,12 +129,13 @@ export function useTemplates() {
         tasks,
       };
 
-      setTemplates((prev) => [newTemplate, ...prev]);
-
       toast({
         title: "Template Created",
         description: `"${name}" has been saved with ${tasks.length} tasks.`,
       });
+
+      // Invalidate cache to refetch fresh data
+      await queryClient.invalidateQueries({ queryKey: queryKeys.templates.list(user.id) });
 
       return newTemplate;
     } catch (error) {
@@ -201,18 +196,17 @@ export function useTemplates() {
         name,
         description,
         coach_id: user.id,
-        created_at: templates.find((t) => t.id === templateId)?.created_at || new Date().toISOString(),
+        created_at: templates?.find((t) => t.id === templateId)?.created_at || new Date().toISOString(),
         tasks,
       };
-
-      setTemplates((prev) =>
-        prev.map((t) => (t.id === templateId ? updatedTemplate : t))
-      );
 
       toast({
         title: "Template Updated",
         description: `"${name}" has been saved.`,
       });
+
+      // Invalidate cache to refetch fresh data
+      await queryClient.invalidateQueries({ queryKey: queryKeys.templates.list(user.id) });
 
       return updatedTemplate;
     } catch (error) {
@@ -221,7 +215,9 @@ export function useTemplates() {
     }
   };
 
-  const deleteTemplate = async (templateId: string) => {
+  const deleteTemplate = async (templateId: string): Promise<boolean> => {
+    if (!user) return false;
+
     try {
       const { error } = await supabase
         .from("templates")
@@ -230,21 +226,28 @@ export function useTemplates() {
 
       if (error) throw error;
 
-      setTemplates((prev) => prev.filter((t) => t.id !== templateId));
-
       toast({
         title: "Template Deleted",
         description: "Template has been removed.",
       });
+
+      // Invalidate cache to refetch fresh data
+      await queryClient.invalidateQueries({ queryKey: queryKeys.templates.list(user.id) });
+
+      return true;
     } catch (error) {
       handleError(error, { component: 'useTemplates', action: 'delete template' });
+      return false;
     }
   };
 
   return {
-    templates,
-    loading,
-    fetchTemplates,
+    templates: templates ?? [],     // Coerce undefined to empty array
+    loading: isPending,             // Keep "loading" name for backward compatibility
+    isFetching,                     // NEW: for background refresh indicator
+    isError,                        // NEW: for error UI
+    error,                          // NEW: for error details
+    fetchTemplates: refetch,        // Manual retry
     createTemplate,
     updateTemplate,
     deleteTemplate,
