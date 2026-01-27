@@ -1,9 +1,11 @@
-import { useState, useCallback } from "react";
+import { useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { useToast } from "./use-toast";
 import { handleError } from "@/lib/error";
-import { addDays, format, eachDayOfInterval, getDay, parseISO, startOfDay } from "date-fns";
+import { queryKeys } from "@/lib/queries/keys";
+import { addDays, format, eachDayOfInterval, getDay } from "date-fns";
 
 export interface Assignment {
   id: string;
@@ -63,7 +65,7 @@ interface CreateAssignmentInput {
 export function useAssignments() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
 
   const createAssignment = useCallback(async (input: CreateAssignmentInput) => {
     console.log("[useAssignments] createAssignment called with input:", JSON.stringify(input, null, 2));
@@ -73,7 +75,6 @@ export function useAssignments() {
       console.log("[useAssignments] No user, returning null");
       return null;
     }
-    setLoading(true);
 
     try {
       console.log("[useAssignments] Starting assignment creation...");
@@ -342,14 +343,15 @@ export function useAssignments() {
         description: `Created ${taskInstances.length} task instances`,
       });
 
+      // Invalidate assignments cache to ensure fresh data
+      await queryClient.invalidateQueries({ queryKey: queryKeys.assignments.all });
+
       return assignment;
     } catch (error) {
       handleError(error, { component: 'useAssignments', action: 'create assignment' });
       return null;
-    } finally {
-      setLoading(false);
     }
-  }, [user, toast]);
+  }, [user, toast, queryClient]);
 
   const getTaskInstances = useCallback(async (
     filters: {
@@ -362,39 +364,49 @@ export function useAssignments() {
     }
   ): Promise<TaskInstance[]> => {
     try {
-      let query = supabase
-        .from("task_instances")
-        .select("*")
-        .order("scheduled_date", { ascending: true })
-        .order("scheduled_time", { ascending: true });
+      return await queryClient.fetchQuery({
+        queryKey: queryKeys.assignments.instances({
+          assigneeId: filters.assigneeId,
+          date: filters.date,
+          startDate: filters.startDate,
+        }),
+        queryFn: async () => {
+          let query = supabase
+            .from("task_instances")
+            .select("*")
+            .order("scheduled_date", { ascending: true })
+            .order("scheduled_time", { ascending: true });
 
-      if (filters.assigneeId) {
-        query = query.eq("assignee_id", filters.assigneeId);
-      }
+          if (filters.assigneeId) {
+            query = query.eq("assignee_id", filters.assigneeId);
+          }
 
-      if (filters.date) {
-        query = query.eq("scheduled_date", filters.date);
-      } else if (filters.startDate) {
-        query = query.gte("scheduled_date", filters.startDate);
-      } else if (!filters.includeFullHistory) {
-        // Default: Only fetch tasks from the past 7 days unless explicitly requesting full history
-        const sevenDaysAgo = format(addDays(new Date(), -7), "yyyy-MM-dd");
-        query = query.gte("scheduled_date", sevenDaysAgo);
-      }
+          if (filters.date) {
+            query = query.eq("scheduled_date", filters.date);
+          } else if (filters.startDate) {
+            query = query.gte("scheduled_date", filters.startDate);
+          } else if (!filters.includeFullHistory) {
+            // Default: Only fetch tasks from the past 7 days unless explicitly requesting full history
+            const sevenDaysAgo = format(addDays(new Date(), -7), "yyyy-MM-dd");
+            query = query.gte("scheduled_date", sevenDaysAgo);
+          }
 
-      if (filters.endDate) {
-        query = query.lte("scheduled_date", filters.endDate);
-      }
+          if (filters.endDate) {
+            query = query.lte("scheduled_date", filters.endDate);
+          }
 
-      const { data, error } = await query;
+          const { data, error } = await query;
 
-      if (error) throw error;
-      return data || [];
+          if (error) throw error;
+          return data || [];
+        },
+        staleTime: 30 * 1000, // 30 seconds - task instances change frequently
+      });
     } catch (error) {
       handleError(error, { component: 'useAssignments', action: 'fetch task instances', silent: true });
       return [];
     }
-  }, []);
+  }, [queryClient]);
 
   const updateTaskStatus = useCallback(async (
     taskId: string,
@@ -402,7 +414,7 @@ export function useAssignments() {
     note?: string
   ) => {
     try {
-      const updates: any = {
+      const updates: Record<string, unknown> = {
         status,
         completed_at: status === "completed" ? new Date().toISOString() : null,
       };
@@ -425,8 +437,11 @@ export function useAssignments() {
         });
       }
 
+      // Invalidate assignments cache to ensure fresh data
+      await queryClient.invalidateQueries({ queryKey: queryKeys.assignments.all });
+
       return true;
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Error",
         description: "Failed to update task",
@@ -434,104 +449,110 @@ export function useAssignments() {
       });
       return false;
     }
-  }, [toast]);
+  }, [toast, queryClient]);
 
   const getGroupProgress = useCallback(async (groupId: string, date?: string) => {
     const targetDate = date || format(new Date(), "yyyy-MM-dd");
 
     try {
-      // Get group members
-      const { data: members } = await supabase
-        .from("group_members")
-        .select("user_id")
-        .eq("group_id", groupId);
+      return await queryClient.fetchQuery({
+        queryKey: queryKeys.assignments.progress(groupId, targetDate),
+        queryFn: async () => {
+          // Get group members
+          const { data: members } = await supabase
+            .from("group_members")
+            .select("user_id")
+            .eq("group_id", groupId);
 
-      if (!members || members.length === 0) {
-        return { completed: 0, total: 0, members: [], overdueCount: 0 };
-      }
+          if (!members || members.length === 0) {
+            return { completed: 0, total: 0, members: [], overdueCount: 0 };
+          }
 
-      const memberIds = members.map((m) => m.user_id);
+          const memberIds = members.map((m) => m.user_id);
 
-      // Get profiles for display names
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, display_name, email")
-        .in("user_id", memberIds);
+          // Get profiles for display names
+          const { data: profiles } = await supabase
+            .from("profiles")
+            .select("user_id, display_name, email")
+            .in("user_id", memberIds);
 
-      const profileMap: Record<string, string> = {};
-      profiles?.forEach((p) => {
-        // Use display_name, fallback to email prefix, then "Student"
-        const emailPrefix = p.email ? p.email.split("@")[0] : null;
-        profileMap[p.user_id] = p.display_name || emailPrefix || "Student";
+          const profileMap: Record<string, string> = {};
+          profiles?.forEach((p) => {
+            // Use display_name, fallback to email prefix, then "Student"
+            const emailPrefix = p.email ? p.email.split("@")[0] : null;
+            profileMap[p.user_id] = p.display_name || emailPrefix || "Student";
+          });
+
+          // Get task instances for the date (scheduled for today)
+          const { data: todayInstances } = await supabase
+            .from("task_instances")
+            .select("*")
+            .in("assignee_id", memberIds)
+            .eq("scheduled_date", targetDate);
+
+          // Also get overdue tasks (scheduled before today, still pending)
+          // This captures "catch-up" work students do on old tasks
+          const { data: overdueInstances } = await supabase
+            .from("task_instances")
+            .select("*")
+            .in("assignee_id", memberIds)
+            .lt("scheduled_date", targetDate)
+            .eq("status", "pending");
+
+          // Get tasks completed TODAY that were originally scheduled for earlier dates
+          // (catch-up completions)
+          const todayStr = format(new Date(), "yyyy-MM-dd");
+          const { data: catchupInstances } = await supabase
+            .from("task_instances")
+            .select("*")
+            .in("assignee_id", memberIds)
+            .lt("scheduled_date", targetDate)
+            .eq("status", "completed")
+            .gte("completed_at", `${todayStr}T00:00:00`);
+
+          // Combine today's instances with catch-up completions for a full picture
+          const allRelevantInstances = [
+            ...(todayInstances || []),
+            ...(catchupInstances || []),
+          ];
+
+          // Calculate per-member stats
+          const memberStats = memberIds.map((userId) => {
+            const userTasks = allRelevantInstances.filter((t) => t.assignee_id === userId);
+            const completed = userTasks.filter((t) => t.status === "completed").length;
+            const total = userTasks.length;
+            const userOverdue = (overdueInstances || []).filter((t) => t.assignee_id === userId).length;
+
+            return {
+              id: userId,
+              name: profileMap[userId] || "Student",
+              completedToday: completed,
+              totalToday: total,
+              overdueCount: userOverdue,
+            };
+          });
+
+          const totalCompleted = memberStats.reduce((sum, m) => sum + m.completedToday, 0);
+          const totalTasks = memberStats.reduce((sum, m) => sum + m.totalToday, 0);
+          const totalOverdue = memberStats.reduce((sum, m) => sum + (m.overdueCount || 0), 0);
+
+          return {
+            completed: totalCompleted,
+            total: totalTasks,
+            members: memberStats,
+            overdueCount: totalOverdue,
+          };
+        },
+        staleTime: 60 * 1000, // 1 minute - progress updates matter
       });
-
-      // Get task instances for the date (scheduled for today)
-      const { data: todayInstances } = await supabase
-        .from("task_instances")
-        .select("*")
-        .in("assignee_id", memberIds)
-        .eq("scheduled_date", targetDate);
-
-      // Also get overdue tasks (scheduled before today, still pending)
-      // This captures "catch-up" work students do on old tasks
-      const { data: overdueInstances } = await supabase
-        .from("task_instances")
-        .select("*")
-        .in("assignee_id", memberIds)
-        .lt("scheduled_date", targetDate)
-        .eq("status", "pending");
-
-      // Get tasks completed TODAY that were originally scheduled for earlier dates
-      // (catch-up completions)
-      const todayStr = format(new Date(), "yyyy-MM-dd");
-      const { data: catchupInstances } = await supabase
-        .from("task_instances")
-        .select("*")
-        .in("assignee_id", memberIds)
-        .lt("scheduled_date", targetDate)
-        .eq("status", "completed")
-        .gte("completed_at", `${todayStr}T00:00:00`);
-
-      // Combine today's instances with catch-up completions for a full picture
-      const allRelevantInstances = [
-        ...(todayInstances || []),
-        ...(catchupInstances || []),
-      ];
-
-      // Calculate per-member stats
-      const memberStats = memberIds.map((userId) => {
-        const userTasks = allRelevantInstances.filter((t) => t.assignee_id === userId);
-        const completed = userTasks.filter((t) => t.status === "completed").length;
-        const total = userTasks.length;
-        const userOverdue = (overdueInstances || []).filter((t) => t.assignee_id === userId).length;
-
-        return {
-          id: userId,
-          name: profileMap[userId] || "Student",
-          completedToday: completed,
-          totalToday: total,
-          overdueCount: userOverdue,
-        };
-      });
-
-      const totalCompleted = memberStats.reduce((sum, m) => sum + m.completedToday, 0);
-      const totalTasks = memberStats.reduce((sum, m) => sum + m.totalToday, 0);
-      const totalOverdue = memberStats.reduce((sum, m) => sum + (m.overdueCount || 0), 0);
-
-      return {
-        completed: totalCompleted,
-        total: totalTasks,
-        members: memberStats,
-        overdueCount: totalOverdue,
-      };
     } catch (error) {
       handleError(error, { component: 'useAssignments', action: 'get group progress', silent: true });
       return { completed: 0, total: 0, members: [], overdueCount: 0 };
     }
-  }, []);
+  }, [queryClient]);
 
   return {
-    loading,
+    loading: false, // Utility hook is always "ready" - no auto-fetch on mount
     createAssignment,
     getTaskInstances,
     updateTaskStatus,
