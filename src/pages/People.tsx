@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -41,14 +41,12 @@ import { useToast } from "@/hooks/use-toast";
 import { handleError } from "@/lib/error";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTemplates } from "@/hooks/useTemplates";
-
-interface ClassSession {
-  id: string;
-  name: string;
-  join_code: string;
-  is_active: boolean;
-  default_template_id: string | null;
-}
+import { useInfiniteClients, Client } from "@/hooks/useInfiniteClients";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { InfiniteScrollSentinel } from "@/components/pagination/InfiniteScrollSentinel";
+import { PageSizeSelector } from "@/components/pagination/PageSizeSelector";
+import { ListStatus } from "@/components/pagination/ListStatus";
+import { queryKeys } from "@/lib/queries/keys";
 
 interface Student {
   id: string;
@@ -57,17 +55,34 @@ interface Student {
   email: string;
 }
 
-interface GroupWithStudents extends ClassSession {
-  students: Student[];
-}
-
 export default function People() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { templates } = useTemplates();
-  const [loading, setLoading] = useState(true);
-  const [groups, setGroups] = useState<GroupWithStudents[]>([]);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+
+  // Page size with localStorage persistence (default: 25)
+  const [pageSize, setPageSize] = useLocalStorage('clients-page-size', 25);
+
+  // Infinite query for clients (class_sessions)
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isPending,
+    isError,
+    error,
+    refetch,
+  } = useInfiniteClients(pageSize);
+
+  // Flatten pages into single array
+  const groups = data?.pages.flatMap((page) => page.data) ?? [];
+  const totalCount = data?.pages[0]?.totalCount ?? 0;
+
+  // Students fetched per group (keyed by group id)
+  const [studentsMap, setStudentsMap] = useState<Record<string, Student[]>>({});
 
   // Selected student for detail view
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
@@ -79,63 +94,40 @@ export default function People() {
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
   const [creating, setCreating] = useState(false);
 
-  useEffect(() => {
-    if (!user) return;
-    fetchData();
-  }, [user]);
+  const fetchStudentsForGroup = async (groupId: string) => {
+    // Skip if already fetched
+    if (studentsMap[groupId]) return;
 
-  const fetchData = async () => {
     try {
-      // Fetch all class sessions
-      const { data: sessionsData, error: sessionsError } = await supabase
-        .from("class_sessions")
-        .select("*")
-        .eq("coach_id", user!.id)
-        .eq("is_active", true)
-        .order("created_at", { ascending: false });
+      const { data: connections } = await supabase
+        .from('instructor_students')
+        .select('id, student_id')
+        .eq('class_session_id', groupId);
 
-      if (sessionsError) throw sessionsError;
+      let students: Student[] = [];
 
-      // For each session, get students
-      const groupsWithStudents = await Promise.all(
-        (sessionsData || []).map(async (session: any) => {
-          const { data: connections } = await supabase
-            .from("instructor_students")
-            .select("id, student_id")
-            .eq("class_session_id", session.id);
+      if (connections && connections.length > 0) {
+        const studentIds = connections.map((c: any) => c.student_id);
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('user_id, display_name')
+          .in('user_id', studentIds);
 
-          let students: Student[] = [];
-
-          if (connections && connections.length > 0) {
-            const studentIds = connections.map((c: any) => c.student_id);
-            const { data: profiles } = await supabase
-              .from("profiles")
-              .select("user_id, display_name")
-              .in("user_id", studentIds);
-
-            students = connections.map((conn: any) => {
-              const profile = profiles?.find((p: any) => p.user_id === conn.student_id);
-              return {
-                id: conn.id,
-                student_id: conn.student_id,
-                display_name: profile?.display_name || "Student",
-                email: ""
-              };
-            });
-          }
-
+        students = connections.map((conn: any) => {
+          const profile = profiles?.find((p: any) => p.user_id === conn.student_id);
           return {
-            ...session,
-            students
+            id: conn.id,
+            student_id: conn.student_id,
+            display_name: profile?.display_name || 'Student',
+            email: '',
           };
-        })
-      );
+        });
+      }
 
-      setGroups(groupsWithStudents);
+      setStudentsMap((prev) => ({ ...prev, [groupId]: students }));
     } catch (error) {
-      handleError(error, { component: 'People', action: 'fetch data', silent: true });
-    } finally {
-      setLoading(false);
+      handleError(error, { component: 'People', action: 'fetch students', silent: true });
+      setStudentsMap((prev) => ({ ...prev, [groupId]: [] }));
     }
   };
 
@@ -174,7 +166,7 @@ export default function People() {
       setNewRosterName("");
       setSelectedTemplateId("");
       setCreateOpen(false);
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: queryKeys.clients.all });
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
@@ -196,13 +188,19 @@ export default function People() {
         throw new Error(result.error || "Failed to delete class");
       }
 
-      // Only update local state after successful deletion
-      setGroups(prev => prev.filter(g => g.id !== groupId));
+      // Invalidate cache to refresh the list
+      queryClient.invalidateQueries({ queryKey: queryKeys.clients.all });
+      // Also clear the students map for this group
+      setStudentsMap((prev) => {
+        const newMap = { ...prev };
+        delete newMap[groupId];
+        return newMap;
+      });
       toast({ title: "Group Deleted", description: `${groupName} has been removed.` });
     } catch (error) {
       handleError(error, { component: 'People', action: 'delete group' });
       // Refresh to ensure UI matches database state
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: queryKeys.clients.all });
     }
   };
 
@@ -220,22 +218,22 @@ export default function People() {
         throw new Error(result.error || "Failed to remove student");
       }
 
-      // Only update local state after successful deletion
-      setGroups(prev => prev.map(g => {
-        if (g.id === groupId) {
-          return {
-            ...g,
-            students: g.students.filter(s => s.id !== connectionId)
-          };
-        }
-        return g;
+      // Update local studentsMap state
+      setStudentsMap((prev) => ({
+        ...prev,
+        [groupId]: (prev[groupId] || []).filter((s) => s.id !== connectionId),
       }));
 
       toast({ title: "Student Removed", description: `${studentName} has been removed from the group.` });
     } catch (error) {
       handleError(error, { component: 'People', action: 'remove student' });
-      // Refresh to ensure UI matches database state
-      fetchData();
+      // Refresh students for this group to ensure UI matches database state
+      setStudentsMap((prev) => {
+        const newMap = { ...prev };
+        delete newMap[groupId];
+        return newMap;
+      });
+      fetchStudentsForGroup(groupId);
     }
   };
 
@@ -245,6 +243,8 @@ export default function People() {
       newExpanded.delete(groupId);
     } else {
       newExpanded.add(groupId);
+      // Fetch students when expanding
+      fetchStudentsForGroup(groupId);
     }
     setExpandedGroups(newExpanded);
   };
@@ -257,14 +257,14 @@ export default function People() {
   const viewStudentDetails = async (student: Student) => {
     setSelectedStudent(student);
 
-    // Find all groups this student belongs to
+    // Find all groups this student belongs to (from studentsMap)
     const studentGroupNames = groups
-      .filter(g => g.students.some(s => s.student_id === student.student_id))
+      .filter(g => (studentsMap[g.id] || []).some(s => s.student_id === student.student_id))
       .map(g => g.name);
     setStudentGroups(studentGroupNames);
   };
 
-  if (loading) {
+  if (isPending) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="w-8 h-8 animate-spin text-foreground" />
@@ -363,7 +363,7 @@ export default function People() {
                           <CardTitle className="text-lg">{group.name}</CardTitle>
                           <CardDescription className="flex flex-wrap items-center gap-2 mt-1">
                             <Users className="w-3 h-3" />
-                            {group.students.length} student{group.students.length !== 1 && "s"}
+                            {(studentsMap[group.id] || []).length} student{(studentsMap[group.id] || []).length !== 1 && "s"}
                             <span className="mx-1">•</span>
                             <span className="font-mono text-xs bg-secondary px-2 py-0.5 rounded">{group.join_code}</span>
                             <Button variant="ghost" size="icon" className="h-5 w-5" onClick={(e) => { e.stopPropagation(); copyCode(group.join_code); }}>
@@ -391,7 +391,7 @@ export default function People() {
                           <AlertDialogHeader>
                             <AlertDialogTitle>Delete "{group.name}"?</AlertDialogTitle>
                             <AlertDialogDescription>
-                              This will remove the group and disconnect all {group.students.length} students from it.
+                              This will remove the group and disconnect all {(studentsMap[group.id] || []).length} students from it.
                               <br /><br />
                               <strong>This cannot be undone.</strong>
                             </AlertDialogDescription>
@@ -412,13 +412,13 @@ export default function People() {
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <CardContent className="pt-0">
-                    {group.students.length === 0 ? (
+                    {(studentsMap[group.id] || []).length === 0 ? (
                       <p className="text-muted-foreground text-center py-4 text-sm">
                         No students yet. Share the code: <strong className="font-mono">{group.join_code}</strong>
                       </p>
                     ) : (
                       <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
-                        {group.students.map((student) => (
+                        {(studentsMap[group.id] || []).map((student) => (
                           <div
                             key={student.id}
                             className="flex items-center justify-between gap-3 p-3 bg-secondary/30 rounded-lg hover:bg-secondary/50 transition-colors group/student"
