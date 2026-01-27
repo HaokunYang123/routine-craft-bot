@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-01-25)
 ## Current Position
 
 Phase: 12 of 14 (Mutations & Optimistic Updates)
-Plan: 02 of 04
+Plan: 03 of 04
 Status: In progress
-Last activity: 2026-01-27 - Completed 12-02-PLAN.md
+Last activity: 2026-01-27 - Completed 12-03-PLAN.md
 
 Progress: [============--------] 79% (11/14 phases complete)
 
@@ -58,9 +58,9 @@ See: .planning/ROADMAP.md for full details
 **Phase 12 In Progress:**
 - 12-01: useGroups useMutation migration (complete)
 - 12-02: useTemplates + useProfile useMutation migration (complete)
-- 12-03: useAssignments useMutation migration (pending)
+- 12-03: useAssignments useMutation with optimistic updates (complete)
 - 12-04: useRecurringSchedules useMutation migration (pending)
-- All 221 tests passing
+- All 228 tests passing
 
 ## Accumulated Context
 
@@ -89,6 +89,9 @@ Recent key decisions:
 - useMutation hooks defined inside parent hook for user context access (D-1201-01)
 - useMutation hooks defined inside useTemplates/useProfile for access to user context (D-1202-01)
 - Wrapper functions catch errors and return null/false for backward compatibility (D-1202-02)
+- No toast on successful task completion - reduces noise for frequent action (D-1203-01)
+- Optimistic update pattern: onMutate snapshots/updates cache, onError rolls back (D-1203-02)
+- User-friendly error messages for mutations: "Couldn't save changes. Please try again." (D-1203-03)
 
 ### Pending Todos
 
@@ -96,7 +99,7 @@ None.
 
 ### Blockers/Concerns
 
-None - Plans 12-01 and 12-02 complete, ready for 12-03 and 12-04.
+None - Plans 12-01, 12-02, and 12-03 complete, ready for 12-04.
 
 **Research completed for v2.0:**
 - React Query architecture patterns documented
@@ -108,7 +111,8 @@ None - Plans 12-01 and 12-02 complete, ready for 12-03 and 12-04.
 - Utility hooks (11-01): fetchQuery for on-demand caching, not useQuery
 - Complex hooks with parallel fetching (11-03): useQueries with combine for multiple data sources and derived state
 - Complex hooks with nested enrichment (11-02): Promise.all for parallel enrichment queries
-- useMutation pattern (12-01, 12-02): onSuccess for toast + invalidation, onError for handleError, wrapper for backward compat
+- useMutation pattern (12-01, 12-02, 12-03): onSuccess for toast + invalidation, onError for handleError, wrapper for backward compat
+- Optimistic mutation pattern (12-03): onMutate snapshots cache and updates optimistically, onError rolls back
 - Keep return interface for backward compatibility
 - Add new properties (isFetching, isError, error, isPending) for enhanced UI
 - Handle Supabase errors: check `error && typeof error === 'object' && 'message' in error`
@@ -117,9 +121,9 @@ None - Plans 12-01 and 12-02 complete, ready for 12-03 and 12-04.
 ## Session Continuity
 
 Last session: 2026-01-27
-Stopped at: Completed 12-02-PLAN.md
+Stopped at: Completed 12-03-PLAN.md
 Resume file: None
 
 ---
 *State initialized: 2026-01-24*
-*Last updated: 2026-01-27 - Completed 12-02-PLAN.md*
+*Last updated: 2026-01-27 - Completed 12-03-PLAN.md*
