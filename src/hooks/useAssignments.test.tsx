@@ -651,4 +651,335 @@ describe('useAssignments', () => {
       expect(tasksByName['Day 5 Task'].scheduled_date).toBe('2026-01-29'); // offset 4
     });
   });
+
+  describe('React Query caching behavior', () => {
+    beforeEach(() => {
+      vi.mocked(useAuth).mockReturnValue({
+        user: { id: 'coach-1', email: 'coach@example.com' } as any,
+        session: { access_token: 'token' } as any,
+        loading: false,
+        signOut: vi.fn(),
+        sessionExpired: false,
+        clearSessionExpired: vi.fn(),
+      });
+    });
+
+    it('getTaskInstances uses cached data for same filter combination', async () => {
+      const mock = getMockSupabase();
+      const mockTasks = [
+        { id: 'task-1', assignee_id: 'student-1', name: 'Task 1', scheduled_date: '2026-01-25' },
+      ];
+
+      mock.queryBuilder.then.mockImplementation((resolve: (value: unknown) => void) => {
+        return Promise.resolve({ data: mockTasks, error: null }).then(resolve);
+      });
+
+      const { result } = renderHook(() => useAssignments(), {
+        wrapper: createWrapper(),
+      });
+
+      // First call - fetches from API
+      let tasks1: unknown;
+      await act(async () => {
+        tasks1 = await result.current.getTaskInstances({ assigneeId: 'student-1', date: '2026-01-25' });
+      });
+
+      // Second call with same filters - should use cache
+      let tasks2: unknown;
+      await act(async () => {
+        tasks2 = await result.current.getTaskInstances({ assigneeId: 'student-1', date: '2026-01-25' });
+      });
+
+      // Both calls return the same data
+      expect(tasks1).toEqual(tasks2);
+      // from() should only be called once due to caching
+      expect(mock.client.from).toHaveBeenCalledTimes(1);
+    });
+
+    it('getTaskInstances fetches fresh data when filters change', async () => {
+      const mock = getMockSupabase();
+
+      mock.queryBuilder.then.mockImplementation((resolve: (value: unknown) => void) => {
+        return Promise.resolve({ data: [], error: null }).then(resolve);
+      });
+
+      const { result } = renderHook(() => useAssignments(), {
+        wrapper: createWrapper(),
+      });
+
+      // First call with date A
+      await act(async () => {
+        await result.current.getTaskInstances({ date: '2026-01-25' });
+      });
+
+      // Second call with date B - different filter, should fetch again
+      await act(async () => {
+        await result.current.getTaskInstances({ date: '2026-01-26' });
+      });
+
+      // from() should be called twice due to different filters
+      expect(mock.client.from).toHaveBeenCalledTimes(2);
+    });
+
+    it('getGroupProgress uses cached data for same groupId and date', async () => {
+      const mock = getMockSupabase();
+
+      // Mock empty group (no members) - simple case
+      mock.queryBuilder.then.mockImplementation((resolve: (value: unknown) => void) => {
+        return Promise.resolve({ data: [], error: null }).then(resolve);
+      });
+
+      const { result } = renderHook(() => useAssignments(), {
+        wrapper: createWrapper(),
+      });
+
+      // First call
+      await act(async () => {
+        await result.current.getGroupProgress('group-1', '2026-01-25');
+      });
+
+      // Second call with same params - should use cache
+      await act(async () => {
+        await result.current.getGroupProgress('group-1', '2026-01-25');
+      });
+
+      // from() should only be called once due to caching (for group_members)
+      expect(mock.client.from).toHaveBeenCalledTimes(1);
+    });
+
+    it('createAssignment invalidates cache after successful creation', async () => {
+      const mock = getMockSupabase();
+
+      // Mock assignment insert
+      mock.queryBuilder.single.mockResolvedValueOnce({
+        data: { id: 'assignment-1', assigned_by: 'coach-1' },
+        error: null,
+      });
+
+      // Mock task instances insert
+      mock.queryBuilder.then.mockImplementation((resolve: (value: unknown) => void) => {
+        return Promise.resolve({ data: [], error: null }).then(resolve);
+      });
+
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <MemoryRouter>
+          <QueryClientProvider client={queryClient}>
+            {children}
+          </QueryClientProvider>
+        </MemoryRouter>
+      );
+
+      const { result } = renderHook(() => useAssignments(), { wrapper });
+
+      await act(async () => {
+        await result.current.createAssignment({
+          assignee_id: 'student-1',
+          schedule_type: 'once',
+          start_date: '2026-01-25',
+          tasks: [{ name: 'Test Task', day_offset: 0 }],
+        });
+      });
+
+      // Should invalidate all assignments queries
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['assignments'] });
+    });
+
+    it('updateTaskStatus invalidates cache after successful update', async () => {
+      const mock = getMockSupabase();
+
+      // Mock update response
+      mock.queryBuilder.then.mockImplementation((resolve: (value: unknown) => void) => {
+        return Promise.resolve({ data: null, error: null }).then(resolve);
+      });
+
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <MemoryRouter>
+          <QueryClientProvider client={queryClient}>
+            {children}
+          </QueryClientProvider>
+        </MemoryRouter>
+      );
+
+      const { result } = renderHook(() => useAssignments(), { wrapper });
+
+      await act(async () => {
+        await result.current.updateTaskStatus('task-1', 'completed');
+      });
+
+      // Should invalidate all assignments queries
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['assignments'] });
+    });
+  });
+
+  describe('getGroupProgress', () => {
+    beforeEach(() => {
+      vi.mocked(useAuth).mockReturnValue({
+        user: { id: 'coach-1' } as any,
+        session: {} as any,
+        loading: false,
+        signOut: vi.fn(),
+        sessionExpired: false,
+        clearSessionExpired: vi.fn(),
+      });
+    });
+
+    it('returns progress with member stats', async () => {
+      const mock = getMockSupabase();
+
+      // Mock group_members query
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => void) => {
+        return Promise.resolve({
+          data: [{ user_id: 'student-1' }, { user_id: 'student-2' }],
+          error: null,
+        }).then(resolve);
+      });
+
+      // Mock profiles query
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => void) => {
+        return Promise.resolve({
+          data: [
+            { user_id: 'student-1', display_name: 'Alice', email: 'alice@example.com' },
+            { user_id: 'student-2', display_name: 'Bob', email: 'bob@example.com' },
+          ],
+          error: null,
+        }).then(resolve);
+      });
+
+      // Mock todayInstances query
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => void) => {
+        return Promise.resolve({
+          data: [
+            { id: 'task-1', assignee_id: 'student-1', status: 'completed' },
+            { id: 'task-2', assignee_id: 'student-1', status: 'pending' },
+            { id: 'task-3', assignee_id: 'student-2', status: 'completed' },
+          ],
+          error: null,
+        }).then(resolve);
+      });
+
+      // Mock overdueInstances query
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => void) => {
+        return Promise.resolve({ data: [], error: null }).then(resolve);
+      });
+
+      // Mock catchupInstances query
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => void) => {
+        return Promise.resolve({ data: [], error: null }).then(resolve);
+      });
+
+      const { result } = renderHook(() => useAssignments(), {
+        wrapper: createWrapper(),
+      });
+
+      let progress: { completed: number; total: number; members: Array<{ name: string; completedToday: number }> };
+      await act(async () => {
+        progress = await result.current.getGroupProgress('group-1', '2026-01-25');
+      });
+
+      expect(progress!.completed).toBe(2);
+      expect(progress!.total).toBe(3);
+      expect(progress!.members).toHaveLength(2);
+      expect(progress!.members.find(m => m.name === 'Alice')?.completedToday).toBe(1);
+      expect(progress!.members.find(m => m.name === 'Bob')?.completedToday).toBe(1);
+    });
+
+    it('returns default progress when no members in group', async () => {
+      const mock = getMockSupabase();
+
+      // Mock empty group_members
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => void) => {
+        return Promise.resolve({ data: [], error: null }).then(resolve);
+      });
+
+      const { result } = renderHook(() => useAssignments(), {
+        wrapper: createWrapper(),
+      });
+
+      let progress: { completed: number; total: number; members: unknown[]; overdueCount: number };
+      await act(async () => {
+        progress = await result.current.getGroupProgress('group-1', '2026-01-25');
+      });
+
+      expect(progress!).toEqual({
+        completed: 0,
+        total: 0,
+        members: [],
+        overdueCount: 0,
+      });
+    });
+
+    it('returns default progress on error', async () => {
+      const mock = getMockSupabase();
+
+      // Mock error
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => void) => {
+        return Promise.resolve({ data: null, error: { message: 'Database error' } }).then(resolve);
+      });
+
+      const { result } = renderHook(() => useAssignments(), {
+        wrapper: createWrapper(),
+      });
+
+      let progress: { completed: number; total: number; members: unknown[]; overdueCount: number };
+      await act(async () => {
+        progress = await result.current.getGroupProgress('group-1', '2026-01-25');
+      });
+
+      expect(progress!).toEqual({
+        completed: 0,
+        total: 0,
+        members: [],
+        overdueCount: 0,
+      });
+    });
+  });
+
+  describe('initialization', () => {
+    it('returns loading: false (utility hook always ready)', () => {
+      vi.mocked(useAuth).mockReturnValue({
+        user: { id: 'coach-1' } as any,
+        session: {} as any,
+        loading: false,
+        signOut: vi.fn(),
+        sessionExpired: false,
+        clearSessionExpired: vi.fn(),
+      });
+
+      const { result } = renderHook(() => useAssignments(), {
+        wrapper: createWrapper(),
+      });
+
+      expect(result.current.loading).toBe(false);
+    });
+
+    it('returns all expected functions', () => {
+      vi.mocked(useAuth).mockReturnValue({
+        user: { id: 'coach-1' } as any,
+        session: {} as any,
+        loading: false,
+        signOut: vi.fn(),
+        sessionExpired: false,
+        clearSessionExpired: vi.fn(),
+      });
+
+      const { result } = renderHook(() => useAssignments(), {
+        wrapper: createWrapper(),
+      });
+
+      expect(result.current.createAssignment).toBeInstanceOf(Function);
+      expect(result.current.getTaskInstances).toBeInstanceOf(Function);
+      expect(result.current.updateTaskStatus).toBeInstanceOf(Function);
+      expect(result.current.getGroupProgress).toBeInstanceOf(Function);
+    });
+  });
 });
