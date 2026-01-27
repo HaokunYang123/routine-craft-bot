@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-25)
 ## Current Position
 
 Phase: 10 of 14 (Simple Hook Migration)
-Plan: 2 of 4 complete
+Plan: 3 of 4 complete
 Status: In progress
-Last activity: 2026-01-27 - Completed 10-02-PLAN.md
+Last activity: 2026-01-27 - Completed 10-03-PLAN.md
 
-Progress: [==========--------] 65% (9 phases + 2 plans complete)
+Progress: [==========--------] 68% (9 phases + 3 plans complete)
 
 ## Milestone History
 
@@ -46,10 +46,11 @@ See: .planning/ROADMAP.md for full details
 - All 103 tests still passing
 
 **Phase 10 Progress:**
-- Plan 01 complete: useProfile migrated to React Query
-- Plan 02 complete: useGroups migrated to React Query
-- Pattern validated with complex hook (5 mutations)
-- Tests: 124 passing (7 new tests in 10-02)
+- Plan 01 complete: useProfile migrated to React Query (14 tests)
+- Plan 02 complete: useGroups migrated to React Query (25 tests)
+- Plan 03 complete: useTemplates migrated to React Query (17 tests)
+- Tests: 141 passing (17 new tests in 10-03)
+- One plan remaining: 10-04 (useAssignments migration)
 
 ## Accumulated Context
 
@@ -68,6 +69,7 @@ Recent key decisions:
 - Backward-compatible hook interface during migration (D-1001-01)
 - Use invalidateQueries for cache sync after mutations (D-1001-02)
 - Handle Supabase errors as objects with message property (D-1002-01)
+- Handle PGRST205 gracefully by returning empty array (D-1003-01)
 
 ### Pending Todos
 
@@ -75,7 +77,7 @@ None.
 
 ### Blockers/Concerns
 
-None - Plan 10-02 complete, ready for Plan 10-03 (useTemplates migration).
+None - Plan 10-03 complete, ready for Plan 10-04 (useAssignments migration).
 
 **Research completed for v2.0:**
 - React Query architecture patterns documented
@@ -83,19 +85,20 @@ None - Plan 10-02 complete, ready for Plan 10-03 (useTemplates migration).
 - 4 hooks NOT to migrate (useAuth, useAIAssistant, use-toast, use-mobile)
 - Migration pitfalls documented (13 critical/moderate pitfalls)
 
-**Migration pattern established (10-01, 10-02):**
+**Migration pattern established (10-01, 10-02, 10-03):**
 - Extract queryFn as standalone async function
 - Replace useState/useEffect with useQuery
 - Keep return interface for backward compatibility
 - Add new properties (isFetching, isError, error) for enhanced UI
 - Handle Supabase errors: check `error && typeof error === 'object' && 'message' in error`
+- Handle PGRST205 (table not found): return empty array, not error
 
 ## Session Continuity
 
 Last session: 2026-01-27
-Stopped at: Completed 10-02-PLAN.md
+Stopped at: Completed 10-03-PLAN.md
 Resume file: None
 
 ---
 *State initialized: 2026-01-24*
-*Last updated: 2026-01-27 - Plan 10-02 complete*
+*Last updated: 2026-01-27 - Plan 10-03 complete*
