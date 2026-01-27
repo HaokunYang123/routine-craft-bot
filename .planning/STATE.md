@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-25)
 
 **Core value:** Users can reliably complete their daily workflows without encountering errors, crashes, or unexpected behavior.
-**Current focus:** Phase 12 - Mutations & Optimistic Updates
+**Current focus:** Phase 13 - Error Boundaries & Suspense (next)
 
 ## Current Position
 
 Phase: 12 of 14 (Mutations & Optimistic Updates)
-Plan: 03 of 04
-Status: In progress
-Last activity: 2026-01-27 - Completed 12-03-PLAN.md
+Plan: 04 of 04
+Status: Phase complete
+Last activity: 2026-01-27 - Completed 12-04-PLAN.md
 
-Progress: [============--------] 79% (11/14 phases complete)
+Progress: [=============-------] 86% (12/14 phases complete)
 
 ## Milestone History
 
@@ -55,11 +55,11 @@ See: .planning/ROADMAP.md for full details
 - useStickers migrated (useQueries + combine, 30 tests)
 - All 209 tests passing
 
-**Phase 12 In Progress:**
+**Phase 12 Complete:**
 - 12-01: useGroups useMutation migration (complete)
 - 12-02: useTemplates + useProfile useMutation migration (complete)
 - 12-03: useAssignments useMutation with optimistic updates (complete)
-- 12-04: useRecurringSchedules useMutation migration (pending)
+- 12-04: Student components integration (complete)
 - All 228 tests passing
 
 ## Accumulated Context
@@ -92,6 +92,8 @@ Recent key decisions:
 - No toast on successful task completion - reduces noise for frequent action (D-1203-01)
 - Optimistic update pattern: onMutate snapshots/updates cache, onError rolls back (D-1203-02)
 - User-friendly error messages for mutations: "Couldn't save changes. Please try again." (D-1203-03)
+- StudentTasks uses legacy 'tasks' table, keep direct Supabase pattern with optimistic update (D-1204-01)
+- Dual optimistic update (local state + cache) for instant feedback in components with local state (D-1204-02)
 
 ### Pending Todos
 
@@ -99,7 +101,7 @@ None.
 
 ### Blockers/Concerns
 
-None - Plans 12-01, 12-02, and 12-03 complete, ready for 12-04.
+None - Phase 12 complete. Ready for Phase 13.
 
 **Research completed for v2.0:**
 - React Query architecture patterns documented
@@ -113,6 +115,7 @@ None - Plans 12-01, 12-02, and 12-03 complete, ready for 12-04.
 - Complex hooks with nested enrichment (11-02): Promise.all for parallel enrichment queries
 - useMutation pattern (12-01, 12-02, 12-03): onSuccess for toast + invalidation, onError for handleError, wrapper for backward compat
 - Optimistic mutation pattern (12-03): onMutate snapshots cache and updates optimistically, onError rolls back
+- Component integration (12-04): Local state + hook mutation for instant UI, revert on failure
 - Keep return interface for backward compatibility
 - Add new properties (isFetching, isError, error, isPending) for enhanced UI
 - Handle Supabase errors: check `error && typeof error === 'object' && 'message' in error`
@@ -121,9 +124,9 @@ None - Plans 12-01, 12-02, and 12-03 complete, ready for 12-04.
 ## Session Continuity
 
 Last session: 2026-01-27
-Stopped at: Completed 12-03-PLAN.md
+Stopped at: Completed 12-04-PLAN.md
 Resume file: None
 
 ---
 *State initialized: 2026-01-24*
-*Last updated: 2026-01-27 - Completed 12-03-PLAN.md*
+*Last updated: 2026-01-27 - Completed 12-04-PLAN.md*
