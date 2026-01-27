@@ -3,13 +3,18 @@ import * as React from "react";
 import type { ToastActionElement, ToastProps } from "@/components/ui/toast";
 
 const TOAST_LIMIT = 1;
-const TOAST_REMOVE_DELAY = 1000000;
+const TOAST_REMOVE_DELAY = 1000; // Delay after toast closes before removing from DOM
+
+// Default durations for auto-dismiss (in milliseconds)
+const DEFAULT_DURATION = 3000; // 3 seconds for success/default
+const DESTRUCTIVE_DURATION = 5000; // 5 seconds for errors
 
 type ToasterToast = ToastProps & {
   id: string;
   title?: React.ReactNode;
   description?: React.ReactNode;
   action?: ToastActionElement;
+  duration?: number;
 };
 
 const actionTypes = {
@@ -134,8 +139,22 @@ function dispatch(action: Action) {
 
 type Toast = Omit<ToasterToast, "id">;
 
+/**
+ * Calculate the duration for a toast based on variant or explicit duration
+ * - Default/success: 3 seconds
+ * - Destructive (error): 5 seconds
+ * - Custom duration overrides defaults
+ */
+function getToastDuration(props: Toast): number {
+  if (props.duration !== undefined) {
+    return props.duration;
+  }
+  return props.variant === "destructive" ? DESTRUCTIVE_DURATION : DEFAULT_DURATION;
+}
+
 function toast({ ...props }: Toast) {
   const id = genId();
+  const duration = getToastDuration(props);
 
   const update = (props: ToasterToast) =>
     dispatch({
@@ -149,6 +168,7 @@ function toast({ ...props }: Toast) {
     toast: {
       ...props,
       id,
+      duration,
       open: true,
       onOpenChange: (open) => {
         if (!open) dismiss();
