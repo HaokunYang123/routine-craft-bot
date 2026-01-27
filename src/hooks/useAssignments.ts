@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { useToast } from "./use-toast";
@@ -67,16 +67,19 @@ export function useAssignments() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const createAssignment = useCallback(async (input: CreateAssignmentInput) => {
-    console.log("[useAssignments] createAssignment called with input:", JSON.stringify(input, null, 2));
-    console.log("[useAssignments] user:", user?.id);
+  // Track task instance count for success toast (set during mutation)
+  let lastTaskInstanceCount = 0;
 
-    if (!user) {
-      console.log("[useAssignments] No user, returning null");
-      return null;
-    }
+  const createAssignmentMutation = useMutation({
+    mutationFn: async (input: CreateAssignmentInput) => {
+      console.log("[useAssignments] createAssignment called with input:", JSON.stringify(input, null, 2));
+      console.log("[useAssignments] user:", user?.id);
 
-    try {
+      if (!user) {
+        console.log("[useAssignments] No user, throwing error");
+        throw new Error("No authenticated user");
+      }
+
       console.log("[useAssignments] Starting assignment creation...");
       // Create the assignment
       const insertData = {
@@ -121,11 +124,13 @@ export function useAssignments() {
 
       if (assigneeIds.length === 0) {
         console.log("[useAssignments] No assignees found, returning early");
+        // Show warning but still return assignment (not a hard error)
         toast({
           title: "Warning",
           description: "No assignees found for this assignment",
           variant: "destructive",
         });
+        lastTaskInstanceCount = 0;
         return assignment;
       }
 
@@ -171,7 +176,7 @@ export function useAssignments() {
       } else if (input.tasks) {
         // Custom tasks - preserve all fields including start_date, due_date, scheduled_time
         console.log("[useAssignments] Using custom tasks path - input.tasks:", input.tasks);
-        tasks = input.tasks.map((t, index) => ({
+        tasks = input.tasks.map((t) => ({
           name: t.name,
           description: t.description,
           duration_minutes: t.duration_minutes,
@@ -338,20 +343,36 @@ export function useAssignments() {
         console.log("[useAssignments] No task instances to create - skipping insert");
       }
 
-      toast({
-        title: "Assignment Created",
-        description: `Created ${taskInstances.length} task instances`,
-      });
-
-      // Invalidate assignments cache to ensure fresh data
-      await queryClient.invalidateQueries({ queryKey: queryKeys.assignments.all });
+      // Store for success toast
+      lastTaskInstanceCount = taskInstances.length;
 
       return assignment;
-    } catch (error) {
+    },
+    onSuccess: () => {
+      toast({
+        title: "Assignment Created",
+        description: `Created ${lastTaskInstanceCount} task instances`,
+      });
+      return queryClient.invalidateQueries({ queryKey: queryKeys.assignments.all });
+    },
+    onError: (error) => {
       handleError(error, { component: 'useAssignments', action: 'create assignment' });
+    },
+  });
+
+  // Backward-compatible wrapper: catches errors and returns null
+  const createAssignment = useCallback(async (input: CreateAssignmentInput) => {
+    if (!user) {
+      console.log("[useAssignments] No user, returning null");
       return null;
     }
-  }, [user, toast, queryClient]);
+    try {
+      return await createAssignmentMutation.mutateAsync(input);
+    } catch {
+      // Error already handled by onError
+      return null;
+    }
+  }, [user, createAssignmentMutation]);
 
   const getTaskInstances = useCallback(async (
     filters: {
@@ -554,6 +575,7 @@ export function useAssignments() {
   return {
     loading: false, // Utility hook is always "ready" - no auto-fetch on mount
     createAssignment,
+    isCreating: createAssignmentMutation.isPending,
     getTaskInstances,
     updateTaskStatus,
     getGroupProgress,
