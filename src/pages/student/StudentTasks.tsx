@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 import { format, isToday, isTomorrow, parseISO, isValid } from "date-fns";
 import { cn, safeParseISO } from "@/lib/utils";
 import {
@@ -24,6 +25,7 @@ interface Task {
 
 export default function StudentTasks() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -45,14 +47,42 @@ export default function StudentTasks() {
   };
 
   const toggleTask = async (task: Task) => {
-    await supabase
-      .from("tasks")
-      .update({
-        is_completed: !task.is_completed,
-        completed_at: !task.is_completed ? new Date().toISOString() : null,
-      })
-      .eq("id", task.id);
-    fetchTasks();
+    const newCompletedState = !task.is_completed;
+
+    // Optimistic update for instant UI feedback
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === task.id
+          ? { ...t, is_completed: newCompletedState }
+          : t
+      )
+    );
+
+    try {
+      const { error } = await supabase
+        .from("tasks")
+        .update({
+          is_completed: newCompletedState,
+          completed_at: newCompletedState ? new Date().toISOString() : null,
+        })
+        .eq("id", task.id);
+
+      if (error) throw error;
+    } catch {
+      // Revert on error
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === task.id
+            ? { ...t, is_completed: !newCompletedState }
+            : t
+        )
+      );
+      toast({
+        title: "Error",
+        description: "Couldn't save changes. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const todayTasks = tasks.filter(t => {
