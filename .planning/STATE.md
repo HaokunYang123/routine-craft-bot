@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-01-25)
 ## Current Position
 
 Phase: 11 of 14 (Complex Hook Migration)
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-01-26 - Phase 10 complete
+Plan: 03 of 5 complete
+Status: In progress
+Last activity: 2026-01-27 - Completed 11-03-PLAN.md (useStickers migration)
 
 Progress: [===========---------] 71% (10/14 phases complete)
 
@@ -50,6 +50,10 @@ See: .planning/ROADMAP.md for full details
 - useTemplates migrated to React Query (17 tests, 3 mutations)
 - All 141 tests passing
 
+**Phase 11 In Progress:**
+- Plan 03 complete: useStickers migrated to React Query useQueries with combine (30 tests)
+- All 171 tests passing
+
 ## Accumulated Context
 
 ### Decisions
@@ -68,6 +72,8 @@ Recent key decisions:
 - Use invalidateQueries for cache sync after mutations (D-1001-02)
 - Handle Supabase errors as objects with message property (D-1002-01)
 - Handle PGRST205 gracefully by returning empty array (D-1003-01)
+- Export calculateStreak as pure function for testability (D-1103-01)
+- Use useQueries combine for parallel fetching with derived state (D-1103-02)
 
 ### Pending Todos
 
@@ -75,7 +81,7 @@ None.
 
 ### Blockers/Concerns
 
-None - Phase 10 complete, ready for Phase 11 (Complex Hook Migration).
+None - Phase 11 plan 03 complete, ready for plan 04 (useRecurringSchedules migration).
 
 **Research completed for v2.0:**
 - React Query architecture patterns documented
@@ -83,9 +89,9 @@ None - Phase 10 complete, ready for Phase 11 (Complex Hook Migration).
 - 4 hooks NOT to migrate (useAuth, useAIAssistant, use-toast, use-mobile)
 - Migration pitfalls documented (13 critical/moderate pitfalls)
 
-**Migration pattern established (10-01, 10-02, 10-03):**
-- Extract queryFn as standalone async function
-- Replace useState/useEffect with useQuery
+**Migration patterns established:**
+- Simple hooks (10-01, 10-02, 10-03): Extract queryFn, replace useState/useEffect with useQuery
+- Complex hooks with parallel fetching (11-03): useQueries with combine for multiple data sources and derived state
 - Keep return interface for backward compatibility
 - Add new properties (isFetching, isError, error) for enhanced UI
 - Handle Supabase errors: check `error && typeof error === 'object' && 'message' in error`
@@ -93,10 +99,10 @@ None - Phase 10 complete, ready for Phase 11 (Complex Hook Migration).
 
 ## Session Continuity
 
-Last session: 2026-01-26
-Stopped at: Completed Phase 10
+Last session: 2026-01-27
+Stopped at: Completed 11-03-PLAN.md (useStickers migration)
 Resume file: None
 
 ---
 *State initialized: 2026-01-24*
-*Last updated: 2026-01-26 - Phase 10 complete*
+*Last updated: 2026-01-27 - Completed 11-03 useStickers migration*
