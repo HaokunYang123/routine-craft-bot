@@ -145,12 +145,13 @@ Plans:
   2. User sees list update immediately after create/edit/delete (no manual refresh)
   3. User sees instant task completion feedback (checkbox updates before server responds)
   4. User sees rollback if task completion fails (checkbox reverts)
-**Plans**: TBD
+**Plans**: 4 plans (2 waves)
 
 Plans:
-- [ ] 12-01: Mutation Pattern Setup
-- [ ] 12-02: Query Invalidation Strategy
-- [ ] 12-03: Optimistic Update Patterns
+- [ ] 12-01-PLAN.md — Toast duration + useGroups useMutation migration
+- [ ] 12-02-PLAN.md — useTemplates + useProfile useMutation migration
+- [ ] 12-03-PLAN.md — useAssignments optimistic updates (task completion)
+- [ ] 12-04-PLAN.md — Student components integration
 
 ### Phase 13: Pagination
 **Goal**: Add cursor-based pagination and infinite scroll for large datasets.
@@ -205,7 +206,7 @@ Phases execute in numeric order: 9 -> 10 -> 11 -> 12 -> 13 -> 14
 | 9. React Query Foundation | v2.0 | 1/1 | Complete | 2026-01-26 |
 | 10. Simple Hook Migration | v2.0 | 3/3 | Complete | 2026-01-26 |
 | 11. Complex Hook Migration | v2.0 | 3/3 | Complete | 2026-01-26 |
-| 12. Mutations & Optimistic | v2.0 | 0/3 | Not started | - |
+| 12. Mutations & Optimistic | v2.0 | 0/4 | Planned | - |
 | 13. Pagination | v2.0 | 0/3 | Not started | - |
 | 14. Render Optimization | v2.0 | 0/3 | Not started | - |
 
