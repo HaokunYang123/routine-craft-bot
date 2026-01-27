@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useAssignments } from "@/hooks/useAssignments";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -28,7 +29,6 @@ import {
   subMonths,
 } from "date-fns";
 import { cn, safeParseISO } from "@/lib/utils";
-import { useToast } from "@/hooks/use-toast";
 import { handleError } from "@/lib/error";
 import { Button } from "@/components/ui/button";
 
@@ -44,7 +44,7 @@ interface TaskInstance {
 
 export default function StudentCalendar() {
   const { user } = useAuth();
-  const { toast } = useToast();
+  const { updateTaskStatus } = useAssignments();
   const [tasks, setTasks] = useState<TaskInstance[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -80,32 +80,26 @@ export default function StudentCalendar() {
   };
 
   const toggleTaskStatus = async (taskId: string, completed: boolean) => {
-    try {
-      setTasks((prev) =>
-        prev.map((t) =>
-          t.id === taskId
-            ? { ...t, status: completed ? "completed" : "pending" }
-            : t
-        )
-      );
+    // Update local state immediately for instant UI feedback
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === taskId
+          ? { ...t, status: completed ? "completed" : "pending" }
+          : t
+      )
+    );
 
-      const { error } = await supabase
-        .from("task_instances")
-        .update({
-          status: completed ? "completed" : "pending",
-          completed_at: completed ? new Date().toISOString() : null,
-        })
-        .eq("id", taskId);
+    // Use hook mutation - handles optimistic cache update, rollback, and error toast
+    const success = await updateTaskStatus(
+      taskId,
+      completed ? "completed" : "pending",
+      undefined, // note
+      user?.id, // assigneeId for cache key
+      selectedDate ? format(selectedDate, "yyyy-MM-dd") : undefined // date for cache key
+    );
 
-      if (error) throw error;
-
-      if (completed) {
-        toast({
-          title: "Task completed!",
-          description: "Keep up the good work!",
-        });
-      }
-    } catch (error) {
+    // Revert local state if mutation failed
+    if (!success) {
       setTasks((prev) =>
         prev.map((t) =>
           t.id === taskId
@@ -113,11 +107,6 @@ export default function StudentCalendar() {
             : t
         )
       );
-      toast({
-        title: "Error",
-        description: "Failed to update task",
-        variant: "destructive",
-      });
     }
   };
 
