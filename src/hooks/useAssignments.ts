@@ -62,6 +62,15 @@ interface CreateAssignmentInput {
   }>;
 }
 
+interface UpdateTaskStatusInput {
+  taskId: string;
+  status: "pending" | "completed" | "missed";
+  note?: string;
+  // Context for cache update (used for optimistic updates)
+  assigneeId?: string;
+  date?: string;
+}
+
 export function useAssignments() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -429,12 +438,10 @@ export function useAssignments() {
     }
   }, [queryClient]);
 
-  const updateTaskStatus = useCallback(async (
-    taskId: string,
-    status: "pending" | "completed" | "missed",
-    note?: string
-  ) => {
-    try {
+  // Optimistic update mutation for task status
+  // Key feature: checkbox updates instantly, rollback on error
+  const updateTaskStatusMutation = useMutation({
+    mutationFn: async ({ taskId, status, note }: UpdateTaskStatusInput) => {
       const updates: Record<string, unknown> = {
         status,
         completed_at: status === "completed" ? new Date().toISOString() : null,
@@ -450,27 +457,74 @@ export function useAssignments() {
         .eq("id", taskId);
 
       if (error) throw error;
+      return { taskId, status };
+    },
 
-      if (status === "completed") {
-        toast({
-          title: "Task Completed",
-          description: "Great job!",
-        });
+    onMutate: async ({ taskId, status, assigneeId, date }) => {
+      // 1. Cancel any outgoing refetches to prevent overwriting optimistic update
+      await queryClient.cancelQueries({ queryKey: queryKeys.assignments.all });
+
+      // 2. Build the specific query key for this user's tasks
+      const instancesKey = queryKeys.assignments.instances({
+        assigneeId,
+        date,
+      });
+
+      // 3. Snapshot current cache for rollback
+      const previousTasks = queryClient.getQueryData<TaskInstance[]>(instancesKey);
+
+      // 4. Optimistically update the cache
+      if (previousTasks) {
+        queryClient.setQueryData<TaskInstance[]>(instancesKey, (old) =>
+          old?.map((t) =>
+            t.id === taskId
+              ? { ...t, status, completed_at: status === "completed" ? new Date().toISOString() : null }
+              : t
+          )
+        );
       }
 
-      // Invalidate assignments cache to ensure fresh data
-      await queryClient.invalidateQueries({ queryKey: queryKeys.assignments.all });
+      // 5. Return context for rollback
+      return { previousTasks, instancesKey };
+    },
 
-      return true;
-    } catch (error) {
+    onError: (_err, _variables, context) => {
+      // Rollback to previous state
+      if (context?.previousTasks) {
+        queryClient.setQueryData(context.instancesKey, context.previousTasks);
+      }
+      // Show error toast (per CONTEXT.md - user-friendly message)
       toast({
         title: "Error",
-        description: "Failed to update task",
+        description: "Couldn't save changes. Please try again.",
         variant: "destructive",
       });
+    },
+
+    onSettled: () => {
+      // Always refetch to ensure server state consistency
+      queryClient.invalidateQueries({ queryKey: queryKeys.assignments.all });
+    },
+
+    // Note: NO onSuccess toast per CONTEXT.md - task completion is frequent, toasts add noise
+  });
+
+  // Backward-compatible wrapper: returns boolean for success/failure
+  const updateTaskStatus = useCallback(async (
+    taskId: string,
+    status: "pending" | "completed" | "missed",
+    note?: string,
+    assigneeId?: string,
+    date?: string
+  ) => {
+    try {
+      await updateTaskStatusMutation.mutateAsync({ taskId, status, note, assigneeId, date });
+      return true;
+    } catch {
+      // Error already handled by onError
       return false;
     }
-  }, [toast, queryClient]);
+  }, [updateTaskStatusMutation]);
 
   const getGroupProgress = useCallback(async (groupId: string, date?: string) => {
     const targetDate = date || format(new Date(), "yyyy-MM-dd");
@@ -578,6 +632,7 @@ export function useAssignments() {
     isCreating: createAssignmentMutation.isPending,
     getTaskInstances,
     updateTaskStatus,
+    isUpdatingTask: updateTaskStatusMutation.isPending,
     getGroupProgress,
   };
 }

@@ -267,7 +267,7 @@ describe('useAssignments', () => {
       });
     });
 
-    it('updates task status and shows toast on completion', async () => {
+    it('updates task status successfully without showing toast (per CONTEXT.md)', async () => {
       const mock = getMockSupabase();
       mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => void) => {
         return Promise.resolve({ data: null, error: null }).then(resolve);
@@ -285,12 +285,8 @@ describe('useAssignments', () => {
       expect(success!).toBe(true);
       expect(mock.client.from).toHaveBeenCalledWith('task_instances');
       expect(mock.queryBuilder.update).toHaveBeenCalled();
-      expect(mockToast).toHaveBeenCalledWith(
-        expect.objectContaining({
-          title: 'Task Completed',
-          description: 'Great job!',
-        })
-      );
+      // No toast on successful completion - per CONTEXT.md "Task completion: checkbox update only, no toast"
+      expect(mockToast).not.toHaveBeenCalled();
     });
 
     it('updates task status without toast for non-completed status', async () => {
@@ -315,7 +311,7 @@ describe('useAssignments', () => {
       );
     });
 
-    it('handles errors and shows error toast', async () => {
+    it('handles errors and shows user-friendly error toast', async () => {
       const mock = getMockSupabase();
       mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => void) => {
         return Promise.resolve({ data: null, error: { message: 'Update failed' } }).then(resolve);
@@ -331,10 +327,11 @@ describe('useAssignments', () => {
       });
 
       expect(success!).toBe(false);
+      // Per CONTEXT.md - user-friendly error message
       expect(mockToast).toHaveBeenCalledWith(
         expect.objectContaining({
           title: 'Error',
-          description: 'Failed to update task',
+          description: "Couldn't save changes. Please try again.",
           variant: 'destructive',
         })
       );
