@@ -596,4 +596,136 @@ describe('useTemplates', () => {
       expect(success).toBe(false);
     });
   });
+
+  describe('mutation loading states', () => {
+    it('exposes isCreating, isUpdating, isDeleting states', async () => {
+      const mock = getMockSupabase();
+
+      // Mock initial fetchTemplates
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: [], error: null }).then(resolve);
+      });
+
+      const { result } = renderHook(() => useTemplates(), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      // All mutation states should start as false
+      expect(result.current.isCreating).toBe(false);
+      expect(result.current.isUpdating).toBe(false);
+      expect(result.current.isDeleting).toBe(false);
+    });
+
+    it('isCreating becomes false after createTemplate completes', async () => {
+      const mock = getMockSupabase();
+
+      // Mock initial fetchTemplates
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: [], error: null }).then(resolve);
+      });
+
+      const { result } = renderHook(() => useTemplates(), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      // Mock insert template response
+      const newTemplate = {
+        id: 'new-template-1',
+        name: 'Test',
+        description: 'Desc',
+        coach_id: 'coach-1',
+        created_at: '2026-01-15',
+      };
+      mock.queryBuilder.single.mockResolvedValueOnce({ data: newTemplate, error: null });
+
+      // Mock fetchTemplates after invalidation
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: [newTemplate], error: null }).then(resolve);
+      });
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: [], error: null }).then(resolve);
+      });
+
+      await act(async () => {
+        await result.current.createTemplate('Test', 'Desc', []);
+      });
+
+      // After completion, isCreating should be false
+      expect(result.current.isCreating).toBe(false);
+    });
+
+    it('isUpdating becomes false after updateTemplate completes', async () => {
+      const mock = getMockSupabase();
+
+      // Mock initial fetchTemplates
+      const existingTemplate = {
+        id: 'template-1',
+        name: 'Old Name',
+        description: 'Old desc',
+        coach_id: 'coach-1',
+        created_at: '2026-01-01',
+      };
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: [existingTemplate], error: null }).then(resolve);
+      });
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: [], error: null }).then(resolve);
+      });
+
+      const { result } = renderHook(() => useTemplates(), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      // Mock update template response
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: null, error: null }).then(resolve);
+      });
+
+      // Mock delete tasks response
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: null, error: null }).then(resolve);
+      });
+
+      // Mock fetchTemplates after invalidation
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: [{ ...existingTemplate, name: 'Updated Name' }], error: null }).then(resolve);
+      });
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: [], error: null }).then(resolve);
+      });
+
+      await act(async () => {
+        await result.current.updateTemplate('template-1', 'Updated Name', 'New desc', []);
+      });
+
+      // After completion, isUpdating should be false
+      expect(result.current.isUpdating).toBe(false);
+    });
+
+    it('isDeleting becomes false after deleteTemplate completes', async () => {
+      const mock = getMockSupabase();
+
+      // Mock initial fetchTemplates
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: [], error: null }).then(resolve);
+      });
+
+      const { result } = renderHook(() => useTemplates(), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      // Mock delete response
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: null, error: null }).then(resolve);
+      });
+
+      // Mock fetchTemplates after invalidation
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: [], error: null }).then(resolve);
+      });
+
+      await act(async () => {
+        await result.current.deleteTemplate('template-1');
+      });
+
+      // After completion, isDeleting should be false
+      expect(result.current.isDeleting).toBe(false);
+    });
+  });
 });

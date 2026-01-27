@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { useToast } from "./use-toast";
@@ -85,21 +85,16 @@ export function useTemplates() {
     enabled: !!user,
   });
 
-  const createTemplate = async (
-    name: string,
-    description: string,
-    tasks: TemplateTask[]
-  ): Promise<Template | null> => {
-    if (!user) return null;
-
-    try {
+  // Create template mutation
+  const createTemplateMutation = useMutation({
+    mutationFn: async (data: { name: string; description: string; tasks: TemplateTask[] }) => {
       // Create template
       const { data: templateData, error: templateError } = await supabase
         .from("templates")
         .insert({
-          coach_id: user.id,
-          name,
-          description,
+          coach_id: user!.id,
+          name: data.name,
+          description: data.description,
         })
         .select()
         .single();
@@ -107,8 +102,8 @@ export function useTemplates() {
       if (templateError) throw templateError;
 
       // Create template tasks
-      if (tasks.length > 0) {
-        const taskInserts = tasks.map((task, index) => ({
+      if (data.tasks.length > 0) {
+        const taskInserts = data.tasks.map((task, index) => ({
           template_id: templateData.id,
           title: task.title,
           description: task.description,
@@ -124,44 +119,35 @@ export function useTemplates() {
         if (tasksError) throw tasksError;
       }
 
-      const newTemplate: Template = {
+      return {
         ...templateData,
-        tasks,
-      };
-
+        tasks: data.tasks,
+      } as Template;
+    },
+    onSuccess: async (data) => {
       toast({
         title: "Template Created",
-        description: `"${name}" has been saved with ${tasks.length} tasks.`,
+        description: `"${data.name}" has been saved with ${data.tasks?.length || 0} tasks.`,
       });
-
-      // Invalidate cache to refetch fresh data
-      await queryClient.invalidateQueries({ queryKey: queryKeys.templates.list(user.id) });
-
-      return newTemplate;
-    } catch (error) {
+      return queryClient.invalidateQueries({ queryKey: queryKeys.templates.list(user!.id) });
+    },
+    onError: (error) => {
       handleError(error, { component: 'useTemplates', action: 'create template' });
-      return null;
-    }
-  };
+    },
+  });
 
-  const updateTemplate = async (
-    templateId: string,
-    name: string,
-    description: string,
-    tasks: TemplateTask[]
-  ): Promise<Template | null> => {
-    if (!user) return null;
-
-    try {
+  // Update template mutation
+  const updateTemplateMutation = useMutation({
+    mutationFn: async (data: { templateId: string; name: string; description: string; tasks: TemplateTask[] }) => {
       // Update template
       const { error: templateError } = await supabase
         .from("templates")
         .update({
-          name,
-          description,
+          name: data.name,
+          description: data.description,
           updated_at: new Date().toISOString(),
         })
-        .eq("id", templateId);
+        .eq("id", data.templateId);
 
       if (templateError) throw templateError;
 
@@ -169,14 +155,14 @@ export function useTemplates() {
       const { error: deleteError } = await supabase
         .from("template_tasks")
         .delete()
-        .eq("template_id", templateId);
+        .eq("template_id", data.templateId);
 
       if (deleteError) throw deleteError;
 
       // Insert new tasks
-      if (tasks.length > 0) {
-        const taskInserts = tasks.map((task, index) => ({
-          template_id: templateId,
+      if (data.tasks.length > 0) {
+        const taskInserts = data.tasks.map((task, index) => ({
+          template_id: data.templateId,
           title: task.title,
           description: task.description,
           duration_minutes: task.duration_minutes,
@@ -191,52 +177,84 @@ export function useTemplates() {
         if (tasksError) throw tasksError;
       }
 
-      const updatedTemplate: Template = {
-        id: templateId,
-        name,
-        description,
-        coach_id: user.id,
-        created_at: templates?.find((t) => t.id === templateId)?.created_at || new Date().toISOString(),
-        tasks,
-      };
-
+      return {
+        id: data.templateId,
+        name: data.name,
+        description: data.description,
+        coach_id: user!.id,
+        created_at: templates?.find((t) => t.id === data.templateId)?.created_at || new Date().toISOString(),
+        tasks: data.tasks,
+      } as Template;
+    },
+    onSuccess: async (data) => {
       toast({
         title: "Template Updated",
-        description: `"${name}" has been saved.`,
+        description: `"${data.name}" has been saved.`,
       });
-
-      // Invalidate cache to refetch fresh data
-      await queryClient.invalidateQueries({ queryKey: queryKeys.templates.list(user.id) });
-
-      return updatedTemplate;
-    } catch (error) {
+      return queryClient.invalidateQueries({ queryKey: queryKeys.templates.list(user!.id) });
+    },
+    onError: (error) => {
       handleError(error, { component: 'useTemplates', action: 'update template' });
+    },
+  });
+
+  // Delete template mutation
+  const deleteTemplateMutation = useMutation({
+    mutationFn: async (data: { templateId: string }) => {
+      const { error } = await supabase
+        .from("templates")
+        .delete()
+        .eq("id", data.templateId);
+
+      if (error) throw error;
+      return data.templateId;
+    },
+    onSuccess: async () => {
+      toast({
+        title: "Template Deleted",
+        description: "Template has been removed.",
+      });
+      return queryClient.invalidateQueries({ queryKey: queryKeys.templates.list(user!.id) });
+    },
+    onError: (error) => {
+      handleError(error, { component: 'useTemplates', action: 'delete template' });
+    },
+  });
+
+  // Backward-compatible wrapper functions
+  const createTemplate = async (
+    name: string,
+    description: string,
+    tasks: TemplateTask[]
+  ): Promise<Template | null> => {
+    if (!user) return null;
+    try {
+      return await createTemplateMutation.mutateAsync({ name, description, tasks });
+    } catch {
+      return null;
+    }
+  };
+
+  const updateTemplate = async (
+    templateId: string,
+    name: string,
+    description: string,
+    tasks: TemplateTask[]
+  ): Promise<Template | null> => {
+    if (!user) return null;
+    try {
+      return await updateTemplateMutation.mutateAsync({ templateId, name, description, tasks });
+    } catch {
       return null;
     }
   };
 
   const deleteTemplate = async (templateId: string): Promise<boolean> => {
     if (!user) return false;
-
     try {
-      const { error } = await supabase
-        .from("templates")
-        .delete()
-        .eq("id", templateId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Template Deleted",
-        description: "Template has been removed.",
-      });
-
-      // Invalidate cache to refetch fresh data
-      await queryClient.invalidateQueries({ queryKey: queryKeys.templates.list(user.id) });
-
+      await deleteTemplateMutation.mutateAsync({ templateId });
       return true;
-    } catch (error) {
-      handleError(error, { component: 'useTemplates', action: 'delete template' });
+    } catch {
       return false;
     }
   };
@@ -251,5 +269,9 @@ export function useTemplates() {
     createTemplate,
     updateTemplate,
     deleteTemplate,
+    // NEW: Mutation loading states
+    isCreating: createTemplateMutation.isPending,
+    isUpdating: updateTemplateMutation.isPending,
+    isDeleting: deleteTemplateMutation.isPending,
   };
 }
