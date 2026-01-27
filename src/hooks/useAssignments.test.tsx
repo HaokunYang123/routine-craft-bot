@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactNode } from 'react';
+import { queryKeys } from '@/lib/queries/keys';
 
 // Mock useAuth
 vi.mock('./useAuth', () => ({
@@ -977,6 +978,286 @@ describe('useAssignments', () => {
       expect(result.current.getTaskInstances).toBeInstanceOf(Function);
       expect(result.current.updateTaskStatus).toBeInstanceOf(Function);
       expect(result.current.getGroupProgress).toBeInstanceOf(Function);
+    });
+
+    it('exposes isCreating and isUpdatingTask states', () => {
+      vi.mocked(useAuth).mockReturnValue({
+        user: { id: 'coach-1' } as any,
+        session: {} as any,
+        loading: false,
+        signOut: vi.fn(),
+        sessionExpired: false,
+        clearSessionExpired: vi.fn(),
+      });
+
+      const { result } = renderHook(() => useAssignments(), {
+        wrapper: createWrapper(),
+      });
+
+      expect(result.current.isCreating).toBe(false);
+      expect(result.current.isUpdatingTask).toBe(false);
+    });
+  });
+
+  describe('optimistic update behavior', () => {
+    /**
+     * Create wrapper with a custom QueryClient for cache manipulation tests
+     */
+    function createWrapperWithClient(queryClient: QueryClient) {
+      return function Wrapper({ children }: { children: ReactNode }) {
+        return (
+          <MemoryRouter>
+            <QueryClientProvider client={queryClient}>
+              {children}
+            </QueryClientProvider>
+          </MemoryRouter>
+        );
+      };
+    }
+
+    beforeEach(() => {
+      resetMockSupabase();
+      mockToast.mockClear();
+      vi.mocked(useAuth).mockReturnValue({
+        user: { id: 'student-1', email: 'student@example.com' } as any,
+        session: { access_token: 'token' } as any,
+        loading: false,
+        signOut: vi.fn(),
+        sessionExpired: false,
+        clearSessionExpired: vi.fn(),
+      });
+    });
+
+    it('optimistically updates task status in cache before server responds', async () => {
+      const mock = getMockSupabase();
+
+      // Setup slow mutation response - don't resolve immediately
+      let resolveUpdate: (value: { data: null; error: null }) => void;
+      const updatePromise = new Promise<{ data: null; error: null }>((resolve) => {
+        resolveUpdate = resolve;
+      });
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => void) => {
+        return updatePromise.then(resolve);
+      });
+
+      // Create QueryClient with seeded cache
+      const queryClient = new QueryClient({
+        defaultOptions: {
+          queries: { retry: false },
+          mutations: { retry: false },
+        },
+      });
+      const taskId = 'task-1';
+      const instancesKey = queryKeys.assignments.instances({
+        assigneeId: 'student-1',
+        date: '2026-01-27',
+      });
+      queryClient.setQueryData(instancesKey, [
+        { id: taskId, status: 'pending', assignee_id: 'student-1' },
+      ]);
+
+      const { result } = renderHook(() => useAssignments(), {
+        wrapper: createWrapperWithClient(queryClient),
+      });
+
+      // Start the update (don't await yet)
+      act(() => {
+        result.current.updateTaskStatus(taskId, 'completed', undefined, 'student-1', '2026-01-27');
+      });
+
+      // Cache should be updated immediately (before server responds)
+      await waitFor(() => {
+        const cached = queryClient.getQueryData(instancesKey) as Array<{ id: string; status: string }>;
+        expect(cached[0].status).toBe('completed');
+      });
+
+      // Now resolve the server request
+      resolveUpdate!({ data: null, error: null });
+    });
+
+    it('rolls back optimistic update on server error', async () => {
+      const mock = getMockSupabase();
+
+      // Setup failing mutation
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => void) => {
+        return Promise.resolve({ data: null, error: { message: 'Server error' } }).then(resolve);
+      });
+
+      // Create QueryClient with seeded cache
+      const queryClient = new QueryClient({
+        defaultOptions: {
+          queries: { retry: false },
+          mutations: { retry: false },
+        },
+      });
+      const taskId = 'task-1';
+      const instancesKey = queryKeys.assignments.instances({
+        assigneeId: 'student-1',
+        date: '2026-01-27',
+      });
+      queryClient.setQueryData(instancesKey, [
+        { id: taskId, status: 'pending', assignee_id: 'student-1' },
+      ]);
+
+      const { result } = renderHook(() => useAssignments(), {
+        wrapper: createWrapperWithClient(queryClient),
+      });
+
+      // Call updateTaskStatus - should fail and rollback
+      await act(async () => {
+        await result.current.updateTaskStatus(taskId, 'completed', undefined, 'student-1', '2026-01-27');
+      });
+
+      // Cache should be rolled back to pending
+      await waitFor(() => {
+        const cached = queryClient.getQueryData(instancesKey) as Array<{ id: string; status: string }>;
+        expect(cached[0].status).toBe('pending');
+      });
+    });
+
+    it('does not show toast on successful task completion', async () => {
+      const mock = getMockSupabase();
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => void) => {
+        return Promise.resolve({ data: null, error: null }).then(resolve);
+      });
+
+      const queryClient = new QueryClient({
+        defaultOptions: {
+          queries: { retry: false },
+          mutations: { retry: false },
+        },
+      });
+
+      const { result } = renderHook(() => useAssignments(), {
+        wrapper: createWrapperWithClient(queryClient),
+      });
+
+      await act(async () => {
+        await result.current.updateTaskStatus('task-1', 'completed');
+      });
+
+      // No toast should be called for successful completion
+      expect(mockToast).not.toHaveBeenCalled();
+    });
+
+    it('shows error toast on failed task completion', async () => {
+      const mock = getMockSupabase();
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => void) => {
+        return Promise.resolve({ data: null, error: { message: 'Server error' } }).then(resolve);
+      });
+
+      const queryClient = new QueryClient({
+        defaultOptions: {
+          queries: { retry: false },
+          mutations: { retry: false },
+        },
+      });
+
+      const { result } = renderHook(() => useAssignments(), {
+        wrapper: createWrapperWithClient(queryClient),
+      });
+
+      await act(async () => {
+        await result.current.updateTaskStatus('task-1', 'completed');
+      });
+
+      // Should show error toast with user-friendly message
+      expect(mockToast).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Error',
+          description: "Couldn't save changes. Please try again.",
+          variant: 'destructive',
+        })
+      );
+    });
+
+    it('sets completed_at timestamp on optimistic update', async () => {
+      const mock = getMockSupabase();
+
+      let resolveUpdate: (value: { data: null; error: null }) => void;
+      const updatePromise = new Promise<{ data: null; error: null }>((resolve) => {
+        resolveUpdate = resolve;
+      });
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => void) => {
+        return updatePromise.then(resolve);
+      });
+
+      const queryClient = new QueryClient({
+        defaultOptions: {
+          queries: { retry: false },
+          mutations: { retry: false },
+        },
+      });
+      const taskId = 'task-1';
+      const instancesKey = queryKeys.assignments.instances({
+        assigneeId: 'student-1',
+        date: '2026-01-27',
+      });
+      queryClient.setQueryData(instancesKey, [
+        { id: taskId, status: 'pending', assignee_id: 'student-1', completed_at: null },
+      ]);
+
+      const { result } = renderHook(() => useAssignments(), {
+        wrapper: createWrapperWithClient(queryClient),
+      });
+
+      const beforeUpdate = new Date().toISOString();
+
+      act(() => {
+        result.current.updateTaskStatus(taskId, 'completed', undefined, 'student-1', '2026-01-27');
+      });
+
+      await waitFor(() => {
+        const cached = queryClient.getQueryData(instancesKey) as Array<{ id: string; status: string; completed_at: string | null }>;
+        expect(cached[0].completed_at).not.toBeNull();
+        // completed_at should be set to current time (roughly)
+        expect(new Date(cached[0].completed_at!).getTime()).toBeGreaterThanOrEqual(new Date(beforeUpdate).getTime());
+      });
+
+      resolveUpdate!({ data: null, error: null });
+    });
+
+    it('clears completed_at when reverting to pending', async () => {
+      const mock = getMockSupabase();
+
+      let resolveUpdate: (value: { data: null; error: null }) => void;
+      const updatePromise = new Promise<{ data: null; error: null }>((resolve) => {
+        resolveUpdate = resolve;
+      });
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => void) => {
+        return updatePromise.then(resolve);
+      });
+
+      const queryClient = new QueryClient({
+        defaultOptions: {
+          queries: { retry: false },
+          mutations: { retry: false },
+        },
+      });
+      const taskId = 'task-1';
+      const instancesKey = queryKeys.assignments.instances({
+        assigneeId: 'student-1',
+        date: '2026-01-27',
+      });
+      queryClient.setQueryData(instancesKey, [
+        { id: taskId, status: 'completed', assignee_id: 'student-1', completed_at: '2026-01-27T10:00:00Z' },
+      ]);
+
+      const { result } = renderHook(() => useAssignments(), {
+        wrapper: createWrapperWithClient(queryClient),
+      });
+
+      act(() => {
+        result.current.updateTaskStatus(taskId, 'pending', undefined, 'student-1', '2026-01-27');
+      });
+
+      await waitFor(() => {
+        const cached = queryClient.getQueryData(instancesKey) as Array<{ id: string; status: string; completed_at: string | null }>;
+        expect(cached[0].status).toBe('pending');
+        expect(cached[0].completed_at).toBeNull();
+      });
+
+      resolveUpdate!({ data: null, error: null });
     });
   });
 });
