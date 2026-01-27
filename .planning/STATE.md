@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-25)
 ## Current Position
 
 Phase: 10 of 14 (Simple Hook Migration)
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-01-26 - Phase 9 complete
+Plan: 1 of 4 complete
+Status: In progress
+Last activity: 2026-01-26 - Completed 10-01-PLAN.md
 
-Progress: [==========---------] 60% (9/14 phases complete)
+Progress: [==========---------] 64% (9 phases + 1 plan complete)
 
 ## Milestone History
 
@@ -33,7 +33,7 @@ See: .planning/ROADMAP.md for full details
 - Total execution time: ~1.1 hours
 
 **Key Metrics:**
-- Tests: 103 passing
+- Tests: 117 passing (up from 103)
 - Type safety: 0 `as any` casts
 - Error handling: 53 handleError call sites
 - Memory leaks fixed: 4 components
@@ -44,6 +44,11 @@ See: .planning/ROADMAP.md for full details
 - Query key factory: `src/lib/queries/keys.ts`
 - QueryClient production config: staleTime, gcTime, retry, global error handling
 - All 103 tests still passing
+
+**Phase 10 Progress:**
+- Plan 01 complete: useProfile migrated to React Query
+- Pattern established for remaining hook migrations
+- Tests: 117 passing (14 new tests)
 
 ## Accumulated Context
 
@@ -59,6 +64,8 @@ Recent key decisions:
 - 5-minute staleTime for data freshness (D-0901-01)
 - Skip retry for 401/403 auth errors (D-0901-02)
 - Global queryCache.onError with handleError (D-0901-03)
+- Backward-compatible hook interface during migration (D-1001-01)
+- Use invalidateQueries for cache sync after mutations (D-1001-02)
 
 ### Pending Todos
 
@@ -66,7 +73,7 @@ None.
 
 ### Blockers/Concerns
 
-None - Phase 9 complete, ready for Phase 10 (Group Hooks Migration).
+None - Plan 10-01 complete, ready for Plan 10-02 (useGroups migration).
 
 **Research completed for v2.0:**
 - React Query architecture patterns documented
@@ -74,12 +81,18 @@ None - Phase 9 complete, ready for Phase 10 (Group Hooks Migration).
 - 4 hooks NOT to migrate (useAuth, useAIAssistant, use-toast, use-mobile)
 - Migration pitfalls documented (13 critical/moderate pitfalls)
 
+**Migration pattern established (10-01):**
+- Extract queryFn as standalone async function
+- Replace useState/useEffect with useQuery
+- Keep return interface for backward compatibility
+- Add new properties (isFetching, isError, error) for enhanced UI
+
 ## Session Continuity
 
 Last session: 2026-01-26
-Stopped at: Completed 09-01-PLAN.md
+Stopped at: Completed 10-01-PLAN.md
 Resume file: None
 
 ---
 *State initialized: 2026-01-24*
-*Last updated: 2026-01-26 - Phase 9 complete*
+*Last updated: 2026-01-26 - Plan 10-01 complete*
