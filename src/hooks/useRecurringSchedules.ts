@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { useToast } from "./use-toast";
 import { handleError } from "@/lib/error";
+import { queryKeys } from "@/lib/queries/keys";
 
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -30,109 +31,82 @@ export interface CreateRecurringScheduleInput {
   class_session_id?: string;
 }
 
+/**
+ * Fetches recurring schedules with parallel enrichment of template, student, and class names.
+ * Uses Promise.all to avoid waterfall queries.
+ */
+async function fetchSchedulesWithEnrichment(userId: string): Promise<RecurringSchedule[]> {
+  const { data: schedules, error } = await supabase
+    .from("recurring_schedules")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    // Handle PGRST205 gracefully per D-1003-01 (table might not exist yet)
+    if (error.code === "PGRST205" || error.message?.includes("not find")) {
+      console.log("Recurring schedules table not yet created");
+      return [];
+    }
+    throw error;
+  }
+
+  if (!schedules?.length) return [];
+
+  // Collect IDs for batch fetching (avoid waterfall)
+  const templateIds = [...new Set(schedules.filter(s => s.template_id).map(s => s.template_id!))] as string[];
+  const studentIds = [...new Set(schedules.filter(s => s.assigned_student_id).map(s => s.assigned_student_id!))] as string[];
+  const classIds = [...new Set(schedules.filter(s => s.class_session_id).map(s => s.class_session_id!))] as string[];
+
+  // Parallel fetch enrichment data using Promise.all
+  const [templates, profiles, classes] = await Promise.all([
+    templateIds.length > 0
+      ? supabase.from("templates").select("id, name").in("id", templateIds)
+      : Promise.resolve({ data: [] as { id: string; name: string }[] }),
+    studentIds.length > 0
+      ? supabase.from("profiles").select("user_id, display_name").in("user_id", studentIds)
+      : Promise.resolve({ data: [] as { user_id: string; display_name: string | null }[] }),
+    classIds.length > 0
+      ? supabase.from("class_sessions").select("id, name").in("id", classIds)
+      : Promise.resolve({ data: [] as { id: string; name: string }[] }),
+  ]);
+
+  // Build lookup maps
+  const templateMap: Record<string, string> = {};
+  (templates.data || []).forEach(t => { templateMap[t.id] = t.name; });
+
+  const studentMap: Record<string, string> = {};
+  (profiles.data || []).forEach(p => { studentMap[p.user_id] = p.display_name || "Student"; });
+
+  const classMap: Record<string, string> = {};
+  (classes.data || []).forEach(c => { classMap[c.id] = c.name; });
+
+  // Enrich schedules
+  return schedules.map(s => ({
+    ...s,
+    template_name: s.template_id ? templateMap[s.template_id] : undefined,
+    student_name: s.assigned_student_id ? studentMap[s.assigned_student_id] : undefined,
+    class_name: s.class_session_id ? classMap[s.class_session_id] : undefined,
+  }));
+}
+
 export function useRecurringSchedules() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [schedules, setSchedules] = useState<RecurringSchedule[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  const fetchSchedules = useCallback(async () => {
-    if (!user) return;
-
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from("recurring_schedules")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        // Table might not exist yet
-        if (error.code === "PGRST205" || error.message?.includes("not find")) {
-          console.log("Recurring schedules table not yet created");
-          setSchedules([]);
-          setLoading(false);
-          return;
-        }
-        throw error;
-      }
-
-      // Fetch related data
-      const scheduleData = data || [];
-
-      // Get template names
-      const templateIds = scheduleData
-        .filter((s) => s.template_id)
-        .map((s) => s.template_id)
-        .filter((id): id is string => id !== null);
-
-      const templateMap: Record<string, string> = {};
-      if (templateIds.length > 0) {
-        const { data: templates } = await supabase
-          .from("templates")
-          .select("id, name")
-          .in("id", templateIds);
-        templates?.forEach((t) => {
-          templateMap[t.id] = t.name;
-        });
-      }
-
-      // Get student names
-      const studentIds = scheduleData
-        .filter((s) => s.assigned_student_id)
-        .map((s) => s.assigned_student_id)
-        .filter((id): id is string => id !== null);
-
-      const studentMap: Record<string, string> = {};
-      if (studentIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from("profiles")
-          .select("user_id, display_name")
-          .in("user_id", studentIds);
-        profiles?.forEach((p) => {
-          studentMap[p.user_id] = p.display_name || "Student";
-        });
-      }
-
-      // Get class names
-      const classIds = scheduleData
-        .filter((s) => s.class_session_id)
-        .map((s) => s.class_session_id)
-        .filter((id): id is string => id !== null);
-
-      const classMap: Record<string, string> = {};
-      if (classIds.length > 0) {
-        const { data: classes } = await supabase
-          .from("class_sessions")
-          .select("id, name")
-          .in("id", classIds);
-        classes?.forEach((c) => {
-          classMap[c.id] = c.name;
-        });
-      }
-
-      // Enrich schedules
-      const enrichedSchedules: RecurringSchedule[] = scheduleData.map((s) => ({
-        ...s,
-        template_name: s.template_id ? templateMap[s.template_id] : undefined,
-        student_name: s.assigned_student_id ? studentMap[s.assigned_student_id] : undefined,
-        class_name: s.class_session_id ? classMap[s.class_session_id] : undefined,
-      }));
-
-      setSchedules(enrichedSchedules);
-    } catch (error) {
-      handleError(error, { component: 'useRecurringSchedules', action: 'fetch schedules' });
-    } finally {
-      setLoading(false);
-    }
-  }, [user, toast]);
-
-  useEffect(() => {
-    if (user) {
-      fetchSchedules();
-    }
-  }, [user, fetchSchedules]);
+  const {
+    data: schedules,
+    isPending,
+    isFetching,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: queryKeys.recurringSchedules.list(user?.id ?? ''),
+    queryFn: () => fetchSchedulesWithEnrichment(user!.id),
+    enabled: !!user,
+  });
 
   const createSchedule = async (input: CreateRecurringScheduleInput): Promise<RecurringSchedule | null> => {
     if (!user) return null;
@@ -164,7 +138,7 @@ export function useRecurringSchedules() {
         description: `"${input.name}" recurring schedule has been created.`,
       });
 
-      await fetchSchedules();
+      await queryClient.invalidateQueries({ queryKey: queryKeys.recurringSchedules.list(user.id) });
       return data as RecurringSchedule;
     } catch (error) {
       handleError(error, { component: 'useRecurringSchedules', action: 'create schedule' });
@@ -176,6 +150,8 @@ export function useRecurringSchedules() {
     id: string,
     updates: Partial<CreateRecurringScheduleInput & { is_active: boolean }>
   ): Promise<boolean> => {
+    if (!user) return false;
+
     try {
       // Delete future pending task_instances for this schedule before updating
       // This prevents "ghost tasks" from remaining when schedule pattern changes
@@ -204,7 +180,7 @@ export function useRecurringSchedules() {
         description: "Recurring schedule has been updated. Future pending tasks have been cleared.",
       });
 
-      await fetchSchedules();
+      await queryClient.invalidateQueries({ queryKey: queryKeys.recurringSchedules.list(user.id) });
       return true;
     } catch (error) {
       handleError(error, { component: 'useRecurringSchedules', action: 'update schedule' });
@@ -213,6 +189,8 @@ export function useRecurringSchedules() {
   };
 
   const deleteSchedule = async (id: string): Promise<boolean> => {
+    if (!user) return false;
+
     try {
       // Delete all pending task_instances for this schedule first
       // This prevents "ghost tasks" from remaining after schedule deletion
@@ -241,7 +219,7 @@ export function useRecurringSchedules() {
         description: "Recurring schedule and pending tasks have been removed.",
       });
 
-      setSchedules((prev) => prev.filter((s) => s.id !== id));
+      await queryClient.invalidateQueries({ queryKey: queryKeys.recurringSchedules.list(user.id) });
       return true;
     } catch (error) {
       handleError(error, { component: 'useRecurringSchedules', action: 'delete schedule' });
@@ -281,9 +259,12 @@ export function useRecurringSchedules() {
   };
 
   return {
-    schedules,
-    loading,
-    fetchSchedules,
+    schedules: schedules ?? [],
+    loading: isPending,           // Backward compatible
+    isFetching,                   // NEW - for background refresh indicator
+    isError,                      // NEW - for error state display
+    error,                        // NEW - for error details
+    fetchSchedules: refetch,
     createSchedule,
     updateSchedule,
     deleteSchedule,
