@@ -15,17 +15,17 @@
 - [x] **RQ-03**: User sees error states via `isError` with clear feedback
 - [x] **RQ-04**: User sees fresh data when returning to app (background refetch on window focus)
 - [x] **RQ-05**: User experiences no duplicate network calls when multiple components request same data
-- [ ] **RQ-06**: User receives confirmation feedback for all mutations (create/update/delete)
-- [ ] **RQ-07**: User sees lists update immediately after create/edit/delete (query invalidation)
-- [ ] **RQ-08**: User experiences instant task completion feedback (optimistic updates with rollback)
+- [x] **RQ-06**: User receives confirmation feedback for all mutations (create/update/delete)
+- [x] **RQ-07**: User sees lists update immediately after create/edit/delete (query invalidation)
+- [x] **RQ-08**: User experiences instant task completion feedback (optimistic updates with rollback)
 
 ### Pagination
 
-- [ ] **PAG-01**: User can control page size for large lists (clients, check-ins, task history)
-- [ ] **PAG-02**: User sees loading indicator when changing pages
-- [ ] **PAG-03**: User sees clear "end of list" indicator when no more data
-- [ ] **PAG-04**: User experiences fast pagination on large datasets (cursor-based, not offset)
-- [ ] **PAG-05**: User can scroll continuously to load more items (infinite scroll)
+- [x] **PAG-01**: User can control page size for large lists (clients, check-ins, task history)
+- [x] **PAG-02**: User sees loading indicator when changing pages
+- [x] **PAG-03**: User sees clear "end of list" indicator when no more data
+- [x] **PAG-04**: User experiences fast pagination on large datasets (cursor-based, not offset)
+- [x] **PAG-05**: User can scroll continuously to load more items (infinite scroll)
 
 ### Render Optimization
 
@@ -78,14 +78,14 @@
 | RQ-03 | Phase 10 | Complete |
 | RQ-04 | Phase 9 | Complete |
 | RQ-05 | Phase 9 | Complete |
-| RQ-06 | Phase 12 | Pending |
-| RQ-07 | Phase 12 | Pending |
-| RQ-08 | Phase 12 | Pending |
-| PAG-01 | Phase 13 | Pending |
-| PAG-02 | Phase 13 | Pending |
-| PAG-03 | Phase 13 | Pending |
-| PAG-04 | Phase 13 | Pending |
-| PAG-05 | Phase 13 | Pending |
+| RQ-06 | Phase 12 | Complete |
+| RQ-07 | Phase 12 | Complete |
+| RQ-08 | Phase 12 | Complete |
+| PAG-01 | Phase 13 | Complete |
+| PAG-02 | Phase 13 | Complete |
+| PAG-03 | Phase 13 | Complete |
+| PAG-04 | Phase 13 | Complete |
+| PAG-05 | Phase 13 | Complete |
 | OPT-01 | Phase 14 | Pending |
 | OPT-02 | Phase 14 | Pending |
 | OPT-03 | Phase 14 | Pending |
