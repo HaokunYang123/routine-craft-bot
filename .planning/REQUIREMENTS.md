@@ -11,8 +11,8 @@
 ### React Query Migration
 
 - [x] **RQ-01**: User experiences fast navigation with automatic data caching (no re-fetch within 5min)
-- [ ] **RQ-02**: User sees loading states via `isPending` for all data fetches
-- [ ] **RQ-03**: User sees error states via `isError` with clear feedback
+- [x] **RQ-02**: User sees loading states via `isPending` for all data fetches
+- [x] **RQ-03**: User sees error states via `isError` with clear feedback
 - [x] **RQ-04**: User sees fresh data when returning to app (background refetch on window focus)
 - [x] **RQ-05**: User experiences no duplicate network calls when multiple components request same data
 - [ ] **RQ-06**: User receives confirmation feedback for all mutations (create/update/delete)
@@ -74,8 +74,8 @@
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | RQ-01 | Phase 9 | Complete |
-| RQ-02 | Phase 10 | Pending |
-| RQ-03 | Phase 10 | Pending |
+| RQ-02 | Phase 10 | Complete |
+| RQ-03 | Phase 10 | Complete |
 | RQ-04 | Phase 9 | Complete |
 | RQ-05 | Phase 9 | Complete |
 | RQ-06 | Phase 12 | Pending |

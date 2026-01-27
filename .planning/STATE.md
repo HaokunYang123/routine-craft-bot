@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-25)
 
 **Core value:** Users can reliably complete their daily workflows without encountering errors, crashes, or unexpected behavior.
-**Current focus:** Phase 10 - Simple Hook Migration
+**Current focus:** Phase 11 - Complex Hook Migration
 
 ## Current Position
 
-Phase: 10 of 14 (Simple Hook Migration)
-Plan: 3 of 4 complete
-Status: In progress
-Last activity: 2026-01-27 - Completed 10-03-PLAN.md
+Phase: 11 of 14 (Complex Hook Migration)
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-01-26 - Phase 10 complete
 
-Progress: [==========--------] 68% (9 phases + 3 plans complete)
+Progress: [===========---------] 71% (10/14 phases complete)
 
 ## Milestone History
 
@@ -33,7 +33,7 @@ See: .planning/ROADMAP.md for full details
 - Total execution time: ~1.1 hours
 
 **Key Metrics:**
-- Tests: 117 passing (up from 103)
+- Tests: 103 passing
 - Type safety: 0 `as any` casts
 - Error handling: 53 handleError call sites
 - Memory leaks fixed: 4 components
@@ -43,14 +43,12 @@ See: .planning/ROADMAP.md for full details
 **Phase 9 Complete:**
 - Query key factory: `src/lib/queries/keys.ts`
 - QueryClient production config: staleTime, gcTime, retry, global error handling
-- All 103 tests still passing
 
-**Phase 10 Progress:**
-- Plan 01 complete: useProfile migrated to React Query (14 tests)
-- Plan 02 complete: useGroups migrated to React Query (25 tests)
-- Plan 03 complete: useTemplates migrated to React Query (17 tests)
-- Tests: 141 passing (17 new tests in 10-03)
-- One plan remaining: 10-04 (useAssignments migration)
+**Phase 10 Complete:**
+- useProfile migrated to React Query (14 tests)
+- useGroups migrated to React Query (25 tests, 5 mutations)
+- useTemplates migrated to React Query (17 tests, 3 mutations)
+- All 141 tests passing
 
 ## Accumulated Context
 
@@ -61,7 +59,7 @@ See PROJECT.md Key Decisions table for full list with outcomes.
 Recent key decisions:
 - Use Vitest over Jest (Vite-native, faster ESM support) - Done
 - Two-level error boundaries (root + route) - Done
-- React Query migration deferred to v2 - Starting now
+- React Query migration deferred to v2 - Done (Phase 9-10)
 - QueryClientProvider already configured in App.tsx - Enhanced in 09-01
 - 5-minute staleTime for data freshness (D-0901-01)
 - Skip retry for 401/403 auth errors (D-0901-02)
@@ -77,7 +75,7 @@ None.
 
 ### Blockers/Concerns
 
-None - Plan 10-03 complete, ready for Plan 10-04 (useAssignments migration).
+None - Phase 10 complete, ready for Phase 11 (Complex Hook Migration).
 
 **Research completed for v2.0:**
 - React Query architecture patterns documented
@@ -95,10 +93,10 @@ None - Plan 10-03 complete, ready for Plan 10-04 (useAssignments migration).
 
 ## Session Continuity
 
-Last session: 2026-01-27
-Stopped at: Completed 10-03-PLAN.md
+Last session: 2026-01-26
+Stopped at: Completed Phase 10
 Resume file: None
 
 ---
 *State initialized: 2026-01-24*
-*Last updated: 2026-01-27 - Plan 10-03 complete*
+*Last updated: 2026-01-26 - Phase 10 complete*

@@ -116,9 +116,9 @@ Plans:
 **Plans**: 3 plans (3 waves)
 
 Plans:
-- [ ] 10-01-PLAN.md — useProfile migration + tests
-- [ ] 10-02-PLAN.md — useGroups migration + test updates
-- [ ] 10-03-PLAN.md — useTemplates migration + tests
+- [x] 10-01-PLAN.md — useProfile migration + tests
+- [x] 10-02-PLAN.md — useGroups migration + test updates
+- [x] 10-03-PLAN.md — useTemplates migration + tests
 
 ### Phase 11: Complex Hook Migration
 **Goal**: Migrate high-complexity hooks with nested queries.
@@ -203,7 +203,7 @@ Phases execute in numeric order: 9 -> 10 -> 11 -> 12 -> 13 -> 14
 | 7. AI & Memory Tests | v1 | 3/3 | Complete | 2026-01-24 |
 | 8. Component Tests | v1 | 3/3 | Complete | 2026-01-25 |
 | 9. React Query Foundation | v2.0 | 1/1 | Complete | 2026-01-26 |
-| 10. Simple Hook Migration | v2.0 | 0/3 | Not started | - |
+| 10. Simple Hook Migration | v2.0 | 3/3 | Complete | 2026-01-26 |
 | 11. Complex Hook Migration | v2.0 | 0/3 | Not started | - |
 | 12. Mutations & Optimistic | v2.0 | 0/3 | Not started | - |
 | 13. Pagination | v2.0 | 0/3 | Not started | - |
