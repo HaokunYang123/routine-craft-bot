@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-01-25)
 ## Current Position
 
 Phase: 13 of 14 (Pagination)
-Plan: 02 of 03
+Plan: 01 and 02 of 03 complete
 Status: In progress
-Last activity: 2026-01-27 - Completed 13-02-PLAN.md
+Last activity: 2026-01-27 - Completed 13-01-PLAN.md
 
 Progress: [=============-------] 86% (12/14 phases complete)
 
@@ -94,6 +94,8 @@ Recent key decisions:
 - User-friendly error messages for mutations: "Couldn't save changes. Please try again." (D-1203-03)
 - StudentTasks uses legacy 'tasks' table, keep direct Supabase pattern with optimistic update (D-1204-01)
 - Dual optimistic update (local state + cache) for instant feedback in components with local state (D-1204-02)
+- Include pageSize in infinite query key for cache granularity (D-1301-01)
+- Use created_at as cursor for stable pagination even with concurrent inserts (D-1301-02)
 - 100px rootMargin for preloading before user reaches bottom (D-1302-01)
 - 1px sentinel height for invisibility while maintaining observability (D-1302-02)
 
@@ -124,18 +126,22 @@ None - Phase 13 in progress.
 - Handle PGRST205 (table not found): return empty array, not error
 
 **Phase 13 Progress:**
+- 13-01: Pagination foundation (complete)
 - 13-02: Pagination UI components (complete)
 
 **Pagination patterns established:**
+- Cursor-based pagination: useInfiniteQuery with created_at cursor
+- useLocalStorage: generic hook with functional update support
+- Infinite query key: include userId and pageSize for cache isolation
 - Infinite scroll: InfiniteScrollSentinel + useIntersectionObserver + ListStatus
 - Page size options: 10/25/50 with "Showing X of Y" counter
 
 ## Session Continuity
 
 Last session: 2026-01-27
-Stopped at: Completed 13-02-PLAN.md
+Stopped at: Completed 13-01-PLAN.md
 Resume file: None
 
 ---
 *State initialized: 2026-01-24*
-*Last updated: 2026-01-27 - Completed 13-02*
+*Last updated: 2026-01-27 - Completed 13-01*
