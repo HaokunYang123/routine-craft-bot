@@ -145,13 +145,13 @@ Plans:
   2. User sees list update immediately after create/edit/delete (no manual refresh)
   3. User sees instant task completion feedback (checkbox updates before server responds)
   4. User sees rollback if task completion fails (checkbox reverts)
-**Plans**: 4 plans (2 waves)
+**Plans**: 4 plans (3 waves)
 
 Plans:
-- [ ] 12-01-PLAN.md — Toast duration + useGroups useMutation migration
-- [ ] 12-02-PLAN.md — useTemplates + useProfile useMutation migration
-- [ ] 12-03-PLAN.md — useAssignments optimistic updates (task completion)
-- [ ] 12-04-PLAN.md — Student components integration
+- [x] 12-01-PLAN.md — Toast duration + useGroups useMutation migration
+- [x] 12-02-PLAN.md — useTemplates + useProfile useMutation migration
+- [x] 12-03-PLAN.md — useAssignments optimistic updates (task completion)
+- [x] 12-04-PLAN.md — Student components integration
 
 ### Phase 13: Pagination
 **Goal**: Add cursor-based pagination and infinite scroll for large datasets.
@@ -163,12 +163,12 @@ Plans:
   3. User sees "End of list" when all items loaded
   4. User can scroll to load more items continuously
   5. Large datasets (500+ items) paginate without performance degradation
-**Plans**: TBD
+**Plans**: 3 plans (2 waves)
 
 Plans:
-- [ ] 13-01: Cursor Pagination Setup
-- [ ] 13-02: Page Size Control
-- [ ] 13-03: Infinite Scroll Implementation
+- [ ] 13-01-PLAN.md — Query key factory + useInfiniteClients hook + useLocalStorage (Wave 1)
+- [ ] 13-02-PLAN.md — Pagination UI components (Wave 1, parallel with 13-01)
+- [ ] 13-03-PLAN.md — People.tsx integration (Wave 2)
 
 ### Phase 14: Render Optimization
 **Goal**: Profile and optimize render performance with selective memoization.
@@ -206,7 +206,7 @@ Phases execute in numeric order: 9 -> 10 -> 11 -> 12 -> 13 -> 14
 | 9. React Query Foundation | v2.0 | 1/1 | Complete | 2026-01-26 |
 | 10. Simple Hook Migration | v2.0 | 3/3 | Complete | 2026-01-26 |
 | 11. Complex Hook Migration | v2.0 | 3/3 | Complete | 2026-01-26 |
-| 12. Mutations & Optimistic | v2.0 | 0/4 | Planned | - |
+| 12. Mutations & Optimistic | v2.0 | 4/4 | Complete | 2026-01-27 |
 | 13. Pagination | v2.0 | 0/3 | Not started | - |
 | 14. Render Optimization | v2.0 | 0/3 | Not started | - |
 
