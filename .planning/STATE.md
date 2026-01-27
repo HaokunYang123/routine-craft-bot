@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-01-25)
 ## Current Position
 
 Phase: 12 of 14 (Mutations & Optimistic Updates)
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-01-26 - Phase 11 complete
+Plan: 02 of 04
+Status: In progress
+Last activity: 2026-01-27 - Completed 12-02-PLAN.md
 
 Progress: [============--------] 79% (11/14 phases complete)
 
@@ -55,6 +55,13 @@ See: .planning/ROADMAP.md for full details
 - useStickers migrated (useQueries + combine, 30 tests)
 - All 209 tests passing
 
+**Phase 12 In Progress:**
+- 12-01: useGroups useMutation migration (complete)
+- 12-02: useTemplates + useProfile useMutation migration (complete)
+- 12-03: useAssignments useMutation migration (pending)
+- 12-04: useRecurringSchedules useMutation migration (pending)
+- All 221 tests passing
+
 ## Accumulated Context
 
 ### Decisions
@@ -79,6 +86,9 @@ Recent key decisions:
 - Use Promise.all for parallel enrichment queries (D-1102-01)
 - Export calculateStreak as pure function for testability (D-1103-01)
 - Use useQueries combine for parallel fetching with derived state (D-1103-02)
+- useMutation hooks defined inside parent hook for user context access (D-1201-01)
+- useMutation hooks defined inside useTemplates/useProfile for access to user context (D-1202-01)
+- Wrapper functions catch errors and return null/false for backward compatibility (D-1202-02)
 
 ### Pending Todos
 
@@ -86,7 +96,7 @@ None.
 
 ### Blockers/Concerns
 
-None - Phase 11 complete, ready for Phase 12 (Mutations & Optimistic Updates).
+None - Plans 12-01 and 12-02 complete, ready for 12-03 and 12-04.
 
 **Research completed for v2.0:**
 - React Query architecture patterns documented
@@ -98,17 +108,18 @@ None - Phase 11 complete, ready for Phase 12 (Mutations & Optimistic Updates).
 - Utility hooks (11-01): fetchQuery for on-demand caching, not useQuery
 - Complex hooks with parallel fetching (11-03): useQueries with combine for multiple data sources and derived state
 - Complex hooks with nested enrichment (11-02): Promise.all for parallel enrichment queries
+- useMutation pattern (12-01, 12-02): onSuccess for toast + invalidation, onError for handleError, wrapper for backward compat
 - Keep return interface for backward compatibility
-- Add new properties (isFetching, isError, error) for enhanced UI
+- Add new properties (isFetching, isError, error, isPending) for enhanced UI
 - Handle Supabase errors: check `error && typeof error === 'object' && 'message' in error`
 - Handle PGRST205 (table not found): return empty array, not error
 
 ## Session Continuity
 
-Last session: 2026-01-26
-Stopped at: Completed Phase 11
+Last session: 2026-01-27
+Stopped at: Completed 12-02-PLAN.md
 Resume file: None
 
 ---
 *State initialized: 2026-01-24*
-*Last updated: 2026-01-26 - Phase 11 complete*
+*Last updated: 2026-01-27 - Completed 12-02-PLAN.md*
