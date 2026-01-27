@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-01-25)
 ## Current Position
 
 Phase: 11 of 14 (Complex Hook Migration)
-Plan: 01, 03 of 5 complete
+Plan: 01, 02, 03 of 5 complete
 Status: In progress
-Last activity: 2026-01-27 - Completed 11-01-PLAN.md (useAssignments migration)
+Last activity: 2026-01-27 - Completed 11-02-PLAN.md (useRecurringSchedules migration)
 
 Progress: [===========---------] 71% (10/14 phases complete)
 
@@ -52,6 +52,7 @@ See: .planning/ROADMAP.md for full details
 
 **Phase 11 In Progress:**
 - Plan 01 complete: useAssignments migrated to React Query fetchQuery pattern (25 tests)
+- Plan 02 complete: useRecurringSchedules migrated with parallel enrichment (28 tests)
 - Plan 03 complete: useStickers migrated to React Query useQueries with combine (30 tests)
 - All 209 tests passing
 
@@ -78,6 +79,7 @@ Recent key decisions:
 - Filter params in queryKeys.assignments.instances for cache granularity (D-1101-03)
 - Export calculateStreak as pure function for testability (D-1103-01)
 - Use useQueries combine for parallel fetching with derived state (D-1103-02)
+- Use Promise.all for parallel enrichment queries (D-1102-01)
 
 ### Pending Todos
 
@@ -85,7 +87,7 @@ None.
 
 ### Blockers/Concerns
 
-None - Phase 11 plans 01, 03 complete, ready for plan 02 (useRecurringSchedules) or plan 04.
+None - Phase 11 plans 01, 02, 03 complete, ready for plan 04 or 05.
 
 **Research completed for v2.0:**
 - React Query architecture patterns documented
@@ -97,6 +99,7 @@ None - Phase 11 plans 01, 03 complete, ready for plan 02 (useRecurringSchedules)
 - Simple hooks (10-01, 10-02, 10-03): Extract queryFn, replace useState/useEffect with useQuery
 - Utility hooks (11-01): fetchQuery for on-demand caching, not useQuery
 - Complex hooks with parallel fetching (11-03): useQueries with combine for multiple data sources and derived state
+- Complex hooks with nested enrichment (11-02): Promise.all for parallel enrichment queries
 - Keep return interface for backward compatibility
 - Add new properties (isFetching, isError, error) for enhanced UI
 - Handle Supabase errors: check `error && typeof error === 'object' && 'message' in error`
@@ -105,9 +108,9 @@ None - Phase 11 plans 01, 03 complete, ready for plan 02 (useRecurringSchedules)
 ## Session Continuity
 
 Last session: 2026-01-27
-Stopped at: Completed 11-01-PLAN.md (useAssignments migration)
+Stopped at: Completed 11-02-PLAN.md (useRecurringSchedules migration)
 Resume file: None
 
 ---
 *State initialized: 2026-01-24*
-*Last updated: 2026-01-27 - Completed 11-01 useAssignments migration*
+*Last updated: 2026-01-27 - Completed 11-02 useRecurringSchedules migration*
