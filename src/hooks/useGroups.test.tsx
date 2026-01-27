@@ -842,4 +842,199 @@ describe('useGroups', () => {
       expect((members as Array<{ display_name: string }>)[0].display_name).toBe('Student');
     });
   });
+
+  describe('mutation loading states', () => {
+    it('exposes isCreating state and returns false after mutation completes', async () => {
+      const mock = getMockSupabase();
+
+      // Mock initial fetchGroups
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: [], error: null }).then(resolve);
+      });
+
+      const { result } = renderHook(() => useGroups(), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      // Initially isCreating should be false
+      expect(result.current.isCreating).toBe(false);
+
+      // Mock RPC for join code
+      mock.client.rpc.mockResolvedValueOnce({ data: 'NEW123', error: null });
+
+      // Mock insert response
+      const newGroup = {
+        id: 'new-group-1',
+        name: 'New Group',
+        color: '#0000FF',
+        icon: 'users',
+        coach_id: 'coach-1',
+        join_code: 'NEW123',
+        created_at: '2026-01-15',
+        qr_token: null,
+      };
+      mock.queryBuilder.single.mockResolvedValueOnce({ data: newGroup, error: null });
+
+      // Mock fetchGroups after create
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: [newGroup], error: null }).then(resolve);
+      });
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ count: 0, data: null, error: null }).then(resolve);
+      });
+
+      await act(async () => {
+        await result.current.createGroup('New Group', '#0000FF');
+      });
+
+      // After completion, isCreating should be false
+      expect(result.current.isCreating).toBe(false);
+    });
+
+    it('exposes isUpdating state and returns false after mutation completes', async () => {
+      const mock = getMockSupabase();
+
+      // Mock initial fetchGroups
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: [], error: null }).then(resolve);
+      });
+
+      const { result } = renderHook(() => useGroups(), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      // Initially isUpdating should be false
+      expect(result.current.isUpdating).toBe(false);
+
+      // Mock update response
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: null, error: null }).then(resolve);
+      });
+
+      // Mock fetchGroups after update
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: [], error: null }).then(resolve);
+      });
+
+      await act(async () => {
+        await result.current.updateGroup('group-1', { name: 'Updated Name' });
+      });
+
+      // After completion, isUpdating should be false
+      expect(result.current.isUpdating).toBe(false);
+    });
+
+    it('exposes isDeleting state and returns false after mutation completes', async () => {
+      const mock = getMockSupabase();
+
+      // Mock initial fetchGroups
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: [], error: null }).then(resolve);
+      });
+
+      const { result } = renderHook(() => useGroups(), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      // Initially isDeleting should be false
+      expect(result.current.isDeleting).toBe(false);
+
+      // Mock delete response
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: null, error: null }).then(resolve);
+      });
+
+      // Mock fetchGroups after delete
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: [], error: null }).then(resolve);
+      });
+
+      await act(async () => {
+        await result.current.deleteGroup('group-1');
+      });
+
+      // After completion, isDeleting should be false
+      expect(result.current.isDeleting).toBe(false);
+    });
+
+    it('exposes isAddingMember state and returns false after mutation completes', async () => {
+      const mock = getMockSupabase();
+
+      // Mock initial fetchGroups
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: [], error: null }).then(resolve);
+      });
+
+      const { result } = renderHook(() => useGroups(), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      // Initially isAddingMember should be false
+      expect(result.current.isAddingMember).toBe(false);
+
+      // Mock add member response
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: null, error: null }).then(resolve);
+      });
+
+      // Mock fetchGroups after add member
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: [], error: null }).then(resolve);
+      });
+
+      await act(async () => {
+        await result.current.addMember('group-1', 'student-1');
+      });
+
+      // After completion, isAddingMember should be false
+      expect(result.current.isAddingMember).toBe(false);
+    });
+
+    it('exposes isRemovingMember state and returns false after mutation completes', async () => {
+      const mock = getMockSupabase();
+
+      // Mock initial fetchGroups
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: [], error: null }).then(resolve);
+      });
+
+      const { result } = renderHook(() => useGroups(), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      // Initially isRemovingMember should be false
+      expect(result.current.isRemovingMember).toBe(false);
+
+      // Mock remove member response
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: null, error: null }).then(resolve);
+      });
+
+      // Mock fetchGroups after remove member
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: [], error: null }).then(resolve);
+      });
+
+      await act(async () => {
+        await result.current.removeMember('group-1', 'student-1');
+      });
+
+      // After completion, isRemovingMember should be false
+      expect(result.current.isRemovingMember).toBe(false);
+    });
+
+    it('all mutation states are initially false', async () => {
+      const mock = getMockSupabase();
+
+      // Mock initial fetchGroups
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: [], error: null }).then(resolve);
+      });
+
+      const { result } = renderHook(() => useGroups(), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      // All mutation states should be false
+      expect(result.current.isCreating).toBe(false);
+      expect(result.current.isUpdating).toBe(false);
+      expect(result.current.isDeleting).toBe(false);
+      expect(result.current.isAddingMember).toBe(false);
+      expect(result.current.isRemovingMember).toBe(false);
+    });
+  });
 });

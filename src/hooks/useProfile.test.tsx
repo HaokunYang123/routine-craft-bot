@@ -366,4 +366,51 @@ describe('useProfile', () => {
       });
     });
   });
+
+  describe('mutation loading states', () => {
+    it('exposes isUpdating state', async () => {
+      const mock = getMockSupabase();
+      mock.queryBuilder.single.mockResolvedValueOnce({ data: mockProfile, error: null });
+
+      const { result } = renderHook(() => useProfile(), { wrapper: createWrapper() });
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      // isUpdating should start as false
+      expect(result.current.isUpdating).toBe(false);
+    });
+
+    it('isUpdating becomes false after updateProfile completes', async () => {
+      const mock = getMockSupabase();
+
+      // Initial fetch
+      mock.queryBuilder.single.mockResolvedValueOnce({ data: mockProfile, error: null });
+
+      const { result } = renderHook(() => useProfile(), { wrapper: createWrapper() });
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      // Mock update response
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: null, error: null }).then(resolve);
+      });
+
+      // Mock refetch after invalidation
+      mock.queryBuilder.single.mockResolvedValueOnce({
+        data: { ...mockProfile, display_name: 'Updated Name' },
+        error: null,
+      });
+
+      await act(async () => {
+        await result.current.updateProfile({ display_name: 'Updated Name' });
+      });
+
+      // After completion, isUpdating should be false
+      expect(result.current.isUpdating).toBe(false);
+    });
+  });
 });

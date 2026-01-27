@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { useToast } from "./use-toast";
@@ -74,31 +74,39 @@ export function useProfile() {
     enabled: !!user,
   });
 
-  const updateProfile = async (updates: Partial<Pick<Profile, "display_name" | "avatar_url">>) => {
-    if (!user) return false;
-
-    try {
+  // Update profile mutation
+  const updateProfileMutation = useMutation({
+    mutationFn: async (updates: Partial<Pick<Profile, "display_name" | "avatar_url">>) => {
       const { error } = await supabase
         .from("profiles")
         .update({
           ...updates,
           updated_at: new Date().toISOString(),
         })
-        .eq("user_id", user.id);
+        .eq("user_id", user!.id);
 
       if (error) throw error;
-
-      // Invalidate cache to trigger refetch
-      await queryClient.invalidateQueries({ queryKey: queryKeys.profile.current(user.id) });
-
+      return updates;
+    },
+    onSuccess: async () => {
       toast({
         title: "Profile Updated",
         description: "Your changes have been saved.",
       });
-
-      return true;
-    } catch (error) {
+      return queryClient.invalidateQueries({ queryKey: queryKeys.profile.current(user!.id) });
+    },
+    onError: (error) => {
       handleError(error, { component: 'useProfile', action: 'update profile' });
+    },
+  });
+
+  // Backward-compatible wrapper maintaining boolean return
+  const updateProfile = async (updates: Partial<Pick<Profile, "display_name" | "avatar_url">>) => {
+    if (!user) return false;
+    try {
+      await updateProfileMutation.mutateAsync(updates);
+      return true;
+    } catch {
       return false;
     }
   };
@@ -129,5 +137,7 @@ export function useProfile() {
     avatarDisplay,
     fetchProfile: refetch,        // Manual retry
     updateProfile,
+    // NEW: Mutation loading state
+    isUpdating: updateProfileMutation.isPending,
   };
 }
