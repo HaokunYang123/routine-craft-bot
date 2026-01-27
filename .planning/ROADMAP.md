@@ -129,12 +129,12 @@ Plans:
   2. User sees cached assignment data instantly on navigation
   3. User sees error message when useRecurringSchedules fails
   4. Multiple components sharing same data make single request
-**Plans**: TBD
+**Plans**: 3 plans (1 wave)
 
 Plans:
-- [ ] 11-01: useAssignments Migration
-- [ ] 11-02: useRecurringSchedules Migration
-- [ ] 11-03: useStickers Migration
+- [ ] 11-01-PLAN.md — useAssignments migration (utility pattern + fetchQuery)
+- [ ] 11-02-PLAN.md — useRecurringSchedules migration (useQuery + parallel enrichment)
+- [ ] 11-03-PLAN.md — useStickers migration (useQueries + combine)
 
 ### Phase 12: Mutations & Optimistic Updates
 **Goal**: Add mutation patterns with query invalidation and optimistic updates.
@@ -204,7 +204,7 @@ Phases execute in numeric order: 9 -> 10 -> 11 -> 12 -> 13 -> 14
 | 8. Component Tests | v1 | 3/3 | Complete | 2026-01-25 |
 | 9. React Query Foundation | v2.0 | 1/1 | Complete | 2026-01-26 |
 | 10. Simple Hook Migration | v2.0 | 3/3 | Complete | 2026-01-26 |
-| 11. Complex Hook Migration | v2.0 | 0/3 | Not started | - |
+| 11. Complex Hook Migration | v2.0 | 0/3 | Planned | - |
 | 12. Mutations & Optimistic | v2.0 | 0/3 | Not started | - |
 | 13. Pagination | v2.0 | 0/3 | Not started | - |
 | 14. Render Optimization | v2.0 | 0/3 | Not started | - |
