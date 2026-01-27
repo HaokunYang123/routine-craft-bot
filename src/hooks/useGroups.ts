@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { useToast } from "./use-toast";
@@ -71,60 +71,59 @@ export function useGroups() {
     enabled: !!user,
   });
 
-  const createGroup = async (name: string, color: string, icon: string = "users") => {
-    if (!user) return null;
-
-    try {
+  // Create group mutation
+  const createGroupMutation = useMutation({
+    mutationFn: async (data: { name: string; color: string; icon: string }) => {
       // Generate a unique join code
       const { data: joinCode, error: codeError } = await supabase.rpc("generate_group_join_code");
       if (codeError) throw codeError;
 
-      const { data, error } = await supabase
+      const { data: groupData, error } = await supabase
         .from("groups")
         .insert({
-          name,
-          color,
-          icon,
-          coach_id: user.id,
+          name: data.name,
+          color: data.color,
+          icon: data.icon,
+          coach_id: user!.id,
           join_code: joinCode,
         })
         .select()
         .single();
 
       if (error) throw error;
-
+      return groupData as Group;
+    },
+    onSuccess: async (data) => {
       toast({
         title: "Group Created",
-        description: `"${name}" has been created`,
+        description: `"${data.name}" has been created`,
       });
-
-      await queryClient.invalidateQueries({ queryKey: queryKeys.groups.list(user.id) });
-      return data;
-    } catch (error) {
+      return queryClient.invalidateQueries({ queryKey: queryKeys.groups.list(user!.id) });
+    },
+    onError: (error) => {
       handleError(error, { component: 'useGroups', action: 'create group' });
-      return null;
-    }
-  };
+    },
+  });
 
-  const updateGroup = async (groupId: string, updates: Partial<Group>) => {
-    if (!user) return false;
-
-    try {
+  // Update group mutation
+  const updateGroupMutation = useMutation({
+    mutationFn: async (data: { groupId: string; updates: Partial<Group> }) => {
       const { error } = await supabase
         .from("groups")
-        .update(updates)
-        .eq("id", groupId);
+        .update(data.updates)
+        .eq("id", data.groupId);
 
       if (error) throw error;
-
+      return data;
+    },
+    onSuccess: async () => {
       toast({
         title: "Group Updated",
         description: "Group has been updated",
       });
-
-      await queryClient.invalidateQueries({ queryKey: queryKeys.groups.list(user.id) });
-      return true;
-    } catch (error: unknown) {
+      return queryClient.invalidateQueries({ queryKey: queryKeys.groups.list(user!.id) });
+    },
+    onError: (error) => {
       const message = error && typeof error === 'object' && 'message' in error
         ? (error as { message: string }).message
         : "Failed to update group";
@@ -133,29 +132,28 @@ export function useGroups() {
         description: message,
         variant: "destructive",
       });
-      return false;
-    }
-  };
+    },
+  });
 
-  const deleteGroup = async (groupId: string) => {
-    if (!user) return false;
-
-    try {
+  // Delete group mutation
+  const deleteGroupMutation = useMutation({
+    mutationFn: async (data: { groupId: string }) => {
       const { error } = await supabase
         .from("groups")
         .delete()
-        .eq("id", groupId);
+        .eq("id", data.groupId);
 
       if (error) throw error;
-
+      return data.groupId;
+    },
+    onSuccess: async () => {
       toast({
         title: "Group Deleted",
         description: "Group has been removed",
       });
-
-      await queryClient.invalidateQueries({ queryKey: queryKeys.groups.list(user.id) });
-      return true;
-    } catch (error: unknown) {
+      return queryClient.invalidateQueries({ queryKey: queryKeys.groups.list(user!.id) });
+    },
+    onError: (error) => {
       const message = error && typeof error === 'object' && 'message' in error
         ? (error as { message: string }).message
         : "Failed to delete group";
@@ -164,32 +162,31 @@ export function useGroups() {
         description: message,
         variant: "destructive",
       });
-      return false;
-    }
-  };
+    },
+  });
 
-  const addMember = async (groupId: string, userId: string) => {
-    if (!user) return false;
-
-    try {
+  // Add member mutation
+  const addMemberMutation = useMutation({
+    mutationFn: async (data: { groupId: string; userId: string }) => {
       const { error } = await supabase
         .from("group_members")
         .insert({
-          group_id: groupId,
-          user_id: userId,
+          group_id: data.groupId,
+          user_id: data.userId,
           role: "member",
         });
 
       if (error) throw error;
-
+      return data;
+    },
+    onSuccess: async () => {
       toast({
         title: "Member Added",
         description: "Member has been added to the group",
       });
-
-      await queryClient.invalidateQueries({ queryKey: queryKeys.groups.list(user.id) });
-      return true;
-    } catch (error: unknown) {
+      return queryClient.invalidateQueries({ queryKey: queryKeys.groups.list(user!.id) });
+    },
+    onError: (error) => {
       const message = error && typeof error === 'object' && 'message' in error
         ? (error as { message: string }).message
         : "Failed to add member";
@@ -198,30 +195,29 @@ export function useGroups() {
         description: message,
         variant: "destructive",
       });
-      return false;
-    }
-  };
+    },
+  });
 
-  const removeMember = async (groupId: string, userId: string) => {
-    if (!user) return false;
-
-    try {
+  // Remove member mutation
+  const removeMemberMutation = useMutation({
+    mutationFn: async (data: { groupId: string; userId: string }) => {
       const { error } = await supabase
         .from("group_members")
         .delete()
-        .eq("group_id", groupId)
-        .eq("user_id", userId);
+        .eq("group_id", data.groupId)
+        .eq("user_id", data.userId);
 
       if (error) throw error;
-
+      return data;
+    },
+    onSuccess: async () => {
       toast({
         title: "Member Removed",
         description: "Member has been removed from the group",
       });
-
-      await queryClient.invalidateQueries({ queryKey: queryKeys.groups.list(user.id) });
-      return true;
-    } catch (error: unknown) {
+      return queryClient.invalidateQueries({ queryKey: queryKeys.groups.list(user!.id) });
+    },
+    onError: (error) => {
       const message = error && typeof error === 'object' && 'message' in error
         ? (error as { message: string }).message
         : "Failed to remove member";
@@ -230,6 +226,55 @@ export function useGroups() {
         description: message,
         variant: "destructive",
       });
+    },
+  });
+
+  // Backward-compatible wrapper functions
+  const createGroup = async (name: string, color: string, icon: string = "users") => {
+    if (!user) return null;
+    try {
+      return await createGroupMutation.mutateAsync({ name, color, icon });
+    } catch {
+      return null;
+    }
+  };
+
+  const updateGroup = async (groupId: string, updates: Partial<Group>) => {
+    if (!user) return false;
+    try {
+      await updateGroupMutation.mutateAsync({ groupId, updates });
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const deleteGroup = async (groupId: string) => {
+    if (!user) return false;
+    try {
+      await deleteGroupMutation.mutateAsync({ groupId });
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const addMember = async (groupId: string, userId: string) => {
+    if (!user) return false;
+    try {
+      await addMemberMutation.mutateAsync({ groupId, userId });
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const removeMember = async (groupId: string, userId: string) => {
+    if (!user) return false;
+    try {
+      await removeMemberMutation.mutateAsync({ groupId, userId });
+      return true;
+    } catch {
       return false;
     }
   };
@@ -282,5 +327,11 @@ export function useGroups() {
     addMember,
     removeMember,
     getGroupMembers,
+    // NEW: Mutation loading states for UI feedback
+    isCreating: createGroupMutation.isPending,
+    isUpdating: updateGroupMutation.isPending,
+    isDeleting: deleteGroupMutation.isPending,
+    isAddingMember: addMemberMutation.isPending,
+    isRemovingMember: removeMemberMutation.isPending,
   };
 }
