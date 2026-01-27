@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { useToast } from "./use-toast";
 import { handleError } from "@/lib/error";
+import { queryKeys } from "@/lib/queries/keys";
 
 export interface Profile {
   id: string;
@@ -15,62 +16,65 @@ export interface Profile {
   updated_at: string;
 }
 
+/**
+ * Fetches or creates a profile for the given user.
+ * If profile doesn't exist (PGRST116), auto-creates one.
+ */
+async function fetchOrCreateProfile(
+  userId: string,
+  email: string | undefined,
+  userMetadata: Record<string, unknown> | undefined
+): Promise<Profile> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("user_id", userId)
+    .single();
+
+  if (error) {
+    // If profile doesn't exist, create one
+    if (error.code === "PGRST116") {
+      const newProfile = {
+        user_id: userId,
+        display_name: (userMetadata?.full_name as string) || email?.split("@")[0] || null,
+        email: email,
+        role: "coach" as const,
+      };
+
+      const { data: createdProfile, error: createError } = await supabase
+        .from("profiles")
+        .insert(newProfile)
+        .select()
+        .single();
+
+      if (createError) throw createError;
+      return createdProfile;
+    }
+    throw error;
+  }
+
+  return data;
+}
+
 export function useProfile() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  const fetchProfile = useCallback(async () => {
-    if (!user) {
-      setProfile(null);
-      setLoading(false);
-      return;
-    }
+  const {
+    data: profile,
+    isPending,
+    isFetching,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: queryKeys.profile.current(user?.id ?? ''),
+    queryFn: () => fetchOrCreateProfile(user!.id, user!.email, user!.user_metadata),
+    enabled: !!user,
+  });
 
-    try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("user_id", user.id)
-        .single();
-
-      if (error) {
-        // If profile doesn't exist, create one
-        if (error.code === "PGRST116") {
-          const newProfile = {
-            user_id: user.id,
-            display_name: user.user_metadata?.full_name || user.email?.split("@")[0] || null,
-            email: user.email,
-            role: "coach" as const,
-          };
-
-          const { data: createdProfile, error: createError } = await supabase
-            .from("profiles")
-            .insert(newProfile)
-            .select()
-            .single();
-
-          if (createError) throw createError;
-          setProfile(createdProfile);
-        } else {
-          throw error;
-        }
-      } else {
-        setProfile(data);
-      }
-    } catch (error) {
-      handleError(error, { component: 'useProfile', action: 'fetch profile', silent: true });
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    fetchProfile();
-  }, [fetchProfile]);
-
-  const updateProfile = useCallback(async (updates: Partial<Pick<Profile, "display_name" | "avatar_url">>) => {
+  const updateProfile = async (updates: Partial<Pick<Profile, "display_name" | "avatar_url">>) => {
     if (!user) return false;
 
     try {
@@ -84,8 +88,8 @@ export function useProfile() {
 
       if (error) throw error;
 
-      // Update local state
-      setProfile((prev) => prev ? { ...prev, ...updates } : null);
+      // Invalidate cache to trigger refetch
+      await queryClient.invalidateQueries({ queryKey: queryKeys.profile.current(user.id) });
 
       toast({
         title: "Profile Updated",
@@ -97,7 +101,7 @@ export function useProfile() {
       handleError(error, { component: 'useProfile', action: 'update profile' });
       return false;
     }
-  }, [user, toast]);
+  };
 
   // Helper to get display name with fallback
   const displayName = profile?.display_name || user?.email?.split("@")[0] || "Coach";
@@ -114,13 +118,16 @@ export function useProfile() {
   const avatarDisplay = avatarEmoji || initials;
 
   return {
-    profile,
-    loading,
+    profile: profile ?? null,     // Coerce undefined to null for backward compatibility
+    loading: isPending,           // Keep "loading" name for backward compatibility
+    isFetching,                   // NEW: for background refresh indicator
+    isError,                      // NEW: for error UI
+    error,                        // NEW: for error details
     displayName,
     initials,
     avatarEmoji,
     avatarDisplay,
-    fetchProfile,
+    fetchProfile: refetch,        // Manual retry
     updateProfile,
   };
 }
