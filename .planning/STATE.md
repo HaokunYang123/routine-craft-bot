@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-01-28)
 
 ## Current Position
 
-Phase: 15 - Authentication Rebuild
-Plan: 6/6 complete
-Status: Phase complete, verified
-Last activity: 2026-01-28 — Phase 15 execution complete
+Phase: 16 - Realtime Subscriptions
+Plan: 1/4 complete
+Status: In progress
+Last activity: 2026-01-28 — Completed 16-01-PLAN.md
 
-Progress: [███████             ] 33% (1/3 phases)
+Progress: [████████░░░░░░░░░░░░] 37% (14/38 plans in v3.0)
 
 ## Milestone History
 
@@ -28,11 +28,9 @@ See: .planning/MILESTONES.md for full details
 ## v3.0 Auth & Realtime (In Progress)
 
 **Phases:**
-- Phase 15: Authentication Rebuild (13 requirements) — Complete
-- Phase 16: Realtime Subscriptions (6 requirements) — Pending
-- Phase 17: Timezone & Rollover (7 requirements) — Pending
-
-**Total requirements:** 26 (13 complete)
+- Phase 15: Authentication Rebuild (6 plans) — Complete
+- Phase 16: Realtime Subscriptions (4 plans) — In Progress (1/4)
+- Phase 17: Timezone & Rollover — Pending
 
 **Key deliverables (Phase 15 complete):**
 - [x] Role selection landing page ("I am a Coach" / "I am a Student")
@@ -40,8 +38,13 @@ See: .planning/MILESTONES.md for full details
 - [x] Database trigger for atomic profile creation
 - [x] Role-based routing from database (not localStorage)
 
+**Key deliverables (Phase 16 in progress):**
+- [x] Realtime infrastructure hooks (16-01)
+- [ ] Coach dashboard realtime (16-02)
+- [ ] Student app realtime (16-03)
+- [ ] Realtime testing (16-04)
+
 **Remaining deliverables:**
-- Supabase Realtime subscriptions with React Query integration
 - UTC storage with local timezone display
 - Daily rollover at user's local midnight
 
@@ -60,6 +63,8 @@ See: .planning/MILESTONES.md for full details
 | 15-04 | NotFound uses role-based routing for dashboard | Coach goes to /dashboard, student goes to /app |
 | 15-05 | useProfile retry with exponential backoff | Handles timing edge case where trigger hasn't completed |
 | 15-06 | Branding changed to "TeachCoachConnect" | User feedback during verification checkpoint |
+| 16-01 | Channel names scoped by userId | Ensures isolation between users' realtime subscriptions |
+| 16-01 | Use invalidateQueries not setQueryData | Simpler cache management, React Query refetches fresh data |
 
 See PROJECT.md Key Decisions table for full list with outcomes.
 
@@ -69,16 +74,16 @@ None.
 
 ### Blockers/Concerns
 
-None — ready for Phase 16 planning.
+- Pre-existing test failure in useProfile.test.tsx (role assertion) — needs fixing but does not block Phase 16
 
 ## Session Continuity
 
 Last session: 2026-01-28
-Stopped at: Phase 15 complete
+Stopped at: Completed 16-01-PLAN.md
 Resume file: None
 
-Next action: `/gsd:discuss-phase 16` or `/gsd:plan-phase 16`
+Next action: `/gsd:execute-plan 16-02`
 
 ---
 *State initialized: 2026-01-24*
-*Last updated: 2026-01-28 — Phase 15 complete*
+*Last updated: 2026-01-28 — Completed 16-01-PLAN.md*
