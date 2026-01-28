@@ -45,13 +45,9 @@ export function CoachAuth() {
     const { signInWithGoogle, loading: googleLoading, error: googleError } = useGoogleAuth();
 
     const handleGoogleSignIn = async () => {
-        // Determine strict role logic for generic OAuth if possible, 
-        // but for now we rely on the user having signed up as a coach or being a new user.
-        // If they are new, they will default to 'student' by DB trigger unless we have metadata.
-        // Since we can't reliably pass metadata in this flow without PKCE/Redirect config changes,
-        // we will rely on Post-Login Strict Check.
-        localStorage.setItem("intended_role", "coach");
-        await signInWithGoogle();
+        // Role is now passed through OAuth redirectTo URL parameter
+        // The callback page will extract and set the role in the database
+        await signInWithGoogle('coach');
         if (googleError) {
             toast({
                 title: "Google Sign-in Failed",

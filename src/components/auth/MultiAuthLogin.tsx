@@ -128,15 +128,17 @@ export function MultiAuthLogin({ onEmailAuth }: MultiAuthLoginProps) {
 
     // Handle Google sign in
     const handleGoogleSignIn = async () => {
-        // Store the selected role so we can use it (maybe in a post-auth hook or if we upgrade flow)
-        // Note: For Google Auth, passing 'data' in options isn't always reliable for metadata on first sign-up depending on flow.
-        // But we can try to rely on the user finishing setup if they land on the wrong dashboard.
-        // Better yet, Supabase Auth with PKCE might preserve state if we could pass it.
-        // For now, let's just proceed.
-        if (selectedRole) {
-            localStorage.setItem("intended_role", selectedRole);
+        // Role is now passed through OAuth redirectTo URL parameter
+        // The callback page will extract and set the role in the database
+        if (!selectedRole) {
+            toast({
+                title: "Role Required",
+                description: "Please select a role before signing in.",
+                variant: "destructive",
+            });
+            return;
         }
-        await signInWithGoogle();
+        await signInWithGoogle(selectedRole);
         if (googleError) {
             toast({
                 title: "Google Sign-in Failed",

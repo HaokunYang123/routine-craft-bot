@@ -5,17 +5,18 @@ export function useGoogleAuth() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const signInWithGoogle = useCallback(async () => {
+    const signInWithGoogle = useCallback(async (role: 'coach' | 'student') => {
         setLoading(true);
         setError(null);
 
         try {
+            // Pass role in redirectTo URL - callback will extract and set it
             const { data, error: authError } = await supabase.auth.signInWithOAuth({
                 provider: "google",
                 options: {
                     // No hd parameter = allow any Google account (personal or business)
                     scopes: "profile email",
-                    redirectTo: `${window.location.origin}`,
+                    redirectTo: `${window.location.origin}/auth/callback?role=${role}`,
                     queryParams: {
                         access_type: "offline",
                         prompt: "consent",
