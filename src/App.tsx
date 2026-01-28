@@ -113,8 +113,6 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Index />} />
-            <Route path="/login/coach" element={<Index />} />
-            <Route path="/login/student" element={<Index />} />
             {/* OAuth Callback */}
             <Route path="/auth/callback" element={<AuthCallback />} />
             {/* Teacher/Coach Dashboard */}
