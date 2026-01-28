@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-28)
 ## Current Position
 
 Phase: 15 - Authentication Rebuild
-Plan: 02 of 6
+Plan: 01 of 6
 Status: In progress
-Last activity: 2026-01-28 — Completed 15-02-PLAN.md (OAuth Callback)
+Last activity: 2026-01-28 — Completed 15-01-PLAN.md (Database Trigger & OAuth Role)
 
-Progress: [                    ] 0% (0/3 phases)
+Progress: [█                   ] 5% (1/20 plans estimated)
 
 ## Milestone History
 
@@ -28,7 +28,7 @@ See: .planning/MILESTONES.md for full details
 ## v3.0 Auth & Realtime (In Progress)
 
 **Phases:**
-- Phase 15: Authentication Rebuild (13 requirements) — In Progress (2/6 plans)
+- Phase 15: Authentication Rebuild (13 requirements) — In Progress (1/6 plans)
 - Phase 16: Realtime Subscriptions (6 requirements) — Pending
 - Phase 17: Timezone & Rollover (7 requirements) — Pending
 
@@ -51,9 +51,8 @@ See: .planning/MILESTONES.md for full details
 
 | Plan | Decision | Rationale |
 |------|----------|-----------|
-| 15-02 | Role update uses .is('role', null) filter | Supports AUTH-10 immutability - role can be SET once but never CHANGED |
-| 15-02 | 500ms retry on profile fetch | Handles trigger timing edge case |
-| 15-02 | AuthCallback handles own errors | No RouteErrorBoundary wrapper needed |
+| 15-01 | Profile created with role=NULL | Supports AUTH-10 immutability - role can be SET once but never CHANGED |
+| 15-01 | Role passed via redirectTo URL parameter | Survives OAuth redirect, more reliable than localStorage |
 
 See PROJECT.md Key Decisions table for full list with outcomes.
 
@@ -63,16 +62,16 @@ None.
 
 ### Blockers/Concerns
 
-None.
+- Migration needs to be applied to remote Supabase (local/remote migration mismatch)
 
 ## Session Continuity
 
-Last session: 2026-01-28T11:50:38Z
-Stopped at: Completed 15-02-PLAN.md
+Last session: 2026-01-28T11:52:18Z
+Stopped at: Completed 15-01-PLAN.md
 Resume file: None
 
-Next action: Execute 15-03-PLAN.md (Landing Page)
+Next action: Execute 15-02-PLAN.md (OAuth Callback)
 
 ---
 *State initialized: 2026-01-24*
-*Last updated: 2026-01-28 — Completed 15-02-PLAN.md*
+*Last updated: 2026-01-28 — Completed 15-01-PLAN.md*
