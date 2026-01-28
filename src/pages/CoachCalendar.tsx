@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, Profiler } from "react";
+import { onRenderCallback } from "@/lib/profiling";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useGroups } from "@/hooks/useGroups";
@@ -335,7 +336,9 @@ export default function CoachCalendar() {
     return <CalendarSkeleton />;
   }
 
+  // Profiler wrapper for performance measurement - see PROFILING-REPORT.md
   return (
+    <Profiler id="CoachCalendar" onRender={onRenderCallback}>
     <div className="space-y-6 pb-20">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -555,6 +558,7 @@ export default function CoachCalendar() {
         </SheetContent>
       </Sheet>
     </div>
+    </Profiler>
   );
 }
 
@@ -1082,8 +1086,8 @@ function DaySheetContent({
   );
 }
 
-// Week View Component
-function WeekView({
+// Week View Component - Memoized to prevent re-renders when other state changes
+const WeekView = React.memo(function WeekView({
   days,
   selectedDate,
   onSelectDate,
@@ -1161,10 +1165,10 @@ function WeekView({
       })}
     </div>
   );
-}
+});
 
-// Day View Component
-function DayView({
+// Day View Component - Memoized to prevent re-renders when other state changes
+const DayView = React.memo(function DayView({
   date,
   tasks,
   onRefresh,
@@ -1242,13 +1246,13 @@ function DayView({
       )}
     </div>
   );
-}
+});
 
 // Maximum tasks to show in sidebar before collapse
 const MAX_SIDEBAR_TASKS = 5;
 
-// Shared Task List Component
-function TaskList({
+// Shared Task List Component - Memoized to prevent re-renders when other state changes
+const TaskList = React.memo(function TaskList({
   tasks,
   onRefresh,
   showDetails = false,

@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, Profiler } from "react";
+import { onRenderCallback } from "@/lib/profiling";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -238,7 +239,9 @@ export default function CoachDashboard() {
   const totalTasks = groupsWithStats.reduce((sum, g) => sum + g.totalToday, 0);
   const overallRate = totalTasks > 0 ? Math.round((totalCompleted / totalTasks) * 100) : 0;
 
+  // Profiler wrapper for performance measurement - see PROFILING-REPORT.md
   return (
+    <Profiler id="CoachDashboard" onRender={onRenderCallback}>
     <div className="space-y-8 pb-20">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -472,5 +475,6 @@ export default function CoachDashboard() {
         studentName={selectedStudent?.name || "Student"}
       />
     </div>
+    </Profiler>
   );
 }
