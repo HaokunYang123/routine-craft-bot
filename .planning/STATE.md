@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-28)
 
 **Core value:** Users can reliably complete their daily workflows with instant feedback and smooth performance.
-**Current focus:** Planning next milestone
+**Current focus:** v3.0 Auth & Realtime
 
 ## Current Position
 
-Phase: 14 of 14 complete
-Plan: All complete
-Status: Ready for next milestone
-Last activity: 2026-01-28 — v2.0 milestone shipped
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements for v3.0
+Last activity: 2026-01-28 — Milestone v3.0 started
 
-Progress: [====================] 100% (14/14 phases complete)
+Progress: [                    ] 0% (defining scope)
 
 ## Milestone History
 
@@ -25,21 +25,18 @@ Progress: [====================] 100% (14/14 phases complete)
 
 See: .planning/MILESTONES.md for full details
 
-## v2.0 Summary
+## v3.0 Auth & Realtime (In Progress)
 
-**Shipped:**
-- React Query migration for 6 data hooks
-- 5-minute caching with background refetch
-- Optimistic updates for instant task completion
-- Cursor-based infinite scroll pagination
-- Content-shaped loading skeletons
-- CoachCalendar memoization
+**Target:**
+- Role selection landing page
+- Google OAuth only (remove email/password, login-via-code)
+- Atomic profile creation via database trigger
+- Role-based routing from database
+- Supabase Realtime for all data
+- Timezone handling + daily rollover
+- Calendar freshness
 
-**Stats:**
-- 53 commits
-- 87 files modified
-- 33,935 lines of TypeScript
-- 240 tests passing
+**Previous milestone:** v2.0 Performance shipped 2026-01-28
 
 ## Accumulated Context
 
@@ -58,9 +55,9 @@ None — v2.0 Performance milestone shipped.
 ## Session Continuity
 
 Last session: 2026-01-28
-Stopped at: v2.0 milestone complete
+Stopped at: Defining v3.0 requirements
 Resume file: None
 
 ---
 *State initialized: 2026-01-24*
-*Last updated: 2026-01-28 — v2.0 shipped*
+*Last updated: 2026-01-28 — v3.0 milestone started*

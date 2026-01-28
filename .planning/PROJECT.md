@@ -6,6 +6,21 @@ A coach/student task management system built with React and Supabase. Coaches cr
 
 **v2.0 Performance shipped 2026-01-28** — React Query migration, optimistic updates, pagination, and render optimization for faster, smoother UX.
 
+## Current Milestone: v3.0 Auth & Realtime
+
+**Goal:** Rebuild authentication with atomic profile creation, add realtime sync, and fix timezone/calendar issues.
+
+**Target features:**
+- Role selection landing page ("I am a Coach" / "I am a Student")
+- Google OAuth only (remove email/password, remove login-via-code)
+- Database trigger for atomic profile creation (user + profile in one transaction)
+- Role-based routing (database is source of truth)
+- Student onboarding: login first → join class second
+- Supabase Realtime subscriptions for all data
+- Proper timezone handling (store UTC, display local)
+- Daily rollover logic for tasks
+- Calendar freshness via realtime
+
 ## Core Value
 
 Users can reliably complete their daily workflows (task assignment, task completion, group management) without encountering errors, crashes, or unexpected behavior — with instant feedback and smooth performance.
@@ -66,19 +81,33 @@ Error handling: React Error Boundaries + handleError utility + global query erro
 
 ### Active
 
-(Ready for next milestone planning)
+**v3.0 Auth & Realtime:**
+- [ ] Role selection landing page with "I am a Coach" / "I am a Student"
+- [ ] Google OAuth only for all users
+- [ ] Database trigger `handle_new_user` for atomic profile creation
+- [ ] Role passed as metadata during Google signup
+- [ ] Role-based routing that queries database (not local state)
+- [ ] Student empty state → class joining flow (QR/code after login)
+- [ ] Remove email/password login
+- [ ] Remove login-via-code (keep for class joining)
+- [ ] Supabase Realtime subscriptions for task completions
+- [ ] Supabase Realtime subscriptions for new assignments
+- [ ] Supabase Realtime subscriptions for all data entities
+- [ ] Timezone handling: store UTC, display local time
+- [ ] Daily rollover logic for recurring tasks
+- [ ] Calendar freshness via realtime updates
 
 ### Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| New features | Current focus is reliability/stability |
-| UI redesign | Keep user experience identical for now |
+| Custom OAuth domain branding | GoDaddy access pending, defer to later |
 | Mobile app | Web-first approach, PWA works |
 | Offline support | Complex, defer to dedicated milestone |
 | 100% test coverage | Diminishing returns; critical paths covered |
+| One user with multiple roles | Will never happen per user requirement |
 
-### v2.1 Candidates (Deferred)
+### Future Candidates (Deferred)
 
 **Performance Advanced:**
 - Prefetching on hover (near-instant navigation)
@@ -88,7 +117,6 @@ Error handling: React Error Boundaries + handleError utility + global query erro
 
 **Security:**
 - Remove .env from git history
-- Remove localStorage role tracking
 - Rate limiting for QR validation
 
 **Advanced Testing:**
@@ -113,8 +141,9 @@ Error handling: React Error Boundaries + handleError utility + global query erro
 
 ## Constraints
 
-- **UI Freeze**: Keep user-facing behavior identical
-- **Backward Compatibility**: Don't break Supabase functions/schema
+- **Fresh Start**: No existing users to migrate (clean slate for auth)
+- **Google Only**: Single auth provider simplifies flow
+- **Backward Compatibility**: Don't break existing Supabase data schema
 - **Minimal Dependencies**: Prefer existing tools over new packages
 
 ## Key Decisions
@@ -136,4 +165,4 @@ Error handling: React Error Boundaries + handleError utility + global query erro
 | Map-based task lookup | O(1) vs O(n) filtering per date | ✓ Good — month view faster |
 
 ---
-*Last updated: 2026-01-28 after v2.0 milestone*
+*Last updated: 2026-01-28 after v3.0 milestone started*
