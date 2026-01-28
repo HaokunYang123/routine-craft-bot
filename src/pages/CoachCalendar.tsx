@@ -165,10 +165,12 @@ export default function CoachCalendar() {
   const { groups, fetchGroups } = useGroups();
 
   // Realtime subscription for task completions (REAL-01: coach sees updates)
+  // Filter by coach_id for efficient realtime delivery (GAP-01 closure)
   const assignmentQueryKeys = [queryKeys.assignments.all] as const;
   useRealtimeSubscription({
     channelName: REALTIME_CHANNELS.COACH_TASK_UPDATES(user?.id || ''),
     table: 'task_instances',
+    filter: `coach_id=eq.${user?.id}`,
     event: '*',
     queryKeysToInvalidate: assignmentQueryKeys,
     enabled: !!user,
