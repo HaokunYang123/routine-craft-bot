@@ -183,7 +183,13 @@ Plans:
 3. Browser memory remains stable after navigating between pages 10+ times (no WebSocket leaks)
 4. Realtime updates appear in React Query DevTools as cache invalidations (not bypassing cache)
 
-Plans: TBD
+**Plans**: 4 plans in 3 waves
+
+Plans:
+- [ ] 16-01-PLAN.md — Realtime infrastructure (hook + channels + visibility) (Wave 1)
+- [ ] 16-02-PLAN.md — Coach views integration (Dashboard + Calendar) (Wave 2)
+- [ ] 16-03-PLAN.md — Student views integration (Home + Calendar) (Wave 2)
+- [ ] 16-04-PLAN.md — End-to-end verification checkpoint (Wave 3)
 
 ### Phase 17: Timezone & Rollover
 **Goal**: Time displays respect user's local timezone with correct daily task boundaries.
@@ -224,7 +230,7 @@ Plans: TBD
 | 13. Pagination | v2.0 | 3/3 | Complete | 2026-01-27 |
 | 14. Render Optimization | v2.0 | 3/3 | Complete | 2026-01-28 |
 | 15. Authentication Rebuild | v3.0 | 6/6 | Complete | 2026-01-28 |
-| 16. Realtime Subscriptions | v3.0 | 0/? | Pending | — |
+| 16. Realtime Subscriptions | v3.0 | 0/4 | Pending | — |
 | 17. Timezone & Rollover | v3.0 | 0/? | Pending | — |
 
 ---
