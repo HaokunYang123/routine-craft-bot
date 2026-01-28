@@ -1,63 +1,64 @@
-import { useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { GraduationCap } from "lucide-react";
+import { GraduationCap, Loader2 } from "lucide-react";
 import { RoleSelection } from "@/components/auth/RoleSelection";
-import { CoachAuth } from "@/components/auth/CoachAuth";
-import { StudentAuth } from "@/components/auth/StudentAuth";
 
 const Auth = () => {
   const navigate = useNavigate();
-  const location = useLocation();
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    // Check if valid session exists on mount
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      // If session exists, we should verify role and redirect (the previous logic handles this globally mostly)
-      // But let's check profile to be safe and redirect if already logged in
-      if (session) {
-        const checkProfile = async () => {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("role")
-            .eq("user_id", session.user.id)
-            .single();
+    // Check if user is already logged in and redirect to their dashboard
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
 
-          if (profile?.role === "coach") navigate("/dashboard");
-          else if (profile?.role === "student") navigate("/app");
-        };
-        checkProfile();
+      if (session) {
+        // Fetch profile to determine role
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("user_id", session.user.id)
+          .single();
+
+        if (profile?.role === "coach") {
+          navigate("/dashboard", { replace: true });
+        } else if (profile?.role === "student") {
+          navigate("/app", { replace: true });
+        }
       }
-    });
+      setChecking(false);
+    };
+
+    checkSession();
   }, [navigate]);
 
-  const renderContent = () => {
-    if (location.pathname === "/login/coach") {
-      return <CoachAuth />;
-    }
-    if (location.pathname === "/login/student") {
-      return <StudentAuth />;
-    }
-    return <RoleSelection />;
-  };
+  // Show loading while checking session
+  if (checking) {
+    return (
+      <div className="min-h-screen gradient-subtle flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen gradient-subtle flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="bg-card rounded-2xl shadow-elevated border border-border p-8">
-          {/* Logo */}
-          <div className="flex items-center justify-center gap-3 mb-8">
+          {/* Logo and Welcome */}
+          <div className="flex items-center justify-center gap-3 mb-2">
             <div className="w-12 h-12 rounded-xl gradient-hero flex items-center justify-center shadow-soft">
               <GraduationCap className="w-6 h-6 text-primary-foreground" />
             </div>
-            <div>
-              <span className="text-2xl font-semibold text-foreground block">TeachCoachConnect</span>
-              <span className="text-xs text-muted-foreground">Task Management for Students & Coaches</span>
-            </div>
+          </div>
+          <div className="text-center mb-8">
+            <h1 className="text-2xl font-semibold text-foreground">Welcome to Routine Craft</h1>
+            <p className="text-sm text-muted-foreground mt-1">Task Management for Students & Coaches</p>
           </div>
 
-          {/* Auth Content */}
-          {renderContent()}
+          {/* Role Selection */}
+          <RoleSelection />
         </div>
 
         {/* Footer */}
