@@ -97,6 +97,56 @@ interface GroupInfo {
 
 type ViewMode = "month" | "week" | "day";
 
+// Props interface for memoized DayCell component
+interface DayCellProps {
+  date: Date | null;
+  isToday: boolean;
+  isSelected: boolean;
+  groupColors: string[];
+  hasEvents: boolean;
+  onDateClick: (date: Date) => void;
+}
+
+// DayCell Component - Memoized to prevent re-renders of individual cells
+const DayCell = React.memo(function DayCell({
+  date,
+  isToday: isTodayProp,
+  isSelected,
+  groupColors,
+  hasEvents: hasEventsProp,
+  onDateClick,
+}: DayCellProps) {
+  if (!date) {
+    return <button disabled className="aspect-square p-1 rounded-lg text-sm font-medium invisible" />;
+  }
+
+  return (
+    <button
+      onClick={() => onDateClick(date)}
+      className={cn(
+        "aspect-square p-1 rounded-lg text-sm font-medium transition-all relative",
+        "hover:bg-muted",
+        isTodayProp && "bg-cta-primary/10 text-cta-primary",
+        isSelected && "bg-cta-primary text-white",
+        !isTodayProp && !isSelected && "text-foreground"
+      )}
+    >
+      {date.getDate()}
+      {hasEventsProp && !isSelected && (
+        <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex gap-0.5">
+          {groupColors.map((color, idx) => (
+            <span
+              key={idx}
+              className="w-1.5 h-1.5 rounded-full"
+              style={{ backgroundColor: color }}
+            />
+          ))}
+        </div>
+      )}
+    </button>
+  );
+});
+
 export default function CoachCalendar() {
   const { user } = useAuth();
   const { groups, fetchGroups } = useGroups();
@@ -456,36 +506,21 @@ export default function CoachCalendar() {
                 </div>
                 <div className="grid grid-cols-7 gap-1">
                   {(days as (Date | null)[]).map((date, i) => {
-                    const stats = date ? getCompletionStats(date) : { completed: 0, total: 0 };
-                    const groupColors = date ? getGroupColorsForDate(date) : [];
+                    const todayCheck = date ? isToday(date) : false;
+                    const selectedCheck = date ? isSameDay(date, selectedDate) : false;
+                    const colors = date ? getGroupColorsForDate(date) : [];
+                    const hasEventsCheck = date ? hasEvents(date) : false;
 
                     return (
-                      <button
+                      <DayCell
                         key={i}
-                        disabled={!date}
-                        onClick={() => date && handleDateClick(date)}
-                        className={cn(
-                          "aspect-square p-1 rounded-lg text-sm font-medium transition-all relative",
-                          !date && "invisible",
-                          date && "hover:bg-muted",
-                          date && isToday(date) && "bg-cta-primary/10 text-cta-primary",
-                          date && isSameDay(date, selectedDate) && "bg-cta-primary text-white",
-                          date && !isToday(date) && !isSameDay(date, selectedDate) && "text-foreground"
-                        )}
-                      >
-                        {date?.getDate()}
-                        {date && hasEvents(date) && !isSameDay(date, selectedDate) && (
-                          <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex gap-0.5">
-                            {groupColors.map((color, idx) => (
-                              <span
-                                key={idx}
-                                className="w-1.5 h-1.5 rounded-full"
-                                style={{ backgroundColor: color }}
-                              />
-                            ))}
-                          </div>
-                        )}
-                      </button>
+                        date={date}
+                        isToday={todayCheck}
+                        isSelected={selectedCheck}
+                        groupColors={colors}
+                        hasEvents={hasEventsCheck}
+                        onDateClick={handleDateClick}
+                      />
                     );
                   })}
                 </div>
@@ -565,8 +600,8 @@ export default function CoachCalendar() {
 // Maximum tasks to show before collapse
 const MAX_VISIBLE_TASKS = 3;
 
-// Day Sheet Content Component - Shows groups with members and their tasks
-function DaySheetContent({
+// Day Sheet Content Component - Memoized to prevent re-renders when other state changes
+const DaySheetContent = React.memo(function DaySheetContent({
   tasks,
   groups,
   groupMap,
@@ -1084,7 +1119,7 @@ function DaySheetContent({
       </Dialog>
     </>
   );
-}
+});
 
 // Week View Component - Memoized to prevent re-renders when other state changes
 const WeekView = React.memo(function WeekView({
@@ -1660,4 +1695,4 @@ const TaskList = React.memo(function TaskList({
       </Dialog>
     </>
   );
-}
+});
