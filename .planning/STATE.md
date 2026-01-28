@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-28)
 ## Current Position
 
 Phase: 15 - Authentication Rebuild
-Plan: 04 of 6
+Plan: 05 of 6
 Status: In progress
-Last activity: 2026-01-28 — Completed 15-04-PLAN.md (Error Page Logout Buttons)
+Last activity: 2026-01-28 — Completed 15-05-PLAN.md (Auth Cleanup)
 
-Progress: [██                  ] 10% (2/20 plans estimated)
+Progress: [███                 ] 15% (3/20 plans estimated)
 
 ## Milestone History
 
@@ -28,7 +28,7 @@ See: .planning/MILESTONES.md for full details
 ## v3.0 Auth & Realtime (In Progress)
 
 **Phases:**
-- Phase 15: Authentication Rebuild (13 requirements) — In Progress (2/6 plans)
+- Phase 15: Authentication Rebuild (13 requirements) — In Progress (3/6 plans)
 - Phase 16: Realtime Subscriptions (6 requirements) — Pending
 - Phase 17: Timezone & Rollover (7 requirements) — Pending
 
@@ -56,6 +56,8 @@ See: .planning/MILESTONES.md for full details
 | 15-03 | Card click triggers OAuth directly | Per CONTEXT.md - streamlined UX with no intermediate screens |
 | 15-04 | Logout always navigates to / even on error | Ensures user escapes bad state |
 | 15-04 | NotFound uses role-based routing for dashboard | Coach goes to /dashboard, student goes to /app |
+| 15-05 | useProfile retries PGRST116 up to 3 times | Handles trigger timing edge case with exponential backoff |
+| 15-05 | Fallback profile uses role from userMetadata | Not hardcoded "coach" - supports proper role selection |
 
 See PROJECT.md Key Decisions table for full list with outcomes.
 
@@ -69,12 +71,12 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-01-28T12:03:00Z
-Stopped at: Completed 15-04-PLAN.md
+Last session: 2026-01-28T12:02:47Z
+Stopped at: Completed 15-05-PLAN.md
 Resume file: None
 
-Next action: Continue with remaining 15-0X plans
+Next action: Continue with 15-06-PLAN.md (final integration)
 
 ---
 *State initialized: 2026-01-24*
-*Last updated: 2026-01-28 — Completed 15-04-PLAN.md*
+*Last updated: 2026-01-28 — Completed 15-05-PLAN.md*
