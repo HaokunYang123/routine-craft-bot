@@ -12,6 +12,10 @@ import { onRenderCallback } from "@/lib/profiling";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useGroups } from "@/hooks/useGroups";
+import { useRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
+import { useVisibilityRefetch } from "@/hooks/useVisibilityRefetch";
+import { REALTIME_CHANNELS } from "@/lib/realtime/channels";
+import { queryKeys } from "@/lib/queries/keys";
 import {
   Calendar as CalendarIcon,
   ChevronLeft,
@@ -159,6 +163,20 @@ const DayCell = React.memo(function DayCell({
 export default function CoachCalendar() {
   const { user } = useAuth();
   const { groups, fetchGroups } = useGroups();
+
+  // Realtime subscription for task completions (REAL-01: coach sees updates)
+  const assignmentQueryKeys = [queryKeys.assignments.all] as const;
+  useRealtimeSubscription({
+    channelName: REALTIME_CHANNELS.COACH_TASK_UPDATES(user?.id || ''),
+    table: 'task_instances',
+    event: '*',
+    queryKeysToInvalidate: assignmentQueryKeys,
+    enabled: !!user,
+  });
+
+  // Refetch on tab visibility change
+  useVisibilityRefetch(assignmentQueryKeys);
+
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>("month");
