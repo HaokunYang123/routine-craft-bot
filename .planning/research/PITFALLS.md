@@ -1260,3 +1260,860 @@ Before migrating a hook to React Query:
 - Examined existing tests: `CheckInModal.test.tsx`, `Dashboard.test.tsx`, `useAssignments.test.tsx`
 - Examined test utilities: `test-utils.tsx`, `supabase.ts` mock
 - Verified React Query v5 already installed (`@tanstack/react-query: ^5.83.0`)
+
+---
+---
+
+# ADDENDUM: v3.0 Auth & Realtime Pitfalls
+
+**Domain:** Adding auth triggers, realtime sync, and timezone handling to existing React Query app
+**Researched:** 2026-01-28
+**Confidence:** HIGH (verified with official docs and community issues)
+**Context:** Coach/student task management with existing React Query caching, users span multiple timezones, daily recurring tasks need correct rollover
+
+---
+
+## Database Trigger Pitfalls
+
+### CRITICAL: Trigger Failure Blocks User Signup (A1)
+
+**What goes wrong:** If the `on_auth_user_created` trigger fails (constraint violation, null field, permission error), the entire signup transaction fails. Users see "Database error saving new user" but cannot sign up.
+
+**Warning signs:**
+- Intermittent signup failures
+- Error message mentions "Database error" but OAuth succeeded
+- Works in development, fails in production
+
+**Root cause:** Triggers run within the auth transaction. Any unhandled error rolls back the entire signup.
+
+**Prevention:**
+```sql
+-- WRONG: Fails if any field is null or constraint violated
+CREATE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, role)
+  VALUES (new.id, new.email, 'student'); -- Will fail if email null!
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- RIGHT: Handle nulls gracefully, use COALESCE
+CREATE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, display_name, role, created_at)
+  VALUES (
+    new.id,
+    COALESCE(new.email, ''),
+    COALESCE(new.raw_user_meta_data->>'full_name', 'User'),
+    COALESCE(new.raw_user_meta_data->>'requested_role', 'student'),
+    NOW()
+  );
+  RETURN new;
+EXCEPTION WHEN OTHERS THEN
+  -- Log error but don't fail signup
+  RAISE WARNING 'Profile creation failed: %', SQLERRM;
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+```
+
+**Phase to address:** Phase 1 (Auth Foundation) - Must be correct before any users created
+
+**Sources:**
+- [Supabase Discussion #6518](https://github.com/orgs/supabase/discussions/6518)
+- [Supabase Issue #37497](https://github.com/supabase/supabase/issues/37497)
+
+---
+
+### CRITICAL: SECURITY DEFINER Without search_path (A2)
+
+**What goes wrong:** Functions with `SECURITY DEFINER` execute with creator privileges. Without setting `search_path = ''`, malicious actors could exploit schema resolution to execute unintended code.
+
+**Warning signs:**
+- Supabase Database Advisor warning: "Function Search Path Mutable"
+- RLS policies behaving unexpectedly
+- Security audit failures
+
+**Prevention:**
+```sql
+-- WRONG: Vulnerable to search_path injection
+CREATE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO profiles (id, email) VALUES (new.id, new.email);
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- RIGHT: Explicit search_path and fully qualified names
+CREATE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email) VALUES (new.id, new.email);
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+```
+
+**Phase to address:** Phase 1 (Auth Foundation)
+
+**Sources:**
+- [Supabase Discussion #23170](https://github.com/orgs/supabase/discussions/23170)
+- [Supabase Database Advisors](https://supabase.com/docs/guides/database/database-advisors)
+
+---
+
+### MODERATE: Foreign Key Race Condition (A3)
+
+**What goes wrong:** When inserting into tables that reference `auth.users`, occasional foreign key violations occur because the trigger runs before the user row is fully committed.
+
+**Warning signs:**
+- Flaky "foreign key constraint violation" errors (~1 in 10 signups)
+- Works most of the time but occasionally fails
+- Error mentions parent row doesn't exist
+
+**Prevention:**
+```sql
+-- Use AFTER INSERT, not BEFORE INSERT
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users  -- AFTER, not BEFORE
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+```
+
+**Phase to address:** Phase 1 (Auth Foundation)
+
+**Sources:**
+- [Supabase Discussion #30334](https://github.com/orgs/supabase/discussions/30334)
+
+---
+
+### MODERATE: Unique Constraint on Nullable Fields (A4)
+
+**What goes wrong:** Setting username or display_name as UNIQUE + NOT NULL causes signup failures when OAuth doesn't provide these fields.
+
+**Warning signs:**
+- "duplicate key value violates unique constraint" errors
+- OAuth signups fail but email/password works
+- Works for some Google accounts but not others
+
+**Prevention:**
+- Make display_name NULLABLE or provide default
+- Generate unique usernames if needed (e.g., `user_${uuid_short}`)
+- Don't enforce uniqueness on profile creation; let users set unique names later
+
+**Phase to address:** Phase 1 (Auth Foundation)
+
+---
+
+## OAuth / Auth Flow Pitfalls
+
+### CRITICAL: user_metadata Not Available from Google OAuth (B1)
+
+**What goes wrong:** Assuming `raw_user_meta_data` will always contain `full_name`, `avatar_url`, or `email` from Google OAuth. Some Google accounts don't provide these fields.
+
+**Warning signs:**
+- Trigger fails for some Google accounts but not others
+- `user_metadata` is empty or missing expected fields
+- Works with test accounts, fails with real users
+
+**Root cause:** Google OAuth scopes, account settings, and privacy configurations affect what data is returned. Some organizational Google accounts restrict profile data.
+
+**Prevention:**
+```sql
+-- WRONG: Assumes fields exist
+INSERT INTO public.profiles (id, name, avatar)
+VALUES (
+  new.id,
+  new.raw_user_meta_data->>'full_name',  -- Might be NULL!
+  new.raw_user_meta_data->>'avatar_url'   -- Might be NULL!
+);
+
+-- RIGHT: Always use COALESCE with sensible defaults
+INSERT INTO public.profiles (id, display_name, avatar_url)
+VALUES (
+  new.id,
+  COALESCE(
+    new.raw_user_meta_data->>'full_name',
+    new.raw_user_meta_data->>'name',
+    split_part(new.email, '@', 1),
+    'User'
+  ),
+  COALESCE(
+    new.raw_user_meta_data->>'avatar_url',
+    new.raw_user_meta_data->>'picture',
+    NULL
+  )
+);
+```
+
+**Phase to address:** Phase 1 (Auth Foundation)
+
+**Sources:**
+- [Supabase Discussion #4047](https://github.com/orgs/supabase/discussions/4047)
+- [Supabase Auth-JS Issue #670](https://github.com/supabase/auth-js/issues/670)
+
+---
+
+### CRITICAL: Using user_metadata for Role-Based Access (B2)
+
+**What goes wrong:** Storing user roles in `user_metadata` and using them in RLS policies. Users can modify their own `user_metadata` via `updateUser()`, escalating privileges.
+
+**Warning signs:**
+- Users can access coach-only features
+- RLS policies use `auth.jwt()->>'user_metadata'->>'role'`
+- Security audit finds privilege escalation
+
+**Prevention:**
+```sql
+-- WRONG: user_metadata is user-modifiable!
+CREATE POLICY "Coaches only" ON tasks
+  FOR ALL
+  USING (
+    (auth.jwt()->'user_metadata'->>'role') = 'coach'  -- INSECURE!
+  );
+
+-- RIGHT: Use app_metadata (server-only) or separate profiles table
+CREATE POLICY "Coaches only" ON tasks
+  FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role = 'coach'
+    )
+  );
+
+-- OR: Use Custom Access Token Hook with app_metadata
+-- app_metadata can only be set server-side
+```
+
+**Phase to address:** Phase 1 (Auth Foundation) - Must be correct from start
+
+**Sources:**
+- [Supabase RBAC Guide](https://supabase.com/docs/guides/database/postgres/custom-claims-and-role-based-access-control-rbac)
+- [Supabase Discussion #13091](https://github.com/orgs/supabase/discussions/13091)
+
+---
+
+### MODERATE: Custom Claims Don't Update Automatically (B3)
+
+**What goes wrong:** After assigning a user a new role via custom claims, they still have old permissions until they log out and back in.
+
+**Warning signs:**
+- Admin promotes user to coach, but user still sees student UI
+- Role changes require page refresh or re-login
+- Inconsistent behavior between users
+
+**Prevention:**
+- Document that role changes require re-login
+- Implement "force re-auth" flow when role changes
+- Consider using database-based roles (profiles table) instead of JWT claims for frequently changing roles
+
+**Phase to address:** Phase 2 (Role Management)
+
+**Sources:**
+- [Supabase Custom Claims Guide](https://github.com/supabase-community/supabase-custom-claims)
+
+---
+
+### MODERATE: Reserved Claim Names (B4)
+
+**What goes wrong:** Using `exp`, `role`, `provider`, or `providers` as custom claim names breaks Supabase functionality.
+
+**Warning signs:**
+- Realtime subscriptions fail
+- Auth errors with cryptic messages
+- JWT validation failures
+
+**Prevention:**
+- Never use: `exp`, `role`, `provider`, `providers`
+- Use namespaced claims: `app_role`, `user_role`, `custom_role`
+
+**Phase to address:** Phase 1 (Auth Foundation)
+
+---
+
+## Realtime Subscription Pitfalls
+
+### CRITICAL: Memory Leak from Missing Unsubscribe (C1)
+
+**What goes wrong:** Creating Realtime subscriptions without cleanup causes memory leaks. Each mount creates new subscription, unmount doesn't clean up.
+
+**Warning signs:**
+- Browser memory usage grows over time
+- "WebSocket connection limit exceeded" errors
+- App becomes sluggish after extended use
+- Multiple duplicate events firing
+
+**Prevention:**
+```typescript
+// WRONG: No cleanup
+useEffect(() => {
+  const channel = supabase
+    .channel('tasks')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' },
+      (payload) => console.log(payload))
+    .subscribe();
+  // Missing cleanup!
+}, []);
+
+// RIGHT: Proper cleanup
+useEffect(() => {
+  const channel = supabase
+    .channel('tasks-realtime')
+    .on('postgres_changes',
+      { event: '*', schema: 'public', table: 'tasks' },
+      (payload) => handleChange(payload)
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, []);
+```
+
+**Phase to address:** Phase 2 (Realtime Foundation)
+
+**Sources:**
+- [DrDroid: Supabase Realtime Memory Leak](https://drdroid.io/stack-diagnosis/supabase-realtime-client-side-memory-leak)
+- [Supabase Docs: Remove Channel](https://supabase.com/docs/reference/javascript/v1/removesubscription)
+
+---
+
+### CRITICAL: React StrictMode Double Subscription (C2)
+
+**What goes wrong:** In development with StrictMode, effects run twice. If subscription ID changes between mounts, first subscription never gets cleaned up.
+
+**Warning signs:**
+- Double events in development only
+- Memory grows in development
+- Works in production, buggy in development
+
+**Root cause:** React StrictMode intentionally double-mounts to catch cleanup bugs. If your subscription uses generated IDs, the cleanup function references the wrong subscription.
+
+**Prevention:**
+```typescript
+// WRONG: Dynamic channel name changes between mounts
+useEffect(() => {
+  const channel = supabase
+    .channel(`tasks-${Date.now()}`)  // Different ID each mount!
+    .on('postgres_changes', ...)
+    .subscribe();
+
+  return () => supabase.removeChannel(channel);  // Removes wrong channel!
+}, []);
+
+// RIGHT: Stable channel name or use ref
+const channelRef = useRef<RealtimeChannel | null>(null);
+
+useEffect(() => {
+  // Remove any existing channel first
+  if (channelRef.current) {
+    supabase.removeChannel(channelRef.current);
+  }
+
+  const channel = supabase
+    .channel('tasks-realtime')  // Stable name
+    .on('postgres_changes', ...)
+    .subscribe();
+
+  channelRef.current = channel;
+
+  return () => {
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
+  };
+}, []);
+```
+
+**Phase to address:** Phase 2 (Realtime Foundation)
+
+**Sources:**
+- [React Issue #30835](https://github.com/facebook/react/issues/30835)
+- [LogRocket: useEffect Cleanup](https://blog.logrocket.com/understanding-react-useeffect-cleanup-function/)
+
+---
+
+### CRITICAL: onAuthStateChange Subscription Leak (C3)
+
+**What goes wrong:** Not unsubscribing from `onAuthStateChange` causes GoTrueClient memory leak that persists even after component unmount.
+
+**Warning signs:**
+- Memory grows with each page navigation
+- Auth state callbacks fire multiple times
+- setInterval persists after logout
+
+**Prevention:**
+```typescript
+// WRONG: No cleanup
+useEffect(() => {
+  supabase.auth.onAuthStateChange((event, session) => {
+    setUser(session?.user ?? null);
+  });
+}, []);
+
+// RIGHT: Proper v2 cleanup pattern
+useEffect(() => {
+  const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    (event, session) => {
+      setUser(session?.user ?? null);
+    }
+  );
+
+  return () => {
+    subscription?.unsubscribe();
+  };
+}, []);
+```
+
+**Phase to address:** Phase 1 (Auth Foundation)
+
+**Sources:**
+- [Supabase Discussion #5282](https://github.com/orgs/supabase/discussions/5282)
+- [Supabase Auth-JS Issue #856](https://github.com/supabase/auth-js/issues/856)
+
+---
+
+### MODERATE: Channel Already Subscribed Error (C4)
+
+**What goes wrong:** Attempting to subscribe to a channel that's already active causes redundant WebSocket connections and potential race conditions.
+
+**Warning signs:**
+- Console warning about "Channel Already Subscribed"
+- Duplicate events
+- Performance degradation
+
+**Prevention:**
+```typescript
+// Check if channel exists before creating
+const existingChannel = supabase.getChannels()
+  .find(c => c.topic === 'tasks-realtime');
+
+if (existingChannel) {
+  return existingChannel;  // Reuse existing
+}
+
+// Create new channel only if none exists
+const channel = supabase.channel('tasks-realtime');
+```
+
+**Phase to address:** Phase 2 (Realtime Foundation)
+
+**Sources:**
+- [DrDroid: Channel Already Subscribed](https://drdroid.io/stack-diagnosis/supabase-realtime-channel-already-subscribed)
+
+---
+
+### MODERATE: Postgres Changes Performance at Scale (C5)
+
+**What goes wrong:** Each Realtime change event requires RLS check per subscribed user. 100 users watching a table = 100 RLS checks per insert.
+
+**Warning signs:**
+- Database bottleneck with many concurrent users
+- Realtime delays under load
+- Timeouts with filtered subscriptions
+
+**Prevention:**
+- Use broadcast for non-sensitive data (no RLS check)
+- Create separate "public" tables for frequently changing data
+- Filter server-side with Realtime Broadcast instead of Postgres Changes
+- Consider subscription limits per plan
+
+**Phase to address:** Phase 3 (Optimization) - Not critical for MVP
+
+**Sources:**
+- [Supabase Realtime Benchmarks](https://supabase.com/docs/guides/realtime/benchmarks)
+
+---
+
+## Timezone Pitfalls
+
+### CRITICAL: Double Timezone Conversion (D1)
+
+**What goes wrong:** Converting timezone twice: once in JavaScript, once by PostgreSQL, resulting in times that are off by the timezone offset (or double the offset).
+
+**Warning signs:**
+- Times are off by exactly your timezone offset (e.g., 5 hours)
+- Works correctly for UTC users, wrong for everyone else
+- Database shows correct time, UI shows wrong time
+
+**Root cause:** node-postgres converts `timestamp without time zone` to JavaScript Date as if it's local time, but it's actually UTC.
+
+**Prevention:**
+```sql
+-- WRONG: timestamp without time zone
+CREATE TABLE tasks (
+  due_date timestamp  -- Ambiguous! Is this UTC or local?
+);
+
+-- RIGHT: Always use timestamptz
+CREATE TABLE tasks (
+  due_date timestamptz  -- Stored as UTC, converted on retrieval
+);
+```
+
+```typescript
+// WRONG: Double conversion
+const dueDate = new Date(task.due_date);  // Already converted once
+const localDate = utcToZonedTime(dueDate, userTimezone);  // Converted again!
+
+// RIGHT: Store display timezone, convert once
+const dueDate = new Date(task.due_date);  // Already UTC
+const displayDate = formatInTimeZone(dueDate, userTimezone, 'PPP p');
+```
+
+**Phase to address:** Phase 3 (Timezone Foundation)
+
+**Sources:**
+- [node-postgres Issue #993](https://github.com/brianc/node-postgres/issues/993)
+- [PostgreSQL Don't Do This](https://wiki.postgresql.org/wiki/Don't_Do_This)
+
+---
+
+### CRITICAL: Daily Task Rollover at Wrong Time (D2)
+
+**What goes wrong:** Daily recurring tasks roll over at UTC midnight instead of user's local midnight. Users in PST see tasks roll over at 4 PM.
+
+**Warning signs:**
+- Tasks appear on wrong day for non-UTC users
+- "Today's tasks" include yesterday's tasks
+- Rollover happens during user's afternoon
+
+**Prevention:**
+```typescript
+// WRONG: Compare dates without timezone
+const isToday = task.due_date.toDateString() === new Date().toDateString();
+
+// RIGHT: Compare in user's timezone
+const isToday = isSameDay(
+  utcToZonedTime(task.due_date, userTimezone),
+  utcToZonedTime(new Date(), userTimezone)
+);
+```
+
+Store user's timezone in profile and use it consistently:
+```typescript
+// User profile
+interface Profile {
+  timezone: string;  // IANA format: 'America/New_York'
+}
+
+// Task filtering
+const getUserLocalDay = (timestamp: Date, timezone: string) => {
+  return startOfDay(utcToZonedTime(timestamp, timezone));
+};
+```
+
+**Phase to address:** Phase 3 (Timezone Foundation)
+
+**Sources:**
+- [Sunsama Task Rollover](https://help.sunsama.com/docs/task-rollover-and-recurring-tasks-the-basics)
+- [Amazing Marvin Rollover](https://help.amazingmarvin.com/en/articles/3670563-rollover-scheduled-tasks)
+
+---
+
+### CRITICAL: DST Transition Bugs (D3)
+
+**What goes wrong:** Recurring tasks scheduled for times that don't exist (2:30 AM on spring forward) or exist twice (1:30 AM on fall back) cause unpredictable behavior.
+
+**Warning signs:**
+- Tasks skip a day twice a year
+- Tasks fire twice on fall back
+- Different behavior for users in different DST regions
+
+**Prevention:**
+```typescript
+// WRONG: Naive recurrence
+const nextOccurrence = addDays(lastOccurrence, 1);
+
+// RIGHT: Use timezone-aware library
+import { zonedTimeToUtc, utcToZonedTime, format } from 'date-fns-tz';
+
+const getNextOccurrence = (
+  lastOccurrence: Date,
+  scheduledTime: string,  // '09:00'
+  timezone: string
+) => {
+  // Get next day in user's timezone
+  const nextDay = addDays(utcToZonedTime(lastOccurrence, timezone), 1);
+  const [hours, minutes] = scheduledTime.split(':').map(Number);
+
+  // Set time in user's timezone (handles DST automatically)
+  const nextInTimezone = set(nextDay, { hours, minutes });
+
+  // Convert back to UTC for storage
+  return zonedTimeToUtc(nextInTimezone, timezone);
+};
+```
+
+**Phase to address:** Phase 3 (Timezone Foundation)
+
+**Sources:**
+- [dayjs DST Issue #1260](https://github.com/iamkun/dayjs/issues/1260)
+- [Sling Academy: DST Handling](https://www.slingacademy.com/article/handling-daylight-saving-time-shifts-gracefully-in-javascript/)
+
+---
+
+### MODERATE: Storing Local Time Instead of UTC (D4)
+
+**What goes wrong:** Storing task times as local time strings ("2024-03-15 09:00") instead of UTC timestamps. When user changes timezone, all their tasks show wrong times.
+
+**Warning signs:**
+- User travels to different timezone, tasks show wrong time
+- User changes timezone preference, history is wrong
+- Can't compare times across users in different timezones
+
+**Prevention:**
+- Always store as UTC (`timestamptz` in Postgres)
+- Store user's display timezone in their profile
+- Convert to display timezone only at render time
+- Never store "09:00 AM" - always store full UTC timestamp
+
+**Phase to address:** Phase 3 (Timezone Foundation)
+
+---
+
+### MODERATE: JavaScript Date Object Inconsistency (D5)
+
+**What goes wrong:** JavaScript Date uses current year's DST rules for historical dates, causing incorrect times for past events.
+
+**Warning signs:**
+- Historical task times off by 1 hour
+- Date calculations for past events incorrect
+- Works for recent dates, fails for dates months ago
+
+**Prevention:**
+- Use Luxon or date-fns-tz instead of native Date for timezone operations
+- These libraries use IANA timezone database with historical DST data
+- Never rely on `Date.getTimezoneOffset()` for historical dates
+
+**Phase to address:** Phase 3 (Timezone Foundation)
+
+**Sources:**
+- [Illuminated Computing: JS DST](https://illuminatedcomputing.com/posts/2017/11/javascript-timezones/)
+
+---
+
+## Integration Pitfalls (with existing React Query)
+
+### CRITICAL: Realtime Updates Bypass React Query Cache (E1)
+
+**What goes wrong:** Realtime updates from Supabase don't automatically update React Query cache. UI shows stale data until manual refetch.
+
+**Warning signs:**
+- Real-time changes visible after page refresh only
+- React Query devtools show old data
+- Other users' changes not reflected
+
+**Prevention:**
+```typescript
+// WRONG: Realtime updates state directly, bypassing cache
+useEffect(() => {
+  const channel = supabase
+    .channel('tasks')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' },
+      (payload) => {
+        setTasks(prev => [...prev, payload.new]);  // Bypasses React Query!
+      }
+    )
+    .subscribe();
+
+  return () => supabase.removeChannel(channel);
+}, []);
+
+// RIGHT: Invalidate React Query cache
+const queryClient = useQueryClient();
+
+useEffect(() => {
+  const channel = supabase
+    .channel('tasks')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' },
+      (payload) => {
+        // Option 1: Invalidate and refetch
+        queryClient.invalidateQueries({ queryKey: ['tasks'] });
+
+        // Option 2: Optimistic update to cache
+        queryClient.setQueryData(['tasks'], (old: Task[]) => {
+          if (payload.eventType === 'INSERT') {
+            return [...old, payload.new];
+          }
+          if (payload.eventType === 'UPDATE') {
+            return old.map(t => t.id === payload.new.id ? payload.new : t);
+          }
+          if (payload.eventType === 'DELETE') {
+            return old.filter(t => t.id !== payload.old.id);
+          }
+          return old;
+        });
+      }
+    )
+    .subscribe();
+
+  return () => supabase.removeChannel(channel);
+}, [queryClient]);
+```
+
+**Phase to address:** Phase 2 (Realtime Foundation)
+
+**Sources:**
+- [MakerKit: Supabase React Query](https://makerkit.dev/blog/saas/supabase-react-query)
+- [Supabase Blog: React Query Cache Helpers](https://supabase.com/blog/react-query-nextjs-app-router-cache-helpers)
+
+---
+
+### MODERATE: Conflicting Cache Invalidation (E2)
+
+**What goes wrong:** Realtime listener invalidates cache while mutation is in flight, causing race condition where optimistic update is overwritten.
+
+**Warning signs:**
+- Optimistic updates "flash" - appear then disappear
+- UI flickers between states
+- Works most of the time, occasionally shows wrong data
+
+**Prevention:**
+```typescript
+// Use mutation callbacks to coordinate with realtime
+const mutation = useMutation({
+  mutationFn: updateTask,
+  onMutate: async (newTask) => {
+    // Cancel any outgoing refetches
+    await queryClient.cancelQueries({ queryKey: ['tasks'] });
+
+    // Snapshot previous value
+    const previous = queryClient.getQueryData(['tasks']);
+
+    // Optimistically update
+    queryClient.setQueryData(['tasks'], (old) => ...);
+
+    return { previous };
+  },
+  onError: (err, newTask, context) => {
+    // Rollback on error
+    queryClient.setQueryData(['tasks'], context.previous);
+  },
+  onSettled: () => {
+    // Always refetch after error or success
+    queryClient.invalidateQueries({ queryKey: ['tasks'] });
+  },
+});
+
+// In realtime listener, debounce invalidations
+const debouncedInvalidate = useMemo(
+  () => debounce(() => {
+    queryClient.invalidateQueries({ queryKey: ['tasks'] });
+  }, 100),
+  [queryClient]
+);
+```
+
+**Phase to address:** Phase 2 (Realtime Foundation)
+
+**Sources:**
+- [TanStack Query: Invalidation](https://tanstack.com/query/v5/docs/framework/react/guides/query-invalidation)
+
+---
+
+### MINOR: Query Key Mismatch (E3)
+
+**What goes wrong:** Realtime invalidates `['tasks']` but component uses `['tasks', { personId: 123 }]`. Cache isn't properly invalidated.
+
+**Warning signs:**
+- Some views update, others don't
+- Filtered views show stale data
+- Works on main list, fails on filtered views
+
+**Prevention:**
+```typescript
+// Centralize query keys
+export const queryKeys = {
+  tasks: {
+    all: ['tasks'] as const,
+    byPerson: (personId: string) => ['tasks', { personId }] as const,
+    byDate: (date: string) => ['tasks', { date }] as const,
+  },
+};
+
+// In realtime listener, invalidate parent key
+queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
+// This invalidates all tasks queries due to partial matching
+```
+
+**Phase to address:** Phase 2 (Realtime Foundation)
+
+---
+
+## Phase Recommendations
+
+| Pitfall Category | Phase | Priority |
+|-----------------|-------|----------|
+| Database trigger setup (A1, A3, A4) | Phase 1: Auth Foundation | MUST - blocks all user creation |
+| SECURITY DEFINER search_path (A2) | Phase 1: Auth Foundation | MUST - security vulnerability |
+| user_metadata fallbacks (B1) | Phase 1: Auth Foundation | MUST - OAuth will fail otherwise |
+| Role storage (not in user_metadata) (B2) | Phase 1: Auth Foundation | MUST - security vulnerability |
+| Reserved claim names (B4) | Phase 1: Auth Foundation | MUST - breaks Realtime |
+| onAuthStateChange cleanup (C3) | Phase 1: Auth Foundation | SHOULD - memory leak |
+| Custom claims updates (B3) | Phase 2: Role Management | SHOULD - UX issue |
+| Realtime subscription cleanup (C1, C2) | Phase 2: Realtime | MUST - memory leak |
+| Channel reuse (C4) | Phase 2: Realtime | SHOULD - performance |
+| React Query cache integration (E1, E2, E3) | Phase 2: Realtime | MUST - data consistency |
+| timestamptz for all dates (D1) | Phase 3: Timezone | MUST - data integrity |
+| User timezone in profile (D2) | Phase 3: Timezone | MUST - correct display |
+| DST-aware recurrence (D3) | Phase 3: Timezone | SHOULD - edge case handling |
+| date-fns-tz usage (D5) | Phase 3: Timezone | SHOULD - historical accuracy |
+| Storing local time (D4) | Phase 3: Timezone | MUST - data integrity |
+| Realtime performance at scale (C5) | Post-MVP | COULD - optimization |
+
+---
+
+## Testing Checklist
+
+Before each phase is complete, verify:
+
+**Phase 1 (Auth):**
+- [ ] Signup works with Google accounts that have minimal profile data
+- [ ] Trigger doesn't block signup on any failure
+- [ ] Role cannot be escalated via updateUser()
+- [ ] No Supabase Database Advisor warnings
+- [ ] onAuthStateChange properly cleaned up in React components
+
+**Phase 2 (Realtime):**
+- [ ] Browser memory stable after 10 page navigations
+- [ ] No duplicate events in StrictMode
+- [ ] Realtime updates appear in React Query devtools
+- [ ] Optimistic updates don't flicker
+- [ ] No "Channel Already Subscribed" warnings
+
+**Phase 3 (Timezone):**
+- [ ] User in different timezone sees correct "today"
+- [ ] Tasks rollover at user's midnight, not UTC
+- [ ] Historical task times are correct
+- [ ] Time displays correctly after DST transition
+
+---
+
+## Sources (v3.0)
+
+### Official Documentation (HIGH confidence)
+- [Supabase User Management](https://supabase.com/docs/guides/auth/managing-user-data)
+- [Supabase Database Advisors](https://supabase.com/docs/guides/database/database-advisors)
+- [Supabase RBAC Guide](https://supabase.com/docs/guides/database/postgres/custom-claims-and-role-based-access-control-rbac)
+- [Supabase Realtime](https://supabase.com/docs/guides/realtime/postgres-changes)
+- [PostgreSQL Don't Do This](https://wiki.postgresql.org/wiki/Don't_Do_This)
+
+### Community Sources (MEDIUM confidence)
+- [Supabase Discussion #6518 - Trigger Signup Failures](https://github.com/orgs/supabase/discussions/6518)
+- [Supabase Issue #37497 - Misleading OAuth Errors](https://github.com/supabase/supabase/issues/37497)
+- [Supabase Discussion #4047 - Missing user_metadata](https://github.com/orgs/supabase/discussions/4047)
+- [Supabase Discussion #13091 - user_metadata Security](https://github.com/orgs/supabase/discussions/13091)
+- [Supabase Discussion #5282 - onAuthStateChange Cleanup](https://github.com/orgs/supabase/discussions/5282)
+- [DrDroid Supabase Realtime Diagnostics](https://drdroid.io/stack-diagnosis/supabase-realtime-client-side-memory-leak)
+- [MakerKit: Supabase React Query](https://makerkit.dev/blog/saas/supabase-react-query)
+
+---
+
+*v3.0 Pitfalls research: 2026-01-28*
+*Confidence: HIGH - verified with official docs and community issue discussions*

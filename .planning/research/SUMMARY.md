@@ -1,349 +1,273 @@
 # Project Research Summary
 
-**Project:** Routine Craft Bot - Testing and Reliability
-**Domain:** React 18 + Vite + Supabase Application Testing Infrastructure
-**Researched:** 2026-01-24
+**Project:** Routine Craft Bot - v3.0 Auth & Realtime
+**Domain:** Supabase Auth Triggers + Realtime Subscriptions + Timezone Handling
+**Researched:** 2026-01-28
 **Confidence:** HIGH
 
 ## Executive Summary
 
-This project aims to retrofit comprehensive testing and reliability hardening to an existing React 18 + Vite + Supabase application with zero current test coverage. The research reveals a clear path forward: establish a Vitest-based testing infrastructure with React Testing Library, implement a layered error handling strategy, and address type safety issues systematically. The codebase's hook-centric architecture is actually an advantage — the business logic is concentrated in 5-6 critical hooks (useAuth, useAssignments, useGroups) that can be tested in isolation with high ROI.
+Version 3.0 modernizes authentication and introduces real-time collaboration for the Routine Craft Bot coach/student task management system. The research confirms that the existing stack (Supabase v2.90.1, React Query v5.83.0, date-fns v3.6.0) requires only one addition: `date-fns-tz` for timezone support. The architectural approach centers on three interconnected changes: database triggers for atomic profile creation, Supabase Realtime integrated with React Query cache invalidation, and UTC storage with local display for timezone handling.
 
-The recommended approach prioritizes foundation-first: error boundaries and consistent error handling utilities before writing tests, followed by testing utilities and hooks (highest business logic density), then components (user-facing behavior), and finally integration flows. This sequencing avoids the classic pitfall of testing implementation details in large components. The key insight from codebase analysis is that 76 inconsistent try-catch blocks and 32 `as any` type casts represent both the problem (unreliable error handling, bypassed type safety) and the solution opportunity (standardize patterns through testing).
+The recommended implementation path addresses four critical pitfalls discovered during research. First, database triggers must be defensive with proper error handling and SECURITY DEFINER configuration to avoid blocking user signups. Second, Google OAuth cannot pass custom metadata during signup, requiring a workaround using query parameters in the redirect URL. Third, Realtime subscriptions must properly clean up to avoid memory leaks, especially with React StrictMode's double-mounting. Fourth, timezone conversions must happen exactly once (not double-convert) and respect user local midnight for daily task rollover.
 
-Critical risks include: (1) mocking Supabase at the wrong level — must mock at network boundary or use MSW to catch query construction bugs, (2) async test timing failures due to multiple useEffect patterns — requires comprehensive waitFor usage, (3) testing large components monolithically — must extract and test hooks first. Mitigation: establish shared test utilities and patterns document before writing any tests, create typed mock factories to prevent type-unsafe mocks, and follow a phased implementation that builds on tested foundations.
+The key architectural decision is hybrid cache management: use React Query invalidation for consistency but direct cache updates for instant UI feedback on inserts/deletes. This builds on the existing v2.0 React Query infrastructure without introducing additional complexity. Critical success factors include defensive trigger programming, proper cleanup patterns, and timezone-aware date utilities. With careful attention to the documented pitfalls, this milestone can be delivered incrementally across four phases with minimal risk to existing functionality.
 
 ## Key Findings
 
 ### Recommended Stack
 
-The standard 2025 testing stack for Vite projects is Vitest (Vite-native test runner), React Testing Library (official React recommendation), and MSW (network-level mocking). This provides excellent DX for Vite projects through shared config, automatic path alias resolution, and Jest-compatible API for easy migration. For production error handling, react-error-boundary is the mature choice over hand-rolled solutions.
+The existing stack is production-ready for v3.0 with one strategic addition. Supabase JS client v2.90.1 already includes full support for database triggers, realtime subscriptions, and OAuth flows. React Query v5.83.0 provides the caching infrastructure needed for realtime integration. date-fns v3.6.0 handles date formatting but needs its companion library for timezone operations.
 
 **Core technologies:**
-- **Vitest ^2.x**: Test runner with native Vite integration — shares transforms, config, and HMR
-- **React Testing Library ^16.x**: Component testing focused on user behavior — official React team recommendation
-- **MSW ^2.x**: Network request mocking at HTTP layer — tests real Supabase client instead of mocking it
-- **jsdom ^24.x**: DOM simulation for component tests — start with this, consider happy-dom for CI speed later
-- **react-error-boundary ^4.x**: Production error boundaries — simpler and better-tested than custom solutions
-- **@vitest/coverage-v8 ^2.x**: Code coverage with V8-native instrumentation — faster than Istanbul
+- **Supabase JS v2.90.1**: Auth triggers, Realtime postgres_changes, Google OAuth - already installed, no upgrade needed
+- **React Query v5.83.0**: Cache invalidation on realtime events, existing patterns extend cleanly - already migrated in v2.0
+- **date-fns-tz v3.1.3**: Timezone conversion (toZonedTime/fromZonedTime) without bundling timezone data - only new dependency required
+- **PostgreSQL triggers**: `handle_new_user` with SECURITY DEFINER for atomic profile creation - zero client-side dependencies
 
-**Critical insight:** Mock Supabase at the network level with MSW rather than mocking the client. This catches bugs in query construction that client mocks miss. The existing codebase uses `.from().select().eq().order()` chaining extensively — MSW intercepts the actual HTTP POST to `/rest/v1/[table]`, validating the entire chain.
+**Explicitly not adding:**
+- `@supabase-cache-helpers/postgrest-react-query`: Adds complexity, conflicts with existing React Query patterns, manual invalidation is clearer
+- `luxon` or `moment-timezone`: date-fns-tz is lighter (10KB vs 40KB+), integrates with existing date-fns usage
+- Edge Functions for auth: Database triggers handle profile creation atomically without deployment complexity
 
 ### Expected Features
 
+Research identified a clear separation between table stakes (must ship in v3.0) and differentiators (competitive advantages).
+
 **Must have (table stakes):**
-- **Error Boundary** — prevents full-app crashes from single component errors (currently missing, React 18 standard)
-- **Consistent Error Handling** — standardize the 76 inconsistent try-catch blocks with toast + log + retry utility
-- **Type Safety** — eliminate 32 `as any` casts by generating Supabase types and using strict TypeScript
-- **Loading States** — comprehensive loading feedback for all async operations (partially missing)
-- **Auth Session Management** — handle JWT expiry gracefully (currently silent failures)
-- **Memory Leak Prevention** — cleanup for setTimeout in sketch.tsx, MagicScheduleButton, StudentSchedule, StickerBook
-- **Request Timeout + Retry** — exponential backoff for transient failures (especially AI assistant, current 20s timeout)
+- Role selection before OAuth - Users self-identify as Coach/Student on landing page before authentication
+- Atomic profile creation via trigger - Profile exists immediately when auth.users row created, no race conditions
+- Google OAuth only - Remove email/password auth to simplify security and UX
+- Role-based routing from database - Query profiles.role to route to /dashboard or /app, database is source of truth
+- Task completion visible to coach instantly - Realtime postgres_changes on task_instances table
+- Store UTC, display local - All timestamptz fields store UTC, convert to user timezone on display
+- Daily rollover at user's local midnight - "Today's tasks" calculated in user's timezone, not UTC
 
 **Should have (competitive):**
-- **React Query Integration** — already installed but unused; enables caching, deduplication, background refetch
-- **Offline Detection** — Navigator.onLine + visual indicator to warn when actions will fail
-- **Request Deduplication** — prevent double-submission especially for task creation
-- **Retry UI** — "Try Again" buttons on failed operations instead of silent failure
-- **Optimistic Updates with Rollback** — especially for task status changes (not currently implemented)
+- Instant profile availability - Zero latency from OAuth completion to usable profile (via trigger)
+- Role immutability - Once assigned, role cannot change (simplifies auth logic, prevents confusion)
+- Optimistic UI with realtime confirmation - Existing optimistic updates confirmed by realtime events (belt and suspenders)
+- Granular subscriptions - Filter subscriptions by user_id to reduce unnecessary traffic
 
 **Defer (v2+):**
-- **Graceful Degradation** — app works with reduced functionality when API down (high complexity, low immediate value)
-- **Performance Monitoring** — track slow renders and API calls (optimization is separate concern from reliability)
-- **Comprehensive Telemetry** — focus on error tracking only initially; defer analytics
-- **E2E Tests for Everything** — unit/integration for logic; E2E for 3-5 critical paths only
-
-**Anti-features to avoid:**
-- Global error toast for every API call (noise) — only toast user-initiated actions
-- Retrying non-transient errors like 401/403 — categorize errors properly
-- Complex offline sync/PWA queue — simple offline banner is sufficient
-- Custom logging framework — use Sentry/LogRocket/Supabase built-in
-- 100% test coverage — focus on critical paths, 60-70% is realistic
+- Presence indicators - "User X is online" feature requires significant infrastructure, unclear value proposition
+- Multi-timezone classroom support - Coach viewing student times in student's timezone (niche use case)
+- Server-side rollover job - Client-side calculation on load is simpler, cron adds infrastructure complexity
 
 ### Architecture Approach
 
-The test architecture prioritizes colocated tests for maintainability, a layered mock strategy for Supabase, and phased implementation that builds infrastructure incrementally. The hooks (useAssignments at 570 lines, useGroups, useAuth) are the critical layer containing business logic and Supabase interactions — testing these thoroughly provides highest value with lowest complexity compared to testing large page components directly.
+The architecture extends the existing React Query foundation with two new layers: a Realtime subscription layer that invalidates cache, and a timezone conversion layer that wraps all date displays. The key insight is that Supabase Realtime and React Query can coexist through cache invalidation rather than direct cache manipulation.
 
 **Major components:**
-1. **Test Infrastructure** (`src/__tests__/setup.ts`, `src/__mocks__/supabase.ts`) — shared utilities, mock factory pattern for Supabase client chaining
-2. **Utility Tests** (`src/lib/utils.test.ts`) — pure functions (date parsing, cn, formatters) with zero dependencies
-3. **Hook Tests** (colocated `*.test.ts`) — business logic layer using renderHook with proper async handling
-4. **Component Tests** (colocated `*.test.tsx`) — feature components testing user behavior, NOT shadcn/ui primitives
-5. **Integration Tests** (`src/__tests__/integration/`) — cross-cutting flows like assignment creation
 
-**Data flow:** User Action → Page Component (test indirectly) → Feature Hooks (PRIMARY TEST TARGET) → Supabase Client (MOCK HERE) → DB (not in unit tests). Large page components (CoachCalendar at 62KB) are "glue code" tested through their constituent hooks and sub-components.
+1. **Database Trigger (handle_new_user)** - Runs after INSERT on auth.users, creates profile row atomically with COALESCE for missing metadata and EXCEPTION handler to prevent blocking signups
 
-**Mock strategy:** Create type-safe mock factory for Supabase that supports method chaining. Use `createSupabaseMock()` pattern with exposed `_chain` for assertions and `_resetMocks()` for cleanup. Per-test setup configures mock return values. Alternative: MSW for network-level interception of actual PostgREST API calls.
+2. **Auth Flow Enhancement** - Landing page with role selection, role passed via query parameter through OAuth redirect (workaround for OAuth metadata limitation), AuthCallback component updates profile post-OAuth
+
+3. **Realtime Subscription Hook (useRealtimeSubscription)** - Reusable hook wrapping Supabase channel creation with proper cleanup, invalidates React Query cache on postgres_changes events, ref-based channel management to handle StrictMode double-mounting
+
+4. **Timezone Utilities (timezone.ts)** - Centralized conversion functions (toLocalTime, toUTCTime, formatInTimezone), user timezone detection from browser or profile, handles DATE fields separately from TIMESTAMPTZ to avoid double conversion
+
+5. **React Query Integration** - Hybrid approach: invalidate for consistency (UPDATE/DELETE from others), direct cache update for instant feedback (INSERT/DELETE own), onSettled reconciliation prevents conflicts with optimistic updates
+
+**Key patterns:**
+- Triggers use SECURITY DEFINER with SET search_path = '' for security
+- Realtime cleanup via useRef to handle React StrictMode
+- Query key factory ensures invalidation matches query structure
+- Always store UTC, convert once at display layer
 
 ### Critical Pitfalls
 
-1. **Testing Implementation Details Instead of Behavior** — tests break on every refactor when asserting internal state like `setStats` calls. Prevention: test what users observe (screen.getByText), not how it works. Establish patterns document in Phase 1.
+Research identified 13 critical pitfalls (would cause rewrites or data corruption) and 15 moderate pitfalls (would cause delays or UX issues).
 
-2. **Mocking Supabase at Wrong Level** — mocking every method is brittle, mocking entire client misses real API behavior. The 32 `as any` casts mean mocks won't catch type errors. Prevention: mock at network boundary with MSW, or create type-safe factory that returns exact Supabase response shapes ({ data: null } for .single(), not []).
+1. **Trigger Failure Blocks Signup (A1)** - If handle_new_user trigger fails, entire signup transaction fails. Prevent with COALESCE for all nullable fields, EXCEPTION handler that logs but returns NEW, test with minimal Google profiles.
 
-3. **Async Test Timing Failures (act warnings)** — useAuth has 3 state updates in subscription + getSession. Tests that don't use waitFor see intermittent failures. Prevention: always use waitFor for async state, renderHook for hooks, cleanup subscriptions.
+2. **SECURITY DEFINER Without search_path (A2)** - Functions with SECURITY DEFINER are vulnerable to schema injection attacks. Always set search_path = '' and use fully qualified table names (public.profiles, not profiles).
 
-4. **Testing Large Components Monolithically** — Tasks.tsx at 900+ lines would create 500+ line test file with massive mock setup. Prevention: extract utilities, test hooks in isolation, test component slices (AssignmentDialog separately), avoid testing entire pages.
+3. **Memory Leak from Missing Unsubscribe (C1)** - Realtime subscriptions without cleanup cause WebSocket leaks. Always return cleanup function from useEffect that calls supabase.removeChannel(channel).
 
-5. **Type-Unsafe Mocks** — using `as any` on mocks defeats TypeScript, creating false confidence. Prevention: create typed mock factories with Partial overrides, enforce correct shapes match RecurringSchedule, Assignment, etc.
+4. **React StrictMode Double Subscription (C2)** - StrictMode mounts twice in dev, creating duplicate subscriptions if channel name is dynamic. Use useRef to track channel and remove existing before creating new, or use stable channel names.
 
-**Additional critical pitfalls:**
-- **Auth edge cases not tested** — token expiry, logout cleanup, loading/authenticated/unauthenticated states
-- **Toast testing requires provider** — must wrap in ToastProvider, use waitFor for animations
-- **Navigation breaks without router** — useNavigate throws "outside Router"; use MemoryRouter or mock
-- **RPC functions blindspot** — 6 RPC calls (validate_qr_token, generate_recurring_tasks, etc.) cast to `any`; mock shapes may not match DB function behavior
-- **React Query cache pollution** — create fresh QueryClient per test with retry: false, gcTime: 0
+5. **Double Timezone Conversion (D1)** - Converting UTC to local twice results in times offset by timezone amount. PostgreSQL timestamptz is already UTC, convert only once at display with formatInTimeZone, never convert DATE fields.
+
+6. **Daily Rollover at Wrong Time (D2)** - Comparing dates without timezone causes tasks to roll over at UTC midnight instead of user's local midnight. Store user timezone in profile, use isSameDay with utcToZonedTime for both dates.
+
+7. **Google OAuth Metadata Missing (B1)** - Some Google accounts don't provide full_name or avatar_url. Always use nested COALESCE with fallbacks (full_name > name > email prefix > 'User').
+
+8. **Realtime Bypasses React Query Cache (E1)** - Realtime events that update local state directly bypass React Query cache. Always invalidate cache (queryClient.invalidateQueries) or directly update cache (queryClient.setQueryData), never setState directly.
 
 ## Implications for Roadmap
 
-Based on research, suggested phase structure follows dependency order: error handling foundation → testing infrastructure → hook tests → component tests → integration. This avoids rework from testing components before their hook dependencies are validated.
+Based on dependency analysis and risk assessment, v3.0 should be delivered in four phases with clear boundaries and testability.
 
-### Phase 1: Error Handling Foundation (Week 1, Low-Medium Complexity)
-**Rationale:** Must establish error boundaries before any other reliability work. Without this, errors in subsequent features crash the app. Error handling utility enables consistent patterns for all subsequent error scenarios.
+### Phase 1: Database Foundation & Auth
+**Rationale:** Database schema and triggers must be correct before any user signups. Auth flow depends on trigger working correctly. This phase has the highest risk (can block all signups) so must be tested thoroughly before proceeding.
 
 **Delivers:**
-- React error boundary at app root + route level with fallback UI
-- Standardized error handling utility (toast + log + optional retry)
-- Structured logging service integration (replace console.error)
+- Profiles table schema with timezone column (TEXT, IANA format)
+- Enhanced handle_new_user trigger with defensive programming (COALESCE, EXCEPTION handling, SECURITY DEFINER)
+- AuthCallback component to handle OAuth redirect and role assignment
+- Updated CoachAuth/StudentAuth to pass role via query parameter
 
 **Addresses (from FEATURES.md):**
-- Error Boundary (table stakes, currently missing)
-- Consistent Error Handling (76 try-catch blocks to standardize)
-- Structured Logging (production debugging foundation)
+- Role selection before auth (table stakes)
+- Atomic profile creation via trigger (table stakes)
+- Google OAuth only (table stakes)
 
 **Avoids (from PITFALLS.md):**
-- Testing without error boundaries (Pitfall 1) — establishes patterns before tests
-- Inconsistent error patterns that make testing harder
+- A1: Trigger failure blocks signup - defensive trigger programming
+- A2: SECURITY DEFINER vulnerability - explicit search_path
+- B1: Missing Google metadata - COALESCE with fallbacks
+- B2: user_metadata for RBAC - store role in profiles table
 
-**Research flag:** No deeper research needed — established React 18 patterns, well-documented.
+**Critical success criteria:** Test signup with minimal Google profile, verify trigger creates profile even with null fields, confirm onAuthStateChange cleanup prevents memory leaks.
 
-### Phase 2: Testing Infrastructure (Week 1, Low Complexity)
-**Rationale:** Prerequisite for all subsequent test phases. Vitest setup validates with simple utility tests before tackling complex hooks. Supabase mock factory is critical blocker for hook tests.
+### Phase 2: Realtime Foundation
+**Rationale:** Realtime subscriptions depend on existing React Query infrastructure (v2.0) and database schema (Phase 1). Must establish patterns before adding timezone complexity. This phase introduces new WebSocket connections that can leak memory if not cleaned up properly.
 
 **Delivers:**
-- Vitest + React Testing Library configuration
-- Test setup file with jsdom, cleanup, global mocks
-- Supabase mock factory supporting method chaining
-- Test data factories (createMockUser, createMockGroup, createMockAssignment)
-- Router wrapper for navigation testing
-- Utility function tests (utils.test.ts) as validation
+- useRealtimeSubscription hook with proper cleanup and StrictMode handling
+- Task instances subscription for student views
+- Assignment/progress subscription for coach dashboard
+- React Query cache invalidation on realtime events
+
+**Addresses (from FEATURES.md):**
+- Task completion visible to coach instantly (table stakes)
+- Assignment creation visible to students (table stakes)
+- Optimistic UI with realtime confirmation (differentiator)
 
 **Uses (from STACK.md):**
-- Vitest ^2.x as test runner
-- @testing-library/react ^16.x for component testing
-- jsdom ^24.x for DOM simulation
-- MSW ^2.x for network mocking (optional, defer if complex)
+- Supabase Realtime postgres_changes API
+- React Query cache invalidation (queryClient.invalidateQueries)
 
 **Implements (from ARCHITECTURE.md):**
-- Test Infrastructure component
-- Typed mock factory pattern
-- Colocated test structure
+- Hybrid cache strategy: invalidate for consistency, direct update for instant feedback
+- Query key factory for consistent invalidation
+- Ref-based channel management for StrictMode compatibility
 
 **Avoids (from PITFALLS.md):**
-- Mocking Supabase incorrectly (Pitfall 2) — establish correct pattern upfront
-- Type-unsafe mocks (Pitfall 5) — create typed factories from start
-- React Query cache issues (Pitfall 10) — configure fresh client per test
+- C1: Memory leak from missing unsubscribe - cleanup function in useEffect
+- C2: StrictMode double subscription - useRef to track channel
+- C4: Channel already subscribed error - check existing channels before creating
+- E1: Realtime bypasses cache - invalidate React Query cache
 
-**Research flag:** No deeper research needed — Vitest patterns are well-established for Vite projects.
+**Critical success criteria:** Browser memory stable after 10 page navigations, no duplicate events in dev (StrictMode), realtime updates visible in React Query DevTools.
 
-### Phase 3: Type Safety Hardening (Week 2, High Complexity)
-**Rationale:** Generate Supabase types before writing hook tests. The 32 `as any` casts will cause type errors in tests that would be caught at build time. Fixing types first makes tests more valuable.
-
-**Delivers:**
-- Generated TypeScript types from Supabase schema
-- Elimination of 32 `as any` casts
-- Type-safe Supabase client usage throughout codebase
-- Typed RPC function signatures
-
-**Addresses (from FEATURES.md):**
-- Type Safety (table stakes) — prevents runtime errors that tests should catch
-
-**Avoids (from PITFALLS.md):**
-- Type-unsafe mocks defeating TypeScript (Pitfall 5)
-- RPC testing blindspots from `as any` casts (Pitfall 9)
-
-**Research flag:** May need `/gsd:research-phase` if Supabase type generation has issues. RPC function typing may require schema analysis.
-
-### Phase 4: Hook Testing (Week 2, Medium Complexity)
-**Rationale:** Hooks contain 80% of business logic. Testing useAuth, useAssignments (570 lines), useGroups provides highest ROI. These are isolated units that can be tested with renderHook once mock factory exists.
+### Phase 3: Timezone Implementation
+**Rationale:** Timezone handling touches many components and requires the date utilities to be correct before migrating existing date displays. Depends on profile schema (Phase 1) for storing user timezone. Can be implemented in parallel with Phase 2 if resources allow, but must be complete before Phase 4 daily rollover logic.
 
 **Delivers:**
-- useAuth.test.ts — auth flow + session management + edge cases
-- useProfile.test.ts — profile CRUD operations
-- useGroups.test.ts — group management
-- useAssignments.test.ts — complex scheduling logic, highest value
-- useAIAssistant.test.ts — error-prone timeout handling
-- useTemplates.test.ts — deferred table creation handling
+- date-fns-tz integration (npm install, utility functions)
+- Timezone conversion utilities (toLocalTime, toUTCTime, formatInTimezone)
+- Timezone selector in coach/student settings
+- Updated task display components to show times in user timezone
+- Timezone auto-detection from browser
 
 **Addresses (from FEATURES.md):**
-- Auth Session Management — test JWT expiry, logout cleanup
-- Loading States — verify hooks show loading correctly
-- Request Timeout + Retry — test AI assistant timeout scenarios
-
-**Avoids (from PITFALLS.md):**
-- Testing implementation details (Pitfall 1) — focus on hook return values, not internals
-- Async timing failures (Pitfall 3) — comprehensive waitFor usage
-- Auth edge cases not tested (Pitfall 6) — test matrix of states
-- Testing large components first (Pitfall 4) — hooks before components
-
-**Research flag:** Standard React Testing Library patterns. Possibly need deeper research on testing Supabase subscriptions (onAuthStateChange).
-
-### Phase 5: Memory Leak Prevention (Week 2, Medium Complexity)
-**Rationale:** Can run in parallel with Phase 4. Four identified setTimeout leaks need useEffect cleanup. Tests verify cleanup happens.
-
-**Delivers:**
-- Fix setTimeout leaks in sketch.tsx, MagicScheduleButton, StudentSchedule, StickerBook
-- useEffect cleanup tests
-- Subscription cleanup verification
-
-**Addresses (from FEATURES.md):**
-- Memory Leak Prevention (table stakes)
-
-**Avoids (from PITFALLS.md):**
-- Async test timing failures from uncleaned subscriptions
-
-**Research flag:** No research needed — standard useEffect cleanup pattern.
-
-### Phase 6: Component Testing (Week 3, Medium Complexity)
-**Rationale:** Test user-facing behavior after hooks are validated. Focus on feature components, not shadcn/ui primitives. ProtectedRoute and CheckInModal are high-value targets.
-
-**Delivers:**
-- ProtectedRoute.test.tsx — auth flow integration
-- CheckInModal.test.tsx — user interaction patterns
-- Key dashboard component tests
-- Loading state component tests
-
-**Addresses (from FEATURES.md):**
-- Loading States — visible skeleton UI behavior
-- Retry UI — "Try Again" button interactions
-
-**Avoids (from PITFALLS.md):**
-- Testing shadcn/ui components (Pitfall 11) — skip src/components/ui/*
-- Over-mocking Radix primitives — test real Dialog, Select, etc.
-- Toast testing incorrectly (Pitfall 7) — use ToastProvider wrapper
-- Navigation testing issues (Pitfall 8) — use MemoryRouter
-- Not testing loading states (Pitfall 13)
-
-**Research flag:** No research needed — React Testing Library component patterns are standard.
-
-### Phase 7: React Query Migration (Week 3-4, Medium Complexity)
-**Rationale:** React Query already installed but unused. Migrating from raw useEffect enables caching, deduplication, stale-while-revalidate. Do after hooks are tested so migration can be validated.
-
-**Delivers:**
-- Migrate useGroups to useQuery
-- Migrate useAssignments to useQuery + useMutation
-- Query client configuration with error handling integration
-- Optimistic update patterns
-
-**Addresses (from FEATURES.md):**
-- React Query Integration (differentiator)
-- Optimistic Updates with Rollback (differentiator)
-- Request Deduplication (differentiator)
+- Store UTC, display local (table stakes)
+- User timezone detection (table stakes)
+- DST-safe scheduling (differentiator)
 
 **Uses (from STACK.md):**
-- Existing @tanstack/react-query ^5.83.0
+- date-fns-tz v3.1.3 for timezone conversion
+- Browser Intl API for timezone detection
+- PostgreSQL timestamptz for UTC storage
 
 **Avoids (from PITFALLS.md):**
-- React Query cache pollution in tests (Pitfall 10) — already handled in Phase 2
+- D1: Double timezone conversion - convert once at display layer
+- D3: DST transition bugs - use IANA timezone names, let date-fns-tz handle transitions
+- D4: Storing local time - always store UTC in timestamptz fields
+- D5: JavaScript Date inconsistency - use date-fns-tz with IANA database
 
-**Research flag:** Likely needs `/gsd:research-phase` for React Query + Supabase integration patterns, optimistic update strategies.
+**Critical success criteria:** User in different timezone sees correct "today", task times correct after DST transition, historical tasks show correct time.
 
-### Phase 8: Integration Testing (Week 4+, Medium-High Complexity)
-**Rationale:** Cross-cutting flow tests after all units are validated. Focus on 3-5 critical user journeys. Consider MSW for realistic network mocking or Supabase local for true integration.
+### Phase 4: Daily Rollover & Polish
+**Rationale:** Daily rollover logic depends on timezone utilities (Phase 3) to correctly determine user's local midnight. This phase ties together auth, realtime, and timezone into the complete user experience. Lowest risk phase as it's primarily display logic.
 
 **Delivers:**
-- Assignment flow test (create → generate tasks → complete)
-- Auth flow test (sign in → protected routes → sign out)
-- Group management flow (create → add members → assign)
-- AI assistant integration test
-- QR code validation flow
+- Client-side daily rollover calculation (isToday, isMissed logic)
+- Recurring task generation respecting user timezone
+- "Today" boundary calculated in user's local timezone
+- Connection recovery for realtime subscriptions
 
 **Addresses (from FEATURES.md):**
-- Integration coverage of complete user journeys
+- Daily rollover at user's local midnight (table stakes)
+- Correct "today" boundary (table stakes)
+- Connection recovery (table stakes)
 
 **Avoids (from PITFALLS.md):**
-- RPC testing blindspots (Pitfall 9) — integration tests hit closer to real DB functions
-- Testing everything E2E — limit to 3-5 critical flows
+- D2: Daily rollover at wrong time - calculate in user's timezone
+- C5: Connection recovery - monitor subscription status, refetch on reconnect
 
-**Research flag:** May need `/gsd:research-phase` for Supabase local development setup, MSW PostgREST API mocking patterns.
+**Critical success criteria:** Tasks roll over at user's local midnight, "today's tasks" correct across timezones, realtime recovers from network interruption.
 
 ### Phase Ordering Rationale
 
-1. **Error handling first** — Foundation that catches all other failures. Tests written in later phases benefit from consistent error patterns.
-2. **Test infrastructure before tests** — Avoid rework from wrong mocking patterns. Utility tests validate setup works.
-3. **Types before hook tests** — 32 `as any` casts will cause false test passes. Fix types so tests catch real issues.
-4. **Hooks before components** — Hooks contain business logic. Testing components that use untested hooks creates fragile tests.
-5. **Memory leaks in parallel** — Independent of testing, can run alongside hook tests.
-6. **Components after hooks** — Component tests use already-validated hooks, reducing mock complexity.
-7. **React Query after hook tests** — Migration is validated by existing tests showing same behavior.
-8. **Integration last** — Requires all units working correctly first.
-
-This avoids the pitfall of testing large components monolithically (Pitfall 4) and ensures mocking patterns are established correctly before widespread use (Pitfall 2).
+- **Phase 1 before all others:** Database triggers must work before any users sign up. Auth flow changes are foundational and cannot be added incrementally.
+- **Phase 2 and 3 parallel-safe:** Realtime and timezone are independent concerns that can be developed concurrently if resources allow. However, Phase 4 requires both complete.
+- **Phase 4 last:** Daily rollover logic is the integration point that uses timezone utilities and benefits from realtime updates. Deferring to last reduces complexity of earlier phases.
+- **Incremental testing:** Each phase delivers user-visible functionality and can be deployed independently (with feature flags if needed). This allows validation before proceeding.
 
 ### Research Flags
 
-Phases likely needing deeper research during planning:
-- **Phase 3 (Type Safety):** Supabase type generation process, RPC function typing — may hit schema-specific issues
-- **Phase 7 (React Query):** Optimistic update patterns with Supabase, cache invalidation strategies — needs API-specific research
-- **Phase 8 (Integration):** MSW PostgREST mocking patterns or Supabase local setup — integration testing approach needs validation
+**Phases likely needing deeper research during planning:**
+- **Phase 1 (Auth):** Minimal - auth triggers are well-documented in Supabase docs, OAuth flow is standard
+- **Phase 2 (Realtime):** Minimal - postgres_changes API is stable, React Query patterns are established
+- **Phase 3 (Timezone):** Minimal - date-fns-tz documentation is comprehensive, IANA timezones are standard
+- **Phase 4 (Rollover):** Low - edge cases around DST transitions may need validation testing
 
-Phases with standard patterns (skip research-phase):
-- **Phase 1 (Error Handling):** React error boundaries and error utility patterns are well-documented
-- **Phase 2 (Test Infrastructure):** Vitest + RTL setup is established Vite ecosystem pattern
-- **Phase 4 (Hook Testing):** React Testing Library hook patterns are standard, extensive documentation
-- **Phase 5 (Memory Leaks):** useEffect cleanup is basic React pattern
-- **Phase 6 (Component Testing):** RTL component testing patterns are well-established
+**Phases with standard patterns (can skip deep research):**
+- **All phases:** Research has already identified standard patterns and critical pitfalls. Implementation should follow documented patterns without additional research phase.
+
+**Recommendation:** Skip `/gsd:research-phase` for v3.0. Research is comprehensive and all patterns are documented. Focus on careful implementation following the pitfall prevention strategies.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | Vitest/RTL is standard for Vite projects; versions should be verified at install time with `npm view` |
-| Features | HIGH | Based on direct codebase analysis (CONCERNS.md, TESTING.md, 76 try-catch blocks, 32 `as any` casts) |
-| Architecture | HIGH | Test architecture patterns are established; colocated tests + layered mocking is proven approach |
-| Pitfalls | HIGH | Pitfalls identified from actual codebase issues (large components, async patterns, type casts) |
+| Stack | HIGH | Official Supabase docs verified, versions confirmed in package.json, date-fns-tz is official companion to date-fns |
+| Features | HIGH | Feature research based on Supabase official docs and community patterns, table stakes vs differentiators clearly identified |
+| Architecture | HIGH | Architecture patterns verified against existing codebase (v2.0 React Query migration), integration points documented |
+| Pitfalls | HIGH | Critical pitfalls verified through GitHub discussions, official docs, and community issue tracking, prevention strategies tested |
 
 **Overall confidence:** HIGH
 
-The research is grounded in concrete codebase analysis rather than generic testing advice. The 900-line Tasks.tsx, 570-line useAssignments, 76 try-catch blocks, and 32 type casts are real artifacts that inform specific recommendations. The Supabase + React Query combination is well-traveled territory with established patterns.
+The research is comprehensive across all four dimensions. Stack recommendations are conservative (only one new dependency) and build on existing infrastructure. Feature categorization is based on official Supabase capabilities and community consensus. Architecture patterns extend proven v2.0 React Query foundation. Pitfalls are documented from real production issues in Supabase community with verified prevention strategies.
 
 ### Gaps to Address
 
-- **MSW vs Supabase mock factory:** Research recommends both approaches. Phase 2 should pick one or create path for both. Decision impacts Phase 4 hook test complexity. **Handle in Phase 2 planning** by prototyping both approaches and choosing based on test complexity.
+While overall confidence is high, three areas need attention during implementation:
 
-- **RPC function testing strategy:** The 6 RPC functions (validate_qr_token, generate_recurring_tasks, accept_invite, delete_class_session, remove_student_from_class, generate_join_code) have unknown DB function implementations. Mocks may not match real behavior. **Handle in Phase 8** by considering Supabase local for true integration tests, or **defer** RPC validation to manual testing if complex.
+- **Google OAuth metadata variability:** Not all Google accounts provide the same metadata fields. Trigger testing must include organizational Google accounts and accounts with restricted privacy settings to verify COALESCE fallbacks work correctly. Recommend creating test accounts with various privacy configurations before Phase 1 deployment.
 
-- **Coverage thresholds:** Research recommends 60-70% overall, higher for hooks. **Handle in Phase 2** when configuring Vitest coverage options. Set CI gates after Phase 4 when hook tests establish baseline.
+- **Realtime subscription limits:** Supabase plans have different Realtime connection limits. Current research doesn't verify exact limits for the project's Supabase plan. Verify connection limits during Phase 2 planning to ensure design scales within plan limits. May need to reduce subscription granularity if approaching limits.
 
-- **E2E testing scope:** Research defers comprehensive E2E. **Validate in Phase 8** which 3-5 flows are truly critical. Candidates: coach creates assignment, student completes task, QR code login, class session management, AI assistant interaction.
-
-- **React Query migration complexity:** Unsure if all hooks should migrate or just data-fetching ones. useAuth might stay as-is. **Research during Phase 7 planning** which hooks benefit from React Query vs staying as useEffect.
-
-- **Error tracking service choice:** Research mentions Sentry/LogRocket/Supabase built-in. **Decide in Phase 1** based on budget/requirements. Can start with structured console logging and upgrade later.
+- **DST transition edge cases:** While date-fns-tz handles DST correctly in general, specific edge cases around recurring tasks scheduled for non-existent times (2:30 AM on spring forward) need validation testing. Recommend creating test suite with DST transition dates before Phase 4 deployment.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- **Codebase analysis:** Direct audit of /Users/haokunyang/Downloads/MinseoCOOKS/LeahDavisWebsiteCode/routine-craft-bot/src/
-  - CONCERNS.md: 76 try-catch blocks, 32 `as any` casts, memory leaks identified
-  - TESTING.md: Zero test coverage, hook complexity analysis
-  - package.json: @tanstack/react-query ^5.83.0 installed but unused, Vite 5 + React 18
-  - src/hooks/: useAssignments (570 lines), useAuth, useGroups, useAIAssistant
-  - src/pages/: Tasks.tsx (900+ lines), CoachCalendar (62KB)
-- **Vitest documentation:** Official test configuration for Vite projects
-- **React Testing Library documentation:** Hook and component testing patterns, official React recommendation
-- **Supabase client analysis:** src/integrations/supabase/client.ts method chaining patterns
+- [Supabase Auth Documentation](https://supabase.com/docs/guides/auth) - Database triggers, OAuth flows, user management patterns
+- [Supabase Realtime Documentation](https://supabase.com/docs/guides/realtime) - postgres_changes API, subscription patterns, connection management
+- [TanStack Query v5 Documentation](https://tanstack.com/query/latest) - Cache invalidation, optimistic updates, integration patterns
+- [date-fns-tz GitHub](https://github.com/marnusw/date-fns-tz) - API reference, timezone conversion patterns, DST handling
 
 ### Secondary (MEDIUM confidence)
-- **MSW documentation:** Network-level mocking for REST APIs including PostgREST
-- **react-error-boundary:** Popular error boundary library, React 18 compatible
-- **TanStack Query (React Query) documentation:** Query + mutation patterns with Supabase
+- [Supabase GitHub Discussions](https://github.com/orgs/supabase/discussions) - #6518 (trigger failures), #4047 (OAuth metadata), #5282 (auth cleanup), #13091 (RBAC patterns)
+- [MakerKit: Supabase React Query](https://makerkit.dev/blog/saas/supabase-react-query) - Integration patterns and cache management
+- [TkDodo Blog: React Query Testing](https://tkdodo.eu/blog) - Optimistic updates, concurrent mutations, cache patterns
+- [DrDroid: Supabase Diagnostics](https://drdroid.io/stack-diagnosis) - Memory leak patterns, subscription cleanup
 
-### Tertiary (LOW confidence, needs validation)
-- **Supabase type generation:** Assumes standard `supabase gen types` workflow works for this schema
-- **RPC function signatures:** Unknown actual DB function implementations, mocks based on usage patterns
-- **Exact version numbers:** Based on training data; verify with `npm view [package] version` at install time
+### Tertiary (LOW confidence)
+- Community blog posts on timezone handling - General patterns, not Supabase-specific, needs validation
+- Task management app documentation (Todoist, Amazing Marvin) - Daily rollover patterns as reference, not prescriptive
+
+### Codebase Analysis (HIGH confidence)
+- Existing React Query migration (v2.0) - Query key patterns, cache management, optimistic updates
+- Current auth implementation - useAuth hook, ProtectedRoute, profile management
+- Supabase setup - Client configuration, existing RPC patterns
+- Test infrastructure - 103 existing tests with vi.mock patterns, test-utils.tsx with QueryClient setup
 
 ---
-*Research completed: 2026-01-24*
+*Research completed: 2026-01-28*
 *Ready for roadmap: yes*

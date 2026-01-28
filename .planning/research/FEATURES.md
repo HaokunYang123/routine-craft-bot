@@ -1,393 +1,222 @@
-# Feature Landscape: React Query + Pagination + Memo Optimization
+# Features Research: v3.0 Auth & Realtime
 
-**Domain:** Performance optimization for React/Supabase data fetching
-**Researched:** 2026-01-26
-**Confidence:** HIGH (Context7-verified, official docs)
-
----
-
-## Table Stakes
-
-Features users expect. Missing = product feels incomplete or broken.
-
-### React Query Migration
-
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| Automatic caching | Users expect fast navigation; re-fetching data they just saw feels broken | Low | React Query default: 5min gcTime, 0s staleTime |
-| Loading states via `isPending` | Users expect clear feedback during data fetches | Low | Replaces manual `useState(loading)` |
-| Error states via `isError` | Users expect to see errors, not silent failures | Low | Integrate with existing `handleError` utility |
-| Background refetch on window focus | Users expect fresh data when returning to app | Low | React Query default behavior |
-| Query deduplication | Multiple components requesting same data = 1 network call | Low | Automatic with matching queryKeys |
-| Mutation success/error feedback | Users expect confirmation that actions worked | Low | Use `onSuccess`/`onError` callbacks |
-| Query invalidation after mutations | Users expect lists to update after create/edit/delete | Medium | Call `queryClient.invalidateQueries()` in mutation `onSuccess` |
-
-### Pagination
-
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| Page size control | Users expect to control how much data they see | Low | Default: 20-50 items per page |
-| Loading indicator for page changes | Users expect feedback when changing pages | Low | Use `isFetching` from useQuery |
-| Consistent data during navigation | Users expect stable results while paginating | Medium | Cursor pagination handles this better than offset |
-| Clear "end of list" indicator | Users expect to know when there's no more data | Low | `hasNextPage` from useInfiniteQuery |
-
-### Render Optimization
-
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| No blank screens during data load | Users expect skeleton or spinner, not emptiness | Low | Already have `DashboardSkeleton`, `TaskListSkeleton` |
-| Responsive UI during mutations | Users expect button to respond immediately | Low | Loading states on mutation buttons |
+**Project:** Routine Craft Bot (Coach/Student Task Management)
+**Researched:** 2026-01-28
+**Research Mode:** Ecosystem (Features Dimension)
 
 ---
 
-## Differentiators
+## Auth Flow Features
 
-Features that set product apart. Not expected, but provide competitive advantage.
+### Table Stakes
 
-### React Query Advanced Features
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| **Role selection before auth** | Users must self-identify as Coach or Student before signup. Without this, the app cannot route them correctly or create appropriate profiles. | Low | Landing page with two clear CTAs: "I am a Coach" / "I am a Student" |
+| **Google OAuth with role metadata** | Role must persist through OAuth flow. Users select role, then authenticate, and role appears in their profile on first login. | Medium | Supabase `signInWithOAuth` does NOT natively support passing metadata. Workaround: Store role in localStorage pre-OAuth, then update profile in `handle_new_user` trigger or post-auth callback. |
+| **Atomic profile creation via DB trigger** | Profile must exist immediately when user record exists. No race conditions, no "profile not found" errors. This is fundamental data integrity. | Medium | `handle_new_user` trigger on `auth.users` INSERT. MUST use `SECURITY DEFINER`. If trigger fails, signup fails - thorough testing required. |
+| **Role-based routing from database** | App queries database for role, not localStorage/session. Database is source of truth. Prevents spoofing and inconsistent state. | Low | Query `profiles.role` on app load, route to `/dashboard` (coach) or `/app` (student) |
+| **Session persistence** | Users stay logged in across browser sessions, page reloads. Standard OAuth behavior. | Low | Already implemented via Supabase Auth with localStorage persistence |
+| **Session expiry handling** | Graceful handling when JWT expires or refresh fails. Show modal, redirect to login - never leave user in broken state. | Low | Already implemented: `sessionExpired` state in `useAuth` |
+| **Remove email/password auth** | Single auth provider simplifies flow, reduces attack surface, removes code paths. Google-only is the design decision. | Low | Delete CoachAuth/StudentAuth email forms, keep only Google OAuth button |
 
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| Optimistic updates for task completion | Task checkboxes respond instantly (feels snappy) | Medium | Use `useMutation` with `onMutate` for immediate UI update, rollback on error |
-| Stale-while-revalidate pattern | Users see cached data immediately while fresh data loads in background | Low | Configure `staleTime` (e.g., 3-5 minutes for coach data) |
-| Prefetching on hover | Data loads before user clicks (near-instant navigation) | Medium | `queryClient.prefetchQuery()` on link hover |
-| Parallel queries | Fetch groups, assignments, templates simultaneously on dashboard | Low | Multiple `useQuery` calls auto-parallelize |
-| Suspense integration | Cleaner loading state management | Medium | `useSuspenseQuery` with React Error Boundaries |
-
-### Pagination Advanced Features
-
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| Infinite scroll for lists | Modern UX, no page buttons to click | Medium | `useInfiniteQuery` + IntersectionObserver |
-| Cursor-based pagination | 17x faster than offset for large datasets | Medium | Use `gt()`/`lt()` filters instead of `.range()` |
-| Page prefetching | Next page loads in background while viewing current | Medium | Prefetch page N+1 when on page N |
-| Virtualized long lists | Render only visible items for 1000+ item lists | High | react-window or @tanstack/react-virtual |
-
-### Render Optimization Advanced Features
+### Differentiators
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| Selective memoization of expensive components | Reduce re-renders on large calendar (1,661 lines) | Medium | Profile first, then `React.memo` + `useMemo` |
-| Callback stability for child components | Prevent unnecessary child re-renders | Low | `useCallback` for handlers passed as props |
-| Component splitting for code-splitting | Faster initial load by lazy-loading heavy components | Medium | `React.lazy()` for calendar, charts |
+| **Instant profile availability** | Profile exists before user code runs. No loading states for profile after login. No "creating profile..." spinners. Zero latency to usable state. | Low | DB trigger handles creation; React Query pre-populates cache immediately |
+| **Role immutability** | Once assigned, role cannot change. Simplifies authorization logic, prevents role confusion. Business rule: one user = one role, forever. | Low | Don't build role-switching UI. RLS policies can enforce immutability. |
+| **Student onboarding flow** | Students login first, then join class. Clear separation: auth is "who are you", class joining is "where do you belong". Better UX than combined flow. | Medium | Post-login empty state for students with prominent "Join a Class" CTA |
+| **Pre-auth role visualization** | Show different value propositions on landing page for Coach vs Student. Help users understand what they're signing up for. | Low | Conditional content on landing page based on hovered/selected role |
+
+### Dependencies on Existing Features
+
+- **QR/Code class joining** - Keep for students to join classes (don't confuse with removed login-via-code)
+- **ProtectedRoute** - Already exists, needs minor update to query DB for role instead of checking local state
+- **useAuth/useProfile hooks** - Already exist, need modifications for trigger-based profile creation
+
+---
+
+## Realtime Features
+
+### Table Stakes
+
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| **Task completion visible to coach instantly** | When student marks task complete, coach dashboard updates without refresh. Core realtime expectation for collaborative apps. | Medium | Supabase Realtime `postgres_changes` on `task_instances` table. Already partially implemented in `CoachDashboard.tsx` |
+| **Assignment creation visible to students** | When coach creates new assignment, student sees it without refresh. Same expectation as above. | Medium | Subscribe to `assignments` and `task_instances` tables |
+| **Proper subscription cleanup** | No memory leaks. Subscriptions unsubscribed on component unmount. | Low | `useEffect` cleanup with `supabase.removeChannel(channel)` - pattern already exists |
+| **React Query cache invalidation on realtime events** | Realtime events should invalidate relevant React Query caches, triggering refetch with fresh data. | Medium | On realtime event, call `queryClient.invalidateQueries({ queryKey: ... })` |
+| **Connection recovery** | If websocket disconnects (mobile network, browser tab sleep), reconnect and refetch data to catch any missed events. | Medium | Monitor subscription status, refetch on reconnect. Chrome/Edge suspend tabs after 10 minutes - must handle. |
+
+### Differentiators
+
+| Feature | Value Proposition | Complexity | Notes |
+|---------|-------------------|------------|-------|
+| **Optimistic UI with realtime confirmation** | Optimistic updates (already have) + realtime confirmation that mutation succeeded server-side. Belt and suspenders reliability. | Low | Already have optimistic updates; realtime just confirms. No extra work if optimistic cache matches server state. |
+| **Presence indicators** | Show when coach is online, when students are active. Optional but creates engagement feeling. | High | Supabase Realtime Presence feature. Defer unless specifically requested. |
+| **Granular subscriptions** | Subscribe only to relevant data (e.g., student's own tasks, coach's own groups). Reduces unnecessary traffic and DB load. | Medium | Use filters: `filter: 'user_id=eq.${userId}'` or similar |
+| **Calendar freshness via realtime** | Coach calendar view updates when tasks are completed, showing progress in real-time on the calendar. | Medium | Invalidate `useAssignments` query on task_instances change |
+
+### Dependencies on Existing Features
+
+- **React Query infrastructure** - Already migrated (v2.0). Realtime invalidates queries.
+- **Existing realtime subscription in CoachDashboard** - Already subscribes to `task_instances` changes. Extend pattern to other views.
+- **Query key factory** - Already exists (`queryKeys`). Use for invalidation targets.
+
+---
+
+## Timezone Features
+
+### Table Stakes
+
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| **Store all dates in UTC** | Single source of truth. No ambiguity about what "6 PM" means. Database stores UTC, always. | Medium | Existing schema may store local times. Migration required if so. |
+| **Display dates in user's local timezone** | UTC stored, local displayed. User sees "6 PM" in their timezone, not UTC. | Medium | Use `date-fns-tz` (or date-fns v4+ with built-in TZ support). `toZonedTime()` for display. |
+| **User timezone detection** | Automatically detect user's timezone from browser. Don't make them configure it. | Low | `Intl.DateTimeFormat().resolvedOptions().timeZone` |
+| **Correct "today" boundary** | "Today's tasks" means tasks for today in user's local timezone, not UTC. Critical for daily task views. | Medium | Calculate today's start/end in local TZ, convert to UTC for query |
+| **Daily rollover logic** | At midnight local time, yesterday's incomplete tasks become "missed", today's tasks become "pending". | High | Requires either: (a) client-side recalculation on load, or (b) server cron job, or (c) DB trigger. See Pitfalls. |
+| **Consistent date display format** | Same format throughout app. Localized (e.g., "Jan 28, 2026" in US, "28 Jan 2026" in UK). | Low | Use `date-fns` format with locale |
+
+### Differentiators
+
+| Feature | Value Proposition | Complexity | Notes |
+|---------|-------------------|------------|-------|
+| **Explicit timezone in profile** | Store user's timezone in profile. Allows server-side operations to know user's TZ without relying on client. | Low | Add `timezone` column to profiles table |
+| **Timezone-aware scheduling UI** | When coach schedules task for "5 PM", they can see what time that is for students in different timezones (if relevant). | High | Only needed for multi-timezone classrooms. Defer unless requested. |
+| **DST-safe scheduling** | Handle daylight saving transitions gracefully. Task at "2 AM" on DST transition day doesn't break. | Medium | Use IANA timezone names (e.g., "America/New_York"), let `date-fns-tz` handle DST |
+
+### Dependencies on Existing Features
+
+- **Existing date utilities** - `safeParseISO`, `safeFormatDate` exist but may need TZ awareness
+- **Calendar views** - CoachCalendar displays dates; needs UTC-to-local conversion
+- **Task scheduling** - `useAssignments` creates task instances with dates; must store UTC
 
 ---
 
 ## Anti-Features
 
-Features to explicitly NOT build. Common mistakes in this domain.
+Features to deliberately NOT build.
 
 | Anti-Feature | Why Avoid | What to Do Instead |
 |--------------|-----------|-------------------|
-| Global staleTime: 0 for everything | Causes excessive network requests, poor UX | Configure per-query: 0 for real-time, 5min for static data |
-| Memoize every component | Adds memory overhead, slows down simple components | Profile first, memoize only expensive components that re-render with same props |
-| useMemo for cheap calculations | Memory cost > computation cost for simple ops | Only memoize if calculation takes >1ms |
-| Optimistic updates for everything | Rollback UX is jarring for frequent failures | Only for low-failure-rate operations (task completion, not network-dependent ops) |
-| Offset pagination for large datasets | Performance degrades at high offsets (scanning all previous rows) | Use cursor-based pagination (17x faster) |
-| Deep equality comparison in memo | `JSON.stringify` comparisons freeze the app | Compare specific props, accept new references are OK |
-| Cache everything forever | Memory bloat, stale data | Set appropriate gcTime (5-30 min based on data type) |
-| Manual cache manipulation everywhere | Error-prone, hard to maintain | Prefer invalidation over manual cache updates |
-| Infinite scroll without load-more button fallback | Poor accessibility, can't jump to specific items | Include "Load more" button as fallback |
-| Suspense without Error Boundaries | Suspense errors propagate up without boundaries | Always pair Suspense with ErrorBoundary |
+| **Email/password auth** | Single provider (Google) simplifies security, UX, and maintenance. Email/password adds forgot-password flow, email verification, password strength rules. | Google OAuth only. Delete email auth code. |
+| **Login-via-code for auth** | Confuses auth (who are you) with class joining (where do you belong). Students should authenticate first, then join class. | Keep code-based class joining. Remove code-based login. |
+| **Role switching** | "One user = one role" simplifies authorization, prevents edge cases, matches real-world usage (a coach is always a coach). | No role switching UI. Roles immutable after profile creation. |
+| **Client-side profile creation fallback** | If DB trigger fails, don't try to create profile in app code. That creates race conditions and split-brain scenarios. | Trust the trigger. If profile doesn't exist, something is wrong - surface error, don't silently fix. |
+| **Global realtime subscriptions** | Subscribing to all changes on a table is expensive (100 users = 100 RLS checks per change). Doesn't scale. | Use filtered subscriptions. Subscribe only to data user needs. |
+| **Presence without purpose** | "User X is online" is meaningless without action. Don't build presence just because Supabase supports it. | Defer presence until there's a use case (e.g., "coach is watching your progress"). |
+| **Manual timezone configuration** | Users shouldn't have to configure their timezone. Browser already knows. | Auto-detect from browser. Only allow override if user explicitly requests. |
+| **Timezone for each task** | Overcomplicates data model. Tasks don't have timezones, users do. | Store task times in UTC. Convert based on viewing user's timezone. |
+| **Realtime for everything** | Not all data needs realtime. Templates, stickers, profile changes don't need instant updates. | Realtime only for: task_instances, assignments. Everything else uses React Query's staleTime. |
+| **Cron-based task rollover** | External cron job adds infrastructure complexity, can miss executions, requires monitoring. | Client-side rollover on app load, or DB trigger on date change. Prefer client-side for simplicity. |
 
 ---
 
-## Feature Dependencies
+## Complexity Assessment
+
+### Straightforward (Low Complexity)
+
+| Feature | Reasoning |
+|---------|-----------|
+| Role selection landing page | UI only. Two buttons, conditional routing. No backend. |
+| Remove email/password auth | Deletion is easier than addition. Remove code paths. |
+| Session handling | Already implemented. Minor tweaks at most. |
+| React Query invalidation | Pattern exists. Just add `invalidateQueries` calls in realtime handlers. |
+| Timezone detection | One-liner: `Intl.DateTimeFormat().resolvedOptions().timeZone` |
+| Role-based routing | Already exists. Just verify DB query instead of local state. |
+
+### Moderate (Medium Complexity)
+
+| Feature | Reasoning |
+|---------|-----------|
+| Atomic profile creation trigger | Requires PostgreSQL trigger, `SECURITY DEFINER`, testing edge cases. Must not break signups. |
+| Google OAuth with role metadata | Supabase doesn't support passing metadata in `signInWithOAuth`. Need workaround: localStorage pre-auth, post-auth update, or trigger reads state. |
+| Realtime subscriptions for all entities | Multiple subscription channels. Must handle cleanup, reconnection, and cache invalidation. |
+| UTC storage with local display | Touch multiple components. Need consistent conversion utilities. Migration if existing data is local time. |
+| Connection recovery | Track subscription status. Refetch on reconnect. Handle mobile network changes. |
+
+### Complex (High Complexity)
+
+| Feature | Reasoning | Mitigation |
+|---------|-----------|------------|
+| Daily task rollover logic | Determining "missed" status requires knowing user's midnight in UTC. Different users have different midnights. Race conditions if checking at boundary. | Option A: Client recalculates status on load (easiest). Option B: DB function called on demand. Avoid real-time rollover - just calculate when displaying. |
+| DST-safe scheduling | Daylight saving transitions create edge cases. Task at "2 AM" during "spring forward" doesn't exist. | Use IANA timezone names. Let `date-fns-tz` handle. Test DST transitions specifically. |
+| Presence indicators | Requires Presence channel management, heartbeats, offline detection, UI for presence state. | Defer to future milestone unless explicitly requested. |
+
+---
+
+## Feature Dependencies Graph
 
 ```
-React Query Foundation
+Landing Page (Role Selection)
     |
-    +-- useQuery (read operations)
-    |       |
-    |       +-- Query invalidation (depends on mutations)
-    |       +-- Stale-while-revalidate (depends on staleTime config)
-    |       +-- Prefetching (depends on queryClient setup)
+    v
+Google OAuth Flow
     |
-    +-- useMutation (write operations)
-    |       |
-    |       +-- Optimistic updates (depends on onMutate pattern)
-    |       +-- Cache invalidation (depends on queryClient)
+    v
+DB Trigger (handle_new_user) <-- Role from localStorage/state
     |
-    +-- useInfiniteQuery (pagination)
-            |
-            +-- Infinite scroll (depends on IntersectionObserver)
-            +-- Cursor pagination (depends on Supabase query changes)
-
-Memo Optimization
+    v
+Profile Created (atomic)
     |
-    +-- React.memo (component-level)
-    |       |
-    |       +-- useCallback (prevents function prop changes)
-    |       +-- useMemo (prevents object/array prop changes)
+    +---> Role-Based Routing --> Coach Dashboard OR Student App
     |
-    +-- Independent of React Query (can do in parallel)
+    v
+Realtime Subscriptions (task_instances, assignments)
+    |
+    v
+React Query Invalidation
+    |
+    v
+Calendar/Task Views (with timezone conversion)
+    |
+    v
+Daily Rollover (calculated on display)
 ```
 
 ---
 
-## MVP Recommendation
+## MVP Feature Set
 
-### Phase 1: Core Migration (Table Stakes)
+For v3.0 MVP, prioritize:
 
-Prioritize:
+1. **Landing page role selection** - Table stakes, low complexity
+2. **Google OAuth only** - Table stakes, low complexity (deletion)
+3. **DB trigger for atomic profile creation** - Table stakes, medium complexity
+4. **Realtime for task completions** - Table stakes, medium complexity (already started)
+5. **UTC storage, local display** - Table stakes, medium complexity
+6. **Client-side rollover calculation** - Table stakes, high complexity (but avoids cron)
 
-1. **useQuery for all data fetching** - Table stakes, replaces useState/useEffect pattern
-2. **useMutation with invalidation** - Table stakes, ensures data consistency
-3. **Loading/error states** - Table stakes, user feedback
-4. **Basic staleTime configuration** - Low effort, immediate UX improvement
-
-### Phase 2: Pagination (High-Value Lists)
-
-Prioritize:
-
-1. **Cursor-based pagination for large lists** - High impact for clients/check-ins
-2. **useInfiniteQuery for infinite scroll** - Better UX than page buttons
-3. **Load-more button fallback** - Accessibility
-
-### Phase 3: Optimization (Measured)
-
-Prioritize:
-
-1. **Profile before memoizing** - Don't optimize blindly
-2. **React.memo for CoachCalendar** - Known large component (1,661 lines)
-3. **useCallback for event handlers** - Only where causing re-render issues
-4. **Code-splitting heavy components** - Measurable initial load improvement
-
-### Defer to Later
-
-- **Suspense integration**: Requires React 18 Suspense patterns, more invasive
-- **Virtualization**: Only if lists exceed 500+ visible items
-- **Prefetching on hover**: Nice-to-have, not critical
-
----
-
-## Expected User Experience
-
-### Before (Current State)
-
-| User Action | What Happens |
-|-------------|--------------|
-| Navigate to Dashboard | Spinner, fetch all data, render |
-| Navigate away and back | Spinner again, re-fetch all data |
-| Complete a task | Button shows loading, wait for server, update UI |
-| Scroll through 500 clients | All 500 load at once, slow initial render |
-| Switch tabs quickly | Each tab triggers new fetch |
-
-### After (With Features)
-
-| User Action | What Happens |
-|-------------|--------------|
-| Navigate to Dashboard | Show cached data immediately, background refresh |
-| Navigate away and back | Instant render from cache (if < 5min) |
-| Complete a task | Checkbox updates instantly (optimistic), syncs in background |
-| Scroll through 500 clients | First 20 load fast, more load as you scroll |
-| Switch tabs quickly | Only one fetch happens (deduplication) |
-
----
-
-## Developer Experience Expectations
-
-### React Query Hooks Pattern
-
-```typescript
-// useGroups.ts - Expected pattern after migration
-export function useGroups() {
-  const { user } = useAuth();
-
-  const groupsQuery = useQuery({
-    queryKey: ['groups', user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('groups')
-        .select('*')
-        .eq('coach_id', user!.id);
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
-
-  return {
-    groups: groupsQuery.data ?? [],
-    isLoading: groupsQuery.isPending,
-    isError: groupsQuery.isError,
-    error: groupsQuery.error,
-  };
-}
-```
-
-### Mutation with Invalidation Pattern
-
-```typescript
-// Expected mutation pattern
-const createGroupMutation = useMutation({
-  mutationFn: async (input: CreateGroupInput) => {
-    const { data, error } = await supabase
-      .from('groups')
-      .insert(input)
-      .select()
-      .single();
-    if (error) throw error;
-    return data;
-  },
-  onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: ['groups'] });
-    toast({ title: 'Group created' });
-  },
-  onError: (error) => {
-    handleError(error, { component: 'useGroups', action: 'create' });
-  },
-});
-```
-
-### Infinite Query Pattern
-
-```typescript
-// Expected infinite scroll pattern
-const tasksQuery = useInfiniteQuery({
-  queryKey: ['tasks', assigneeId],
-  queryFn: async ({ pageParam = null }) => {
-    let query = supabase
-      .from('task_instances')
-      .select('*')
-      .eq('assignee_id', assigneeId)
-      .order('scheduled_date', { ascending: false })
-      .limit(20);
-
-    if (pageParam) {
-      query = query.lt('scheduled_date', pageParam);
-    }
-
-    const { data, error } = await query;
-    if (error) throw error;
-    return data;
-  },
-  getNextPageParam: (lastPage) =>
-    lastPage.length === 20 ? lastPage[lastPage.length - 1].scheduled_date : undefined,
-  initialPageParam: null,
-});
-```
-
-### Optimistic Update Pattern
-
-```typescript
-// Expected optimistic update for task completion
-const updateTaskMutation = useMutation({
-  mutationFn: async ({ taskId, status }) => {
-    const { error } = await supabase
-      .from('task_instances')
-      .update({ status, completed_at: status === 'completed' ? new Date().toISOString() : null })
-      .eq('id', taskId);
-    if (error) throw error;
-  },
-  onMutate: async ({ taskId, status }) => {
-    // Cancel outgoing refetches
-    await queryClient.cancelQueries({ queryKey: ['tasks'] });
-
-    // Snapshot previous value
-    const previousTasks = queryClient.getQueryData(['tasks']);
-
-    // Optimistically update
-    queryClient.setQueryData(['tasks'], (old) =>
-      old?.map((task) =>
-        task.id === taskId ? { ...task, status } : task
-      )
-    );
-
-    return { previousTasks };
-  },
-  onError: (err, variables, context) => {
-    // Rollback on error
-    queryClient.setQueryData(['tasks'], context?.previousTasks);
-    handleError(err, { component: 'useAssignments', action: 'update task' });
-  },
-  onSettled: () => {
-    queryClient.invalidateQueries({ queryKey: ['tasks'] });
-  },
-});
-```
-
----
-
-## Performance Benchmarks to Target
-
-| Metric | Current (Estimated) | Target | How to Measure |
-|--------|---------------------|--------|----------------|
-| Dashboard load (cold) | 1-2s | < 500ms | React DevTools Profiler |
-| Dashboard load (cached) | 1-2s | < 100ms | Should be instant from cache |
-| Task completion feedback | 200-500ms | < 50ms | Optimistic update eliminates wait |
-| Client list render (500 items) | Slow/janky | Smooth | Virtualization or pagination |
-| Tab switch (with data) | Re-fetch every time | Instant | staleTime caching |
-
----
-
-## Configuration Recommendations
-
-### staleTime by Data Type
-
-| Data Type | staleTime | Rationale |
-|-----------|-----------|-----------|
-| User profile | 10 minutes | Rarely changes |
-| Groups | 5 minutes | Coach-controlled, occasional updates |
-| Templates | 5 minutes | Coach creates, then uses repeatedly |
-| Assignments | 3 minutes | Can be updated by coach |
-| Task instances | 1 minute | Students complete frequently |
-| Check-ins | 0 (always stale) | Real-time data, always fetch fresh |
-
-### gcTime Recommendations
-
-| Data Type | gcTime | Rationale |
-|-----------|--------|-----------|
-| All queries | 10-30 minutes | Keep in memory for quick navigation back |
-| Heavy data (task history) | 5 minutes | Reduce memory footprint |
-
----
-
-## Confidence Assessment
-
-| Feature Area | Confidence | Reason |
-|--------------|------------|--------|
-| React Query useQuery/useMutation | HIGH | Official TanStack docs, well-established patterns |
-| Query invalidation | HIGH | Core React Query feature, documented extensively |
-| Optimistic updates | HIGH | Official docs, but note: only for low-failure ops |
-| Cursor pagination | HIGH | PostgreSQL fundamentals, 17x perf verified |
-| useInfiniteQuery | HIGH | Official TanStack docs |
-| React.memo/useMemo | HIGH | React official docs, Kent C. Dodds guidance |
-| Supabase + React Query integration | MEDIUM | Community patterns, supabase-cache-helpers exists |
-| Performance benchmarks | MEDIUM | Targets are reasonable estimates, need profiling |
+Defer to post-v3.0:
+- Presence indicators (high complexity, no clear use case yet)
+- Multi-timezone classroom support (high complexity, niche use case)
+- Server-side rollover job (if client-side proves insufficient)
 
 ---
 
 ## Sources
 
-### React Query / TanStack Query
-- [TanStack Query Overview](https://tanstack.com/query/latest/docs/framework/react/overview)
-- [Queries Guide](https://tanstack.com/query/v5/docs/react/guides/queries)
-- [Mutations Guide](https://tanstack.com/query/v5/docs/react/guides/mutations)
-- [Optimistic Updates](https://tanstack.com/query/latest/docs/framework/react/guides/optimistic-updates)
-- [Infinite Queries](https://tanstack.com/query/v4/docs/framework/react/guides/infinite-queries)
-- [useQuery Reference](https://tanstack.com/query/v5/docs/framework/react/reference/useQuery)
-- [useMutation Reference](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation)
+### HIGH Confidence (Official Documentation)
 
-### React Performance
-- [React.memo Official Docs](https://react.dev/reference/react/memo)
-- [useMemo Official Docs](https://react.dev/reference/react/useMemo)
-- [When to useMemo and useCallback - Kent C. Dodds](https://kentcdodds.com/blog/usememo-and-usecallback)
+- [Supabase User Management](https://supabase.com/docs/guides/auth/managing-user-data) - Trigger patterns, metadata handling
+- [Supabase Postgres Changes](https://supabase.com/docs/guides/realtime/postgres-changes) - Realtime subscription patterns, RLS limitations, scaling considerations
+- [Supabase Auth Google OAuth](https://supabase.com/docs/guides/auth/social-login/auth-google) - OAuth flow, no metadata support confirmed
+- [Supabase signInWithOAuth API](https://supabase.com/docs/reference/javascript/auth-signinwithoauth) - Available options
 
-### Supabase Integration
-- [React Query + Next.js + Supabase](https://supabase.com/blog/react-query-nextjs-app-router-cache-helpers)
-- [Supabase Cache Helpers](https://supabase-cache-helpers.vercel.app/postgrest/queries)
-- [Pagination with Supabase](https://makerkit.dev/blog/tutorials/pagination-supabase-react)
+### MEDIUM Confidence (Verified Community Patterns)
 
-### Pagination Performance
-- [Cursor Pagination Deep Dive](https://www.milanjovanovic.tech/blog/understanding-cursor-pagination-and-why-its-so-fast-deep-dive)
-- [Offset vs Cursor Pagination](https://medium.com/@maryam-bit/offset-vs-cursor-based-pagination-choosing-the-best-approach-2e93702a118b)
+- [date-fns-tz NPM](https://www.npmjs.com/package/date-fns-tz) - Timezone handling utilities
+- [date-fns v4 Timezone Support](https://blog.date-fns.org/v40-with-time-zone-support/) - First-class TZ support in date-fns v4
+- [GitHub Discussion: signInWithOAuth Metadata](https://github.com/orgs/supabase/discussions/29075) - Confirms no native metadata support in OAuth flow
+- [React Query with Supabase](https://makerkit.dev/blog/saas/supabase-react-query) - Integration patterns
 
-### Cache Configuration
-- [staleTime vs gcTime Discussion](https://github.com/TanStack/query/discussions/1685)
-- [Mastering staleTime and gcTime](https://asrulkadir.medium.com/mastering-staletime-and-gctime-in-react-query-the-secrets-to-smarter-data-caching-22499ce3010f)
+### LOW Confidence (WebSearch Only)
+
+- Education app realtime notification patterns - General patterns, not Supabase-specific
+- Daily task rollover logic - Patterns from Todoist, Microsoft To Do, Notion - product-specific, not universal
 
 ---
 
-*Feature landscape for v2 Performance milestone: 2026-01-26*
+*Features research completed: 2026-01-28*
