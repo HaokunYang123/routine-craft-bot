@@ -1,3 +1,12 @@
+/**
+ * CoachCalendar - Coach's calendar view for scheduled tasks.
+ *
+ * Performance optimizations (Phase 14-03):
+ * - Sub-components (DayCell, WeekView, DayView, TaskList, DaySheetContent) wrapped in React.memo
+ * - Event handlers (handleDateClick, navigatePeriod, goToToday) use useCallback
+ * - Derived data (tasksByDateMap) uses useMemo for O(1) date lookups
+ * - getTasksForDate, getCompletionStats, getGroupColorsForDate, hasEvents use useCallback
+ */
 import React, { useState, useEffect, useMemo, useCallback, Profiler } from "react";
 import { onRenderCallback } from "@/lib/profiling";
 import { supabase } from "@/integrations/supabase/client";
