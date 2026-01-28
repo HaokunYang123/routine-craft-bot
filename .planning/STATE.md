@@ -53,6 +53,7 @@ See: .planning/MILESTONES.md for full details
 |------|----------|-----------|
 | 15-01 | Profile created with role=NULL | Supports AUTH-10 immutability - role can be SET once but never CHANGED |
 | 15-01 | Role passed via redirectTo URL parameter | Survives OAuth redirect, more reliable than localStorage |
+| 15-03 | Card click triggers OAuth directly | Per CONTEXT.md - streamlined UX with no intermediate screens |
 | 15-04 | Logout always navigates to / even on error | Ensures user escapes bad state |
 | 15-04 | NotFound uses role-based routing for dashboard | Coach goes to /dashboard, student goes to /app |
 
