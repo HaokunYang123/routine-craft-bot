@@ -2,13 +2,13 @@
 
 ## Milestones
 
-- [x] **v1 Reliability Hardening** - Phases 1-8 (shipped 2026-01-25)
-- [x] **v2.0 Performance** - Phases 9-14 (shipped 2026-01-28)
+- v1 Reliability Hardening — Phases 1-8 (shipped 2026-01-25)
+- v2.0 Performance — Phases 9-14 (shipped 2026-01-28)
 
 ## Phases
 
 <details>
-<summary>v1 Reliability Hardening (Phases 1-8) - SHIPPED 2026-01-25</summary>
+<summary>v1 Reliability Hardening (Phases 1-8) — SHIPPED 2026-01-25</summary>
 
 ### Phase 1: Error Handling Foundation
 **Goal**: Establish error boundaries and consistent error handling patterns.
@@ -84,114 +84,67 @@ Plans:
 
 </details>
 
----
-
-## v2.0 Performance (In Progress)
-
-**Milestone Goal:** Optimize data fetching, rendering, and large dataset handling for faster, smoother user experience.
+<details>
+<summary>v2.0 Performance (Phases 9-14) — SHIPPED 2026-01-28</summary>
 
 ### Phase 9: React Query Foundation
 **Goal**: Establish query infrastructure without changing hook interfaces.
-**Depends on**: Phase 8 (v1 complete)
-**Requirements**: RQ-01 (caching), RQ-04 (background refetch), RQ-05 (deduplication)
-**Success Criteria** (what must be TRUE):
-  1. QueryClient has production-ready defaults (staleTime, gcTime, retry logic)
-  2. Query key factory exists with hierarchical keys for all entities
-  3. Global error handler prevents duplicate error toasts
-  4. Existing tests pass unchanged
 **Plans**: 1 plan
 
 Plans:
-- [x] 09-01-PLAN.md — Query key factory + QueryClient configuration
+- [x] 09-01: Query key factory + QueryClient configuration
 
 ### Phase 10: Simple Hook Migration
 **Goal**: Migrate low-complexity hooks to React Query pattern.
-**Depends on**: Phase 9
-**Requirements**: RQ-02 (loading states), RQ-03 (error states)
-**Success Criteria** (what must be TRUE):
-  1. User sees loading indicator when useProfile fetches
-  2. User sees error message when useGroups fetch fails
-  3. User sees cached group data instantly on navigation (no spinner within 5min)
-  4. Component interfaces unchanged (backward compatible)
-**Plans**: 3 plans (3 waves)
+**Plans**: 3 plans
 
 Plans:
-- [x] 10-01-PLAN.md — useProfile migration + tests
-- [x] 10-02-PLAN.md — useGroups migration + test updates
-- [x] 10-03-PLAN.md — useTemplates migration + tests
+- [x] 10-01: useProfile migration + tests
+- [x] 10-02: useGroups migration + test updates
+- [x] 10-03: useTemplates migration + tests
 
 ### Phase 11: Complex Hook Migration
 **Goal**: Migrate high-complexity hooks with nested queries.
-**Depends on**: Phase 10
-**Requirements**: RQ-02 (loading states), RQ-03 (error states)
-**Success Criteria** (what must be TRUE):
-  1. User sees loading indicator when useAssignments fetches
-  2. User sees cached assignment data instantly on navigation
-  3. User sees error message when useRecurringSchedules fails
-  4. Multiple components sharing same data make single request
-**Plans**: 3 plans (1 wave)
+**Plans**: 3 plans
 
 Plans:
-- [x] 11-01-PLAN.md — useAssignments migration (utility pattern + fetchQuery)
-- [x] 11-02-PLAN.md — useRecurringSchedules migration (useQuery + parallel enrichment)
-- [x] 11-03-PLAN.md — useStickers migration (useQueries + combine)
+- [x] 11-01: useAssignments migration (utility pattern + fetchQuery)
+- [x] 11-02: useRecurringSchedules migration (useQuery + parallel enrichment)
+- [x] 11-03: useStickers migration (useQueries + combine)
 
 ### Phase 12: Mutations & Optimistic Updates
 **Goal**: Add mutation patterns with query invalidation and optimistic updates.
-**Depends on**: Phase 11
-**Requirements**: RQ-06 (mutation feedback), RQ-07 (query invalidation), RQ-08 (optimistic updates)
-**Success Criteria** (what must be TRUE):
-  1. User sees confirmation toast after creating/updating/deleting any item
-  2. User sees list update immediately after create/edit/delete (no manual refresh)
-  3. User sees instant task completion feedback (checkbox updates before server responds)
-  4. User sees rollback if task completion fails (checkbox reverts)
-**Plans**: 4 plans (3 waves)
+**Plans**: 4 plans
 
 Plans:
-- [x] 12-01-PLAN.md — Toast duration + useGroups useMutation migration
-- [x] 12-02-PLAN.md — useTemplates + useProfile useMutation migration
-- [x] 12-03-PLAN.md — useAssignments optimistic updates (task completion)
-- [x] 12-04-PLAN.md — Student components integration
+- [x] 12-01: Toast duration + useGroups useMutation migration
+- [x] 12-02: useTemplates + useProfile useMutation migration
+- [x] 12-03: useAssignments optimistic updates (task completion)
+- [x] 12-04: Student components integration
 
 ### Phase 13: Pagination
 **Goal**: Add cursor-based pagination and infinite scroll for large datasets.
-**Depends on**: Phase 12
-**Requirements**: PAG-01 (page size), PAG-02 (loading indicator), PAG-03 (end indicator), PAG-04 (cursor pagination), PAG-05 (infinite scroll)
-**Success Criteria** (what must be TRUE):
-  1. User can select page size (10/25/50) for client list
-  2. User sees loading indicator when loading next page
-  3. User sees "End of list" when all items loaded
-  4. User can scroll to load more items continuously
-  5. Large datasets (500+ items) paginate without performance degradation
-**Plans**: 3 plans (2 waves)
+**Plans**: 3 plans
 
 Plans:
-- [x] 13-01-PLAN.md — Query key factory + useInfiniteClients hook + useLocalStorage (Wave 1)
-- [x] 13-02-PLAN.md — Pagination UI components (Wave 1, parallel with 13-01)
-- [x] 13-03-PLAN.md — People.tsx integration (Wave 2)
+- [x] 13-01: Query key factory + useInfiniteClients hook + useLocalStorage
+- [x] 13-02: Pagination UI components
+- [x] 13-03: People.tsx integration
 
 ### Phase 14: Render Optimization
 **Goal**: Profile and optimize render performance with selective memoization.
-**Depends on**: Phase 13
-**Requirements**: OPT-01 (skeleton/spinner), OPT-02 (responsive mutations), OPT-03 (profiling), OPT-04 (CoachCalendar memo)
-**Success Criteria** (what must be TRUE):
-  1. User sees skeleton UI during data load (not blank screens)
-  2. User sees button loading states during mutations
-  3. Developer has profiling data identifying render bottlenecks
-  4. CoachCalendar re-renders only when relevant data changes
-**Plans**: 3 plans (2 waves)
+**Plans**: 3 plans
 
 Plans:
-- [x] 14-01-PLAN.md — Shimmer animation + page skeletons + LoadingButton timeout (Wave 1)
-- [x] 14-02-PLAN.md — Performance profiling utilities + baseline documentation (Wave 2)
-- [x] 14-03-PLAN.md — CoachCalendar memoization (React.memo + useCallback) (Wave 2)
+- [x] 14-01: Shimmer animation + page skeletons + LoadingButton timeout
+- [x] 14-02: Performance profiling utilities + baseline documentation
+- [x] 14-03: CoachCalendar memoization (React.memo + useCallback)
+
+</details>
 
 ---
 
 ## Progress
-
-**Execution Order:**
-Phases execute in numeric order: 9 -> 10 -> 11 -> 12 -> 13 -> 14
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -212,5 +165,5 @@ Phases execute in numeric order: 9 -> 10 -> 11 -> 12 -> 13 -> 14
 
 ---
 
-*Roadmap created: 2026-01-26*
-*Milestone v2.0 Performance: 6 phases, 17 requirements*
+*Roadmap created: 2026-01-24*
+*v2.0 Performance: Shipped 2026-01-28*

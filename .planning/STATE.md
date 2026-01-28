@@ -2,19 +2,19 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-01-25)
+See: .planning/PROJECT.md (updated 2026-01-28)
 
-**Core value:** Users can reliably complete their daily workflows without encountering errors, crashes, or unexpected behavior.
-**Current focus:** Milestone v2.0 Performance complete - ready for audit
+**Core value:** Users can reliably complete their daily workflows with instant feedback and smooth performance.
+**Current focus:** Planning next milestone
 
 ## Current Position
 
-Phase: 14 of 14 (Render Optimization)
-Plan: 03 of 03 complete
-Status: Phase complete
-Last activity: 2026-01-28 - Completed 14-03-PLAN.md
+Phase: 14 of 14 complete
+Plan: All complete
+Status: Ready for next milestone
+Last activity: 2026-01-28 — v2.0 milestone shipped
 
-Progress: [====================] 100% (14/14 phases, 3/3 plans)
+Progress: [====================] 100% (14/14 phases complete)
 
 ## Milestone History
 
@@ -23,56 +23,23 @@ Progress: [====================] 100% (14/14 phases, 3/3 plans)
 | v1 | Reliability Hardening | 1-8 (23 plans) | 2026-01-25 |
 | v2.0 | Performance | 9-14 (17 plans) | 2026-01-28 |
 
-See: .planning/ROADMAP.md for full details
+See: .planning/MILESTONES.md for full details
 
-## Performance Summary (v1)
+## v2.0 Summary
 
-**Velocity:**
-- Total plans completed: 23
-- Average duration: 2.8 min/plan
-- Total execution time: ~1.1 hours
+**Shipped:**
+- React Query migration for 6 data hooks
+- 5-minute caching with background refetch
+- Optimistic updates for instant task completion
+- Cursor-based infinite scroll pagination
+- Content-shaped loading skeletons
+- CoachCalendar memoization
 
-**Key Metrics:**
-- Tests: 103 passing
-- Type safety: 0 `as any` casts
-- Error handling: 53 handleError call sites
-- Memory leaks fixed: 4 components
-
-## v2.0 Progress
-
-**Phase 9 Complete:**
-- Query key factory: `src/lib/queries/keys.ts`
-- QueryClient production config: staleTime, gcTime, retry, global error handling
-
-**Phase 10 Complete:**
-- useProfile migrated to React Query (14 tests)
-- useGroups migrated to React Query (25 tests, 5 mutations)
-- useTemplates migrated to React Query (17 tests, 3 mutations)
-
-**Phase 11 Complete:**
-- useAssignments migrated (utility pattern with fetchQuery, 25 tests)
-- useRecurringSchedules migrated (useQuery + Promise.all enrichment, 28 tests)
-- useStickers migrated (useQueries + combine, 30 tests)
-- All 209 tests passing
-
-**Phase 12 Complete:**
-- 12-01: useGroups useMutation migration (complete)
-- 12-02: useTemplates + useProfile useMutation migration (complete)
-- 12-03: useAssignments useMutation with optimistic updates (complete)
-- 12-04: Student components integration (complete)
-- All 228 tests passing
-
-**Phase 13 Complete:**
-- 13-01: Pagination foundation (complete)
-- 13-02: Pagination UI components (complete)
-- 13-03: People page integration (complete)
-- All 240 tests passing
-
-**Phase 14 Complete:**
-- 14-01: Loading skeletons (complete) - shimmer animation, content-shaped skeletons, extended timeout text
-- 14-02: Profiling infrastructure (complete) - React.Profiler wrappers, 50ms threshold, bottleneck analysis
-- 14-03: CoachCalendar memoization (complete) - React.memo for 5 sub-components, useCallback for handlers, useMemo for O(1) lookups
-- All 240 tests passing
+**Stats:**
+- 53 commits
+- 87 files modified
+- 33,935 lines of TypeScript
+- 240 tests passing
 
 ## Accumulated Context
 
@@ -80,102 +47,20 @@ See: .planning/ROADMAP.md for full details
 
 See PROJECT.md Key Decisions table for full list with outcomes.
 
-Recent key decisions:
-- Use Vitest over Jest (Vite-native, faster ESM support) - Done
-- Two-level error boundaries (root + route) - Done
-- React Query migration deferred to v2 - Done (Phase 9-11)
-- QueryClientProvider already configured in App.tsx - Enhanced in 09-01
-- 5-minute staleTime for data freshness (D-0901-01)
-- Skip retry for 401/403 auth errors (D-0901-02)
-- Global queryCache.onError with handleError (D-0901-03)
-- Backward-compatible hook interface during migration (D-1001-01)
-- Use invalidateQueries for cache sync after mutations (D-1001-02)
-- Handle Supabase errors as objects with message property (D-1002-01)
-- Handle PGRST205 gracefully by returning empty array (D-1003-01)
-- Use fetchQuery for utility hooks that don't auto-fetch (D-1101-01)
-- 30s staleTime for task instances, 60s for group progress (D-1101-02)
-- Filter params in queryKeys.assignments.instances for cache granularity (D-1101-03)
-- Use Promise.all for parallel enrichment queries (D-1102-01)
-- Export calculateStreak as pure function for testability (D-1103-01)
-- Use useQueries combine for parallel fetching with derived state (D-1103-02)
-- useMutation hooks defined inside parent hook for user context access (D-1201-01)
-- useMutation hooks defined inside useTemplates/useProfile for access to user context (D-1202-01)
-- Wrapper functions catch errors and return null/false for backward compatibility (D-1202-02)
-- No toast on successful task completion - reduces noise for frequent action (D-1203-01)
-- Optimistic update pattern: onMutate snapshots/updates cache, onError rolls back (D-1203-02)
-- User-friendly error messages for mutations: "Couldn't save changes. Please try again." (D-1203-03)
-- StudentTasks uses legacy 'tasks' table, keep direct Supabase pattern with optimistic update (D-1204-01)
-- Dual optimistic update (local state + cache) for instant feedback in components with local state (D-1204-02)
-- Include pageSize in infinite query key for cache granularity (D-1301-01)
-- Use created_at as cursor for stable pagination even with concurrent inserts (D-1301-02)
-- 100px rootMargin for preloading before user reaches bottom (D-1302-01)
-- 1px sentinel height for invisibility while maintaining observability (D-1302-02)
-- Lazy load students on group expand - reduces initial data fetch from O(n) to O(1) (D-1303-01)
-- Track students in local studentsMap state - enables instant UI updates on mutations (D-1303-02)
-- Shimmer via Tailwind gradient (from-muted via-muted/60 to-muted) (D-1401-01)
-- 2-second timeout for "Still working..." text in LoadingButton (D-1401-02)
-- 50ms render threshold for performance profiling (D-1402-01)
-- Development-only profiling logging to avoid production overhead (D-1402-02)
-- Extract DayCell for granular month view memoization (D-1403-01)
-- Use Map for tasksByDateMap for O(1) lookups instead of O(n) filtering (D-1403-02)
-
 ### Pending Todos
 
 None.
 
 ### Blockers/Concerns
 
-None - v2.0 Performance milestone complete.
-
-**Research completed for v2.0:**
-- React Query architecture patterns documented
-- 6 hooks migrated (useProfile, useGroups, useTemplates, useAssignments, useRecurringSchedules, useStickers)
-- 4 hooks NOT to migrate (useAuth, useAIAssistant, use-toast, use-mobile)
-
-**Migration patterns established:**
-- Simple hooks (10-01, 10-02, 10-03): Extract queryFn, replace useState/useEffect with useQuery
-- Utility hooks (11-01): fetchQuery for on-demand caching, not useQuery
-- Complex hooks with parallel fetching (11-03): useQueries with combine for multiple data sources and derived state
-- Complex hooks with nested enrichment (11-02): Promise.all for parallel enrichment queries
-- useMutation pattern (12-01, 12-02, 12-03): onSuccess for toast + invalidation, onError for handleError, wrapper for backward compat
-- Optimistic mutation pattern (12-03): onMutate snapshots cache and updates optimistically, onError rolls back
-- Component integration (12-04): Local state + hook mutation for instant UI, revert on failure
-- Keep return interface for backward compatibility
-- Add new properties (isFetching, isError, error, isPending) for enhanced UI
-- Handle Supabase errors: check `error && typeof error === 'object' && 'message' in error`
-- Handle PGRST205 (table not found): return empty array, not error
-
-**Pagination patterns established:**
-- Cursor-based pagination: useInfiniteQuery with created_at cursor
-- useLocalStorage: generic hook with functional update support
-- Infinite query key: include userId and pageSize for cache isolation
-- Infinite scroll: InfiniteScrollSentinel + useIntersectionObserver + ListStatus
-- Page size options: 10/25/50 with "Showing X of Y" counter
-- Lazy nested data: fetch on expand, store in local state, show loading per item
-- Pagination integration: PageSizeSelector above list, InfiniteScrollSentinel + ListStatus below
-
-**Skeleton patterns established:**
-- Shimmer animation: Tailwind keyframes with gradient background
-- Content-shaped skeletons: Match actual page layout for perceived performance
-
-**Profiling patterns established:**
-- React.Profiler wrapper: `<Profiler id="ComponentName" onRender={onRenderCallback}>`
-- 50ms threshold: renders exceeding threshold logged as warnings
-- Console format: `[Perf] ComponentName phase: Xms` or `[Perf] SLOW: ComponentName...`
-- Bottleneck candidates: DaySheetContent, WeekView, DayView, TaskList in CoachCalendar
-
-**Memoization patterns established:**
-- React.memo wrapper: for sub-components that receive stable props from parent
-- useCallback: for event handlers passed to memoized children
-- useMemo: for derived data (e.g., Map-based lookups) used by multiple callbacks
-- Component extraction: extract reusable cells (e.g., DayCell) for granular memoization
+None — v2.0 Performance milestone shipped.
 
 ## Session Continuity
 
 Last session: 2026-01-28
-Stopped at: Completed 14-03-PLAN.md (Phase 14 complete)
+Stopped at: v2.0 milestone complete
 Resume file: None
 
 ---
 *State initialized: 2026-01-24*
-*Last updated: 2026-01-28 - Completed 14-03*
+*Last updated: 2026-01-28 — v2.0 shipped*
