@@ -53,7 +53,7 @@ const Auth = () => {
             </div>
           </div>
           <div className="text-center mb-8">
-            <h1 className="text-2xl font-semibold text-foreground">Welcome to Routine Craft</h1>
+            <h1 className="text-2xl font-semibold text-foreground">Welcome to TeachCoachConnect</h1>
             <p className="text-sm text-muted-foreground mt-1">Task Management for Students & Coaches</p>
           </div>
 

@@ -599,8 +599,8 @@ export const SketchBadge = ({ children, variant = "default", className }: Sketch
         variant === "success" && "bg-accent/10 text-accent border-accent",
         variant === "matcha" && "bg-accent/10 text-accent border-accent",
         variant === "taro" && "bg-accent-purple/10 text-accent-purple border-accent-purple",
-        variant === "mango" && "bg-accent-yellow/20 text-foreground border-accent-yellow",
-        variant === "warning" && "bg-accent-yellow/20 text-foreground border-accent-yellow",
+        variant === "mango" && "bg-accent-yellow/20 text-gray-900 border-accent-yellow",
+        variant === "warning" && "bg-accent-yellow/20 text-gray-900 border-accent-yellow",
         variant === "error" && "bg-destructive/10 text-destructive border-destructive",
         className
       )}
@@ -627,7 +627,7 @@ export const SketchAvatar = ({ initials, size = "md", className }: SketchAvatarP
   return (
     <div
       className={cn(
-        "border-[2.5px] border-foreground rounded-full flex items-center justify-center bg-accent-yellow font-bold text-foreground",
+        "border-[2.5px] border-foreground rounded-full flex items-center justify-center bg-accent-yellow font-bold text-gray-900",
         sizeClasses[size],
         className
       )}
