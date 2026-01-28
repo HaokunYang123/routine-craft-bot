@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Library, Plus, Sparkles, Clock, Calendar, Trash2, Loader2, Edit, FileEdit, Edit2, Users, Wand2 } from "lucide-react";
+import { TemplatesSkeleton } from "@/components/skeletons/TemplatesSkeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -162,6 +163,10 @@ export default function Templates() {
       setPolishingTaskIndex(null);
     }
   };
+
+  if (loading) {
+    return <TemplatesSkeleton />;
+  }
 
   return (
     <div className="space-y-6 pb-20">

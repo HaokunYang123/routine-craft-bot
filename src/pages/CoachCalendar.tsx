@@ -50,6 +50,7 @@ import {
 } from "@/components/ui/collapsible";
 import { Progress } from "@/components/ui/progress";
 import { cn, safeParseISO } from "@/lib/utils";
+import { CalendarSkeleton } from "@/components/skeletons/CalendarSkeleton";
 import { handleError } from "@/lib/error";
 import {
   format,
@@ -321,11 +322,7 @@ export default function CoachCalendar() {
   };
 
   if (loading && tasks.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-cta-primary" />
-      </div>
-    );
+    return <CalendarSkeleton />;
   }
 
   return (

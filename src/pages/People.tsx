@@ -36,7 +36,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Copy, Users, Plus, Loader2, ChevronDown, ChevronRight, Trash2, User, Mail, UserMinus, Library } from "lucide-react";
+import { Copy, Users, Plus, ChevronDown, ChevronRight, Trash2, User, Mail, UserMinus, Library, Loader2 } from "lucide-react";
+import { PeopleSkeleton } from "@/components/skeletons/PeopleSkeleton";
 import { useToast } from "@/hooks/use-toast";
 import { handleError } from "@/lib/error";
 import { useQueryClient } from "@tanstack/react-query";
@@ -271,11 +272,7 @@ export default function People() {
   };
 
   if (isPending) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-foreground" />
-      </div>
-    );
+    return <PeopleSkeleton />;
   }
 
   return (
