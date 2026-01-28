@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-28)
 ## Current Position
 
 Phase: 16 - Realtime Subscriptions
-Plan: 3/4 complete
-Status: In progress
-Last activity: 2026-01-28 — Completed 16-02-PLAN.md
+Plan: 4/4 executed (gaps found)
+Status: Gaps found — needs debugging
+Last activity: 2026-01-28 — Phase 16 verification found gaps
 
-Progress: [██████████░░░░░░░░░░] 42% (16/38 plans in v3.0)
+Progress: [██████████░░░░░░░░░░] 42% (1.5/3 phases in v3.0)
 
 ## Milestone History
 
@@ -29,7 +29,7 @@ See: .planning/MILESTONES.md for full details
 
 **Phases:**
 - Phase 15: Authentication Rebuild (6 plans) — Complete
-- Phase 16: Realtime Subscriptions (4 plans) — In Progress (3/4)
+- Phase 16: Realtime Subscriptions (4 plans) — Gaps Found
 - Phase 17: Timezone & Rollover — Pending
 
 **Key deliverables (Phase 15 complete):**
@@ -38,13 +38,20 @@ See: .planning/MILESTONES.md for full details
 - [x] Database trigger for atomic profile creation
 - [x] Role-based routing from database (not localStorage)
 
-**Key deliverables (Phase 16 in progress):**
+**Key deliverables (Phase 16 — gaps found):**
 - [x] Realtime infrastructure hooks (16-01)
 - [x] Coach dashboard realtime (16-02)
 - [x] Student app realtime (16-03)
-- [ ] Realtime testing (16-04)
+- [x] Verification checkpoint (16-04) — GAPS FOUND
+
+**Phase 16 Gaps:**
+- GAP-01: Realtime events not received despite SUBSCRIBED status
+- GAP-02: Need to verify RLS policies allow realtime broadcast
+
+See: `.planning/phases/16-realtime-subscriptions/16-VERIFICATION.md`
 
 **Remaining deliverables:**
+- Fix realtime event delivery
 - UTC storage with local timezone display
 - Daily rollover at user's local midnight
 
@@ -69,6 +76,7 @@ See: .planning/MILESTONES.md for full details
 | 16-02 | Invalidate queryKeys.assignments.all | Covers all assignment-related queries (lists, progress, instances) |
 | 16-03 | Manual subscription for student views | Student pages use direct Supabase queries, not React Query, so manual supabase.channel calling fetchTasks() is appropriate |
 | 16-03 | currentMonth in StudentCalendar deps | Ensures channel resubscribes when user navigates to different months |
+| 16-04 | Database config applied directly | task_instances added to supabase_realtime, REPLICA IDENTITY FULL set |
 
 See PROJECT.md Key Decisions table for full list with outcomes.
 
@@ -78,16 +86,17 @@ None.
 
 ### Blockers/Concerns
 
-- Pre-existing test failure in useProfile.test.tsx (role assertion) — needs fixing but does not block Phase 16
+- **Phase 16 gaps:** Realtime events not consistently received — needs Supabase configuration debugging
+- Pre-existing test failure in useProfile.test.tsx (role assertion) — needs fixing
 
 ## Session Continuity
 
 Last session: 2026-01-28
-Stopped at: Completed 16-02-PLAN.md
+Stopped at: Phase 16 verification — gaps found
 Resume file: None
 
-Next action: `/gsd:execute-plan 16-04` (realtime testing)
+Next action: `/gsd:plan-phase 16 --gaps` to create gap closure plan
 
 ---
 *State initialized: 2026-01-24*
-*Last updated: 2026-01-28 — Completed 16-02-PLAN.md*
+*Last updated: 2026-01-28 — Phase 16 gaps found*
