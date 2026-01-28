@@ -6,6 +6,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useGroups } from "@/hooks/useGroups";
 import { useAssignments } from "@/hooks/useAssignments";
+import { useRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
+import { useVisibilityRefetch } from "@/hooks/useVisibilityRefetch";
+import { REALTIME_CHANNELS } from "@/lib/realtime/channels";
+import { queryKeys } from "@/lib/queries/keys";
 import { GroupReviewCard, GroupData } from "@/components/groups/GroupReviewCard";
 import { StudentDetailSheet } from "@/components/dashboard/StudentDetailSheet";
 import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton";
@@ -50,6 +54,19 @@ export default function CoachDashboard() {
   const { groups, loading: groupsLoading, createGroup, fetchGroups } = useGroups();
   const { getGroupProgress } = useAssignments();
 
+  // Realtime subscription for task completions (REAL-01)
+  const assignmentQueryKeys = [queryKeys.assignments.all] as const;
+  useRealtimeSubscription({
+    channelName: REALTIME_CHANNELS.COACH_TASK_UPDATES(user?.id || ''),
+    table: 'task_instances',
+    event: '*',
+    queryKeysToInvalidate: assignmentQueryKeys,
+    enabled: !!user && groups.length > 0,
+  });
+
+  // Refetch on tab visibility change (handles backgrounded tabs)
+  useVisibilityRefetch(assignmentQueryKeys);
+
   const [groupsWithStats, setGroupsWithStats] = useState<GroupData[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -78,33 +95,6 @@ export default function CoachDashboard() {
       setLoading(false);
     }
   }, [groups, groupsLoading]);
-
-  // Real-time subscription for task completions
-  useEffect(() => {
-    if (!user || groups.length === 0) return;
-
-    // Subscribe to task_instances changes for real-time updates
-    const channel = supabase
-      .channel('coach-dashboard-updates')
-      .on(
-        'postgres_changes',
-        {
-          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
-          schema: 'public',
-          table: 'task_instances',
-        },
-        (payload) => {
-          console.log('[CoachDashboard] Real-time update received:', payload.eventType);
-          // Refresh stats when tasks are updated (completed, etc.)
-          loadGroupStats();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user, groups]);
 
   // Update date header every minute (prevents frozen date display)
   useEffect(() => {
