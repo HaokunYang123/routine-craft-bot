@@ -4,6 +4,7 @@
 
 - v1 Reliability Hardening — Phases 1-8 (shipped 2026-01-25)
 - v2.0 Performance — Phases 9-14 (shipped 2026-01-28)
+- v3.0 Auth & Realtime — Phases 15-17 (in progress)
 
 ## Phases
 
@@ -142,6 +143,58 @@ Plans:
 
 </details>
 
+<details open>
+<summary>v3.0 Auth & Realtime (Phases 15-17) — IN PROGRESS</summary>
+
+### Phase 15: Authentication Rebuild
+**Goal**: Users can securely access their accounts via Google OAuth with role-based routing.
+
+**Dependencies**: None (foundation for v3.0)
+
+**Requirements**: AUTH-01, AUTH-02, AUTH-03, AUTH-04, AUTH-05, AUTH-06, AUTH-07, AUTH-08, AUTH-09, AUTH-10, CLEAN-01, CLEAN-02, CLEAN-03
+
+**Success Criteria**:
+1. User lands on role selection page showing "I am a Coach" and "I am a Student" before any authentication
+2. User can sign up/sign in via Google OAuth only (no email/password option visible)
+3. User profile exists with correct role immediately after OAuth completion (zero latency)
+4. User is routed to correct dashboard based on role from database (not localStorage)
+5. User can log out from error pages (NotFound, ErrorFallback) as emergency exit
+
+Plans: TBD
+
+### Phase 16: Realtime Subscriptions
+**Goal**: Data changes sync instantly between coach and student views.
+
+**Dependencies**: Phase 15 (profile required for user_id filtering)
+
+**Requirements**: REAL-01, REAL-02, REAL-03, REAL-04, REAL-05, REAL-06
+
+**Success Criteria**:
+1. Student marking task complete is visible to coach instantly without page refresh
+2. Coach creating new assignment appears for student instantly without page refresh
+3. Browser memory remains stable after navigating between pages 10+ times (no WebSocket leaks)
+4. Realtime updates appear in React Query DevTools as cache invalidations (not bypassing cache)
+
+Plans: TBD
+
+### Phase 17: Timezone & Rollover
+**Goal**: Time displays respect user's local timezone with correct daily task boundaries.
+
+**Dependencies**: Phase 15 (profile.timezone column required)
+
+**Requirements**: TIME-01, TIME-02, TIME-03, TIME-04, TIME-05, TIME-06, TIME-07
+
+**Success Criteria**:
+1. User in different timezone sees times displayed in their local time (not UTC)
+2. "Today's tasks" reflects user's local date, not server date
+3. Daily tasks roll over at user's local midnight (not UTC midnight)
+4. User can view and change their timezone in settings
+5. Historical task times display correctly even after DST transitions
+
+Plans: TBD
+
+</details>
+
 ---
 
 ## Progress
@@ -162,8 +215,12 @@ Plans:
 | 12. Mutations & Optimistic | v2.0 | 4/4 | Complete | 2026-01-27 |
 | 13. Pagination | v2.0 | 3/3 | Complete | 2026-01-27 |
 | 14. Render Optimization | v2.0 | 3/3 | Complete | 2026-01-28 |
+| 15. Authentication Rebuild | v3.0 | 0/? | Pending | — |
+| 16. Realtime Subscriptions | v3.0 | 0/? | Pending | — |
+| 17. Timezone & Rollover | v3.0 | 0/? | Pending | — |
 
 ---
 
 *Roadmap created: 2026-01-24*
 *v2.0 Performance: Shipped 2026-01-28*
+*v3.0 Auth & Realtime: Started 2026-01-28*

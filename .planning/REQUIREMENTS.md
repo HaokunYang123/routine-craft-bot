@@ -82,38 +82,38 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01 | TBD | Pending |
-| AUTH-02 | TBD | Pending |
-| AUTH-03 | TBD | Pending |
-| AUTH-04 | TBD | Pending |
-| AUTH-05 | TBD | Pending |
-| AUTH-06 | TBD | Pending |
-| AUTH-07 | TBD | Pending |
-| AUTH-08 | TBD | Pending |
-| AUTH-09 | TBD | Pending |
-| AUTH-10 | TBD | Pending |
-| REAL-01 | TBD | Pending |
-| REAL-02 | TBD | Pending |
-| REAL-03 | TBD | Pending |
-| REAL-04 | TBD | Pending |
-| REAL-05 | TBD | Pending |
-| REAL-06 | TBD | Pending |
-| TIME-01 | TBD | Pending |
-| TIME-02 | TBD | Pending |
-| TIME-03 | TBD | Pending |
-| TIME-04 | TBD | Pending |
-| TIME-05 | TBD | Pending |
-| TIME-06 | TBD | Pending |
-| TIME-07 | TBD | Pending |
-| CLEAN-01 | TBD | Pending |
-| CLEAN-02 | TBD | Pending |
-| CLEAN-03 | TBD | Pending |
+| AUTH-01 | Phase 15 | Pending |
+| AUTH-02 | Phase 15 | Pending |
+| AUTH-03 | Phase 15 | Pending |
+| AUTH-04 | Phase 15 | Pending |
+| AUTH-05 | Phase 15 | Pending |
+| AUTH-06 | Phase 15 | Pending |
+| AUTH-07 | Phase 15 | Pending |
+| AUTH-08 | Phase 15 | Pending |
+| AUTH-09 | Phase 15 | Pending |
+| AUTH-10 | Phase 15 | Pending |
+| REAL-01 | Phase 16 | Pending |
+| REAL-02 | Phase 16 | Pending |
+| REAL-03 | Phase 16 | Pending |
+| REAL-04 | Phase 16 | Pending |
+| REAL-05 | Phase 16 | Pending |
+| REAL-06 | Phase 16 | Pending |
+| TIME-01 | Phase 17 | Pending |
+| TIME-02 | Phase 17 | Pending |
+| TIME-03 | Phase 17 | Pending |
+| TIME-04 | Phase 17 | Pending |
+| TIME-05 | Phase 17 | Pending |
+| TIME-06 | Phase 17 | Pending |
+| TIME-07 | Phase 17 | Pending |
+| CLEAN-01 | Phase 15 | Pending |
+| CLEAN-02 | Phase 15 | Pending |
+| CLEAN-03 | Phase 15 | Pending |
 
 **Coverage:**
 - v3.0 requirements: 26 total
-- Mapped to phases: 0 (pending roadmap creation)
-- Unmapped: 26 ⚠️
+- Mapped to phases: 26
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-01-28*
-*Last updated: 2026-01-28 after initial definition*
+*Last updated: 2026-01-28 after roadmap creation*
