@@ -31,6 +31,7 @@ import {
 import { cn, safeParseISO } from "@/lib/utils";
 import { handleError } from "@/lib/error";
 import { Button } from "@/components/ui/button";
+import { REALTIME_CHANNELS } from "@/lib/realtime/channels";
 
 interface TaskInstance {
   id: string;
@@ -53,6 +54,47 @@ export default function StudentCalendar() {
   useEffect(() => {
     if (!user) return;
     fetchTasks();
+  }, [user, currentMonth]);
+
+  // Realtime subscription for assignment updates (REAL-02, REAL-06)
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel(REALTIME_CHANNELS.STUDENT_TASKS(user.id))
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'task_instances',
+          filter: `assignee_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('[StudentCalendar] Realtime update:', payload.eventType);
+          fetchTasks(); // Refetch on any change
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, currentMonth]); // Include currentMonth to resubscribe when month changes
+
+  // Refetch on tab visibility change (handles backgrounded tabs)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && user) {
+        console.log('[StudentCalendar] Tab visible, refetching');
+        fetchTasks();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [user, currentMonth]);
 
   const fetchTasks = async () => {
