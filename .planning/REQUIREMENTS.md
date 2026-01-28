@@ -1,4 +1,4 @@
-# Requirements: Routine Craft Bot v3.0
+# Requirements: TeachCoachConnect v3.0
 
 **Defined:** 2026-01-28
 **Core Value:** Users can reliably complete their daily workflows with instant feedback and smooth performance.
@@ -9,16 +9,16 @@ Requirements for Auth & Realtime milestone. Each maps to roadmap phases.
 
 ### Authentication
 
-- [ ] **AUTH-01**: Landing page displays "I am a Coach" and "I am a Student" role selection before any auth
-- [ ] **AUTH-02**: User authenticates via Google OAuth only (email/password removed)
-- [ ] **AUTH-03**: Database trigger `handle_new_user` creates profile row atomically when auth.users row is inserted
-- [ ] **AUTH-04**: Role is passed via query parameter in OAuth redirect URL (workaround for OAuth metadata limitation)
-- [ ] **AUTH-05**: Role-based routing queries database for actual role (not local state or localStorage)
-- [ ] **AUTH-06**: onAuthStateChange subscription is properly cleaned up to prevent memory leaks
-- [ ] **AUTH-07**: NotFound and ErrorFallback pages include prominent "Log Out" button as emergency exit
-- [ ] **AUTH-08**: useProfile returns loading state (not crash) if profile is null immediately after auth, with retry logic
-- [ ] **AUTH-09**: Profile is available with zero latency after OAuth completion (trigger creates instantly)
-- [ ] **AUTH-10**: Role is immutable once assigned (trigger only runs on INSERT, not UPDATE)
+- [x] **AUTH-01**: Landing page displays "I am a Coach" and "I am a Student" role selection before any auth
+- [x] **AUTH-02**: User authenticates via Google OAuth only (email/password removed)
+- [x] **AUTH-03**: Database trigger `handle_new_user` creates profile row atomically when auth.users row is inserted
+- [x] **AUTH-04**: Role is passed via query parameter in OAuth redirect URL (workaround for OAuth metadata limitation)
+- [x] **AUTH-05**: Role-based routing queries database for actual role (not local state or localStorage)
+- [x] **AUTH-06**: onAuthStateChange subscription is properly cleaned up to prevent memory leaks
+- [x] **AUTH-07**: NotFound and ErrorFallback pages include prominent "Log Out" button as emergency exit
+- [x] **AUTH-08**: useProfile returns loading state (not crash) if profile is null immediately after auth, with retry logic
+- [x] **AUTH-09**: Profile is available with zero latency after OAuth completion (trigger creates instantly)
+- [x] **AUTH-10**: Role is immutable once assigned (trigger only runs on INSERT, not UPDATE)
 
 ### Realtime
 
@@ -41,9 +41,9 @@ Requirements for Auth & Realtime milestone. Each maps to roadmap phases.
 
 ### Cleanup (Removals)
 
-- [ ] **CLEAN-01**: Email/password authentication is removed from UI
-- [ ] **CLEAN-02**: Login-via-code authentication is removed (keep QR/code for class joining only)
-- [ ] **CLEAN-03**: localStorage role tracking is removed (database is source of truth)
+- [x] **CLEAN-01**: Email/password authentication is removed from UI
+- [x] **CLEAN-02**: Login-via-code authentication is removed (keep QR/code for class joining only)
+- [x] **CLEAN-03**: localStorage role tracking is removed (database is source of truth)
 
 ## Future Requirements
 
@@ -82,16 +82,16 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01 | Phase 15 | Pending |
-| AUTH-02 | Phase 15 | Pending |
-| AUTH-03 | Phase 15 | Pending |
-| AUTH-04 | Phase 15 | Pending |
-| AUTH-05 | Phase 15 | Pending |
-| AUTH-06 | Phase 15 | Pending |
-| AUTH-07 | Phase 15 | Pending |
-| AUTH-08 | Phase 15 | Pending |
-| AUTH-09 | Phase 15 | Pending |
-| AUTH-10 | Phase 15 | Pending |
+| AUTH-01 | Phase 15 | Complete |
+| AUTH-02 | Phase 15 | Complete |
+| AUTH-03 | Phase 15 | Complete |
+| AUTH-04 | Phase 15 | Complete |
+| AUTH-05 | Phase 15 | Complete |
+| AUTH-06 | Phase 15 | Complete |
+| AUTH-07 | Phase 15 | Complete |
+| AUTH-08 | Phase 15 | Complete |
+| AUTH-09 | Phase 15 | Complete |
+| AUTH-10 | Phase 15 | Complete |
 | REAL-01 | Phase 16 | Pending |
 | REAL-02 | Phase 16 | Pending |
 | REAL-03 | Phase 16 | Pending |
@@ -105,9 +105,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TIME-05 | Phase 17 | Pending |
 | TIME-06 | Phase 17 | Pending |
 | TIME-07 | Phase 17 | Pending |
-| CLEAN-01 | Phase 15 | Pending |
-| CLEAN-02 | Phase 15 | Pending |
-| CLEAN-03 | Phase 15 | Pending |
+| CLEAN-01 | Phase 15 | Complete |
+| CLEAN-02 | Phase 15 | Complete |
+| CLEAN-03 | Phase 15 | Complete |
 
 **Coverage:**
 - v3.0 requirements: 26 total
