@@ -2,7 +2,7 @@
 
 **Milestone:** v2.0 Performance
 **Created:** 2026-01-26
-**Status:** Roadmapped
+**Status:** Complete
 
 ---
 
@@ -29,10 +29,10 @@
 
 ### Render Optimization
 
-- [ ] **OPT-01**: User sees skeleton/spinner during data load, not blank screens
-- [ ] **OPT-02**: User experiences responsive UI during mutations (button loading states)
-- [ ] **OPT-03**: Developer has profiling data for render performance bottlenecks
-- [ ] **OPT-04**: User experiences smoother CoachCalendar interactions (selective memoization)
+- [x] **OPT-01**: User sees skeleton/spinner during data load, not blank screens
+- [x] **OPT-02**: User experiences responsive UI during mutations (button loading states)
+- [x] **OPT-03**: Developer has profiling data for render performance bottlenecks
+- [x] **OPT-04**: User experiences smoother CoachCalendar interactions (selective memoization)
 
 ---
 
@@ -86,10 +86,10 @@
 | PAG-03 | Phase 13 | Complete |
 | PAG-04 | Phase 13 | Complete |
 | PAG-05 | Phase 13 | Complete |
-| OPT-01 | Phase 14 | Pending |
-| OPT-02 | Phase 14 | Pending |
-| OPT-03 | Phase 14 | Pending |
-| OPT-04 | Phase 14 | Pending |
+| OPT-01 | Phase 14 | Complete |
+| OPT-02 | Phase 14 | Complete |
+| OPT-03 | Phase 14 | Complete |
+| OPT-04 | Phase 14 | Complete |
 
 ---
 

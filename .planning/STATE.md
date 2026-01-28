@@ -5,7 +5,7 @@
 See: .planning/PROJECT.md (updated 2026-01-25)
 
 **Core value:** Users can reliably complete their daily workflows without encountering errors, crashes, or unexpected behavior.
-**Current focus:** Phase 14 - Render Optimization (complete)
+**Current focus:** Milestone v2.0 Performance complete - ready for audit
 
 ## Current Position
 
@@ -21,7 +21,7 @@ Progress: [====================] 100% (14/14 phases, 3/3 plans)
 | Version | Name | Phases | Shipped |
 |---------|------|--------|---------|
 | v1 | Reliability Hardening | 1-8 (23 plans) | 2026-01-25 |
-| v2.0 | Performance | 9-14 (TBD plans) | In progress |
+| v2.0 | Performance | 9-14 (17 plans) | 2026-01-28 |
 
 See: .planning/ROADMAP.md for full details
 

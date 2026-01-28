@@ -3,7 +3,7 @@
 ## Milestones
 
 - [x] **v1 Reliability Hardening** - Phases 1-8 (shipped 2026-01-25)
-- [ ] **v2.0 Performance** - Phases 9-14 (in progress)
+- [x] **v2.0 Performance** - Phases 9-14 (shipped 2026-01-28)
 
 ## Phases
 
@@ -182,9 +182,9 @@ Plans:
 **Plans**: 3 plans (2 waves)
 
 Plans:
-- [ ] 14-01-PLAN.md — Shimmer animation + page skeletons + LoadingButton timeout (Wave 1)
-- [ ] 14-02-PLAN.md — Performance profiling utilities + baseline documentation (Wave 2)
-- [ ] 14-03-PLAN.md — CoachCalendar memoization (React.memo + useCallback) (Wave 2)
+- [x] 14-01-PLAN.md — Shimmer animation + page skeletons + LoadingButton timeout (Wave 1)
+- [x] 14-02-PLAN.md — Performance profiling utilities + baseline documentation (Wave 2)
+- [x] 14-03-PLAN.md — CoachCalendar memoization (React.memo + useCallback) (Wave 2)
 
 ---
 
@@ -208,7 +208,7 @@ Phases execute in numeric order: 9 -> 10 -> 11 -> 12 -> 13 -> 14
 | 11. Complex Hook Migration | v2.0 | 3/3 | Complete | 2026-01-26 |
 | 12. Mutations & Optimistic | v2.0 | 4/4 | Complete | 2026-01-27 |
 | 13. Pagination | v2.0 | 3/3 | Complete | 2026-01-27 |
-| 14. Render Optimization | v2.0 | 0/3 | Not started | - |
+| 14. Render Optimization | v2.0 | 3/3 | Complete | 2026-01-28 |
 
 ---
 
