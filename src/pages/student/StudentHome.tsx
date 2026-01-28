@@ -14,6 +14,7 @@ import { Loader2, Calendar, Clock, CheckCircle2, UserPlus, Users, ChevronDown, C
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { handleError } from "@/lib/error";
+import { REALTIME_CHANNELS } from "@/lib/realtime/channels";
 
 interface TaskInstance {
   id: string;
@@ -86,6 +87,49 @@ export default function StudentHome() {
     fetchTasks();
     fetchConnectedGroups();
     fetchCoachNotes();
+  }, [user]);
+
+  // Realtime subscription - refetch on any task_instances changes for this user (REAL-02, REAL-06)
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel(REALTIME_CHANNELS.STUDENT_ASSIGNMENTS(user.id))
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'task_instances',
+          filter: `assignee_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('[StudentHome] Realtime update:', payload.eventType);
+          fetchTasks(); // Refetch on any change
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
+  // Refetch on tab visibility change (handles backgrounded tabs)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && user) {
+        console.log('[StudentHome] Tab visible, refetching');
+        fetchTasks();
+        fetchConnectedGroups();
+        fetchCoachNotes();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [user]);
 
   const fetchConnectedGroups = async () => {
