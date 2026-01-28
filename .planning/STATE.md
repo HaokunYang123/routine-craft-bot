@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-28)
 ## Current Position
 
 Phase: 16 - Realtime Subscriptions
-Plan: 1/4 complete
+Plan: 2/4 complete
 Status: In progress
-Last activity: 2026-01-28 — Completed 16-01-PLAN.md
+Last activity: 2026-01-28 — Completed 16-03-PLAN.md
 
-Progress: [████████░░░░░░░░░░░░] 37% (14/38 plans in v3.0)
+Progress: [█████████░░░░░░░░░░░] 39% (15/38 plans in v3.0)
 
 ## Milestone History
 
@@ -29,7 +29,7 @@ See: .planning/MILESTONES.md for full details
 
 **Phases:**
 - Phase 15: Authentication Rebuild (6 plans) — Complete
-- Phase 16: Realtime Subscriptions (4 plans) — In Progress (1/4)
+- Phase 16: Realtime Subscriptions (4 plans) — In Progress (2/4)
 - Phase 17: Timezone & Rollover — Pending
 
 **Key deliverables (Phase 15 complete):**
@@ -41,7 +41,7 @@ See: .planning/MILESTONES.md for full details
 **Key deliverables (Phase 16 in progress):**
 - [x] Realtime infrastructure hooks (16-01)
 - [ ] Coach dashboard realtime (16-02)
-- [ ] Student app realtime (16-03)
+- [x] Student app realtime (16-03)
 - [ ] Realtime testing (16-04)
 
 **Remaining deliverables:**
@@ -65,6 +65,8 @@ See: .planning/MILESTONES.md for full details
 | 15-06 | Branding changed to "TeachCoachConnect" | User feedback during verification checkpoint |
 | 16-01 | Channel names scoped by userId | Ensures isolation between users' realtime subscriptions |
 | 16-01 | Use invalidateQueries not setQueryData | Simpler cache management, React Query refetches fresh data |
+| 16-03 | Manual subscription for student views | Student pages use direct Supabase queries, not React Query, so manual supabase.channel calling fetchTasks() is appropriate |
+| 16-03 | currentMonth in StudentCalendar deps | Ensures channel resubscribes when user navigates to different months |
 
 See PROJECT.md Key Decisions table for full list with outcomes.
 
@@ -75,15 +77,16 @@ None.
 ### Blockers/Concerns
 
 - Pre-existing test failure in useProfile.test.tsx (role assertion) — needs fixing but does not block Phase 16
+- CoachDashboard.tsx has uncommitted changes from 16-02 execution — should be committed when 16-02 is formally executed
 
 ## Session Continuity
 
 Last session: 2026-01-28
-Stopped at: Completed 16-01-PLAN.md
+Stopped at: Completed 16-03-PLAN.md
 Resume file: None
 
-Next action: `/gsd:execute-plan 16-02`
+Next action: `/gsd:execute-plan 16-02` (coach dashboard realtime) or `/gsd:execute-plan 16-04` (testing)
 
 ---
 *State initialized: 2026-01-24*
-*Last updated: 2026-01-28 — Completed 16-01-PLAN.md*
+*Last updated: 2026-01-28 — Completed 16-03-PLAN.md*
