@@ -160,7 +160,15 @@ Plans:
 4. User is routed to correct dashboard based on role from database (not localStorage)
 5. User can log out from error pages (NotFound, ErrorFallback) as emergency exit
 
-Plans: TBD
+**Plans**: 6 plans in 3 waves
+
+Plans:
+- [ ] 15-01-PLAN.md — Database trigger + useGoogleAuth role parameter (Wave 1)
+- [ ] 15-02-PLAN.md — AuthCallback page for OAuth redirect handling (Wave 1)
+- [ ] 15-03-PLAN.md — Role selection UI with direct OAuth trigger (Wave 2)
+- [ ] 15-04-PLAN.md — Error pages with logout buttons (Wave 2)
+- [ ] 15-05-PLAN.md — useProfile retry + cleanup email/password auth (Wave 3)
+- [ ] 15-06-PLAN.md — End-to-end verification checkpoint (Wave 3)
 
 ### Phase 16: Realtime Subscriptions
 **Goal**: Data changes sync instantly between coach and student views.
@@ -215,7 +223,7 @@ Plans: TBD
 | 12. Mutations & Optimistic | v2.0 | 4/4 | Complete | 2026-01-27 |
 | 13. Pagination | v2.0 | 3/3 | Complete | 2026-01-27 |
 | 14. Render Optimization | v2.0 | 3/3 | Complete | 2026-01-28 |
-| 15. Authentication Rebuild | v3.0 | 0/? | Pending | — |
+| 15. Authentication Rebuild | v3.0 | 0/6 | Planned | — |
 | 16. Realtime Subscriptions | v3.0 | 0/? | Pending | — |
 | 17. Timezone & Rollover | v3.0 | 0/? | Pending | — |
 
