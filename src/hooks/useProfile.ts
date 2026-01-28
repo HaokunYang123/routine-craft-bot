@@ -18,7 +18,10 @@ export interface Profile {
 
 /**
  * Fetches or creates a profile for the given user.
- * If profile doesn't exist (PGRST116), auto-creates one.
+ * If profile doesn't exist (PGRST116), auto-creates one as fallback.
+ *
+ * Note: The database trigger normally creates profiles on auth.users insert.
+ * This fallback handles backwards compatibility for existing users without profiles.
  */
 async function fetchOrCreateProfile(
   userId: string,
@@ -32,13 +35,13 @@ async function fetchOrCreateProfile(
     .single();
 
   if (error) {
-    // If profile doesn't exist, create one
+    // If profile doesn't exist, create one (backwards compatibility fallback)
     if (error.code === "PGRST116") {
       const newProfile = {
         user_id: userId,
         display_name: (userMetadata?.full_name as string) || email?.split("@")[0] || null,
         email: email,
-        role: "coach" as const,
+        role: (userMetadata?.role as string) || null, // Use role from metadata, not hardcoded
       };
 
       const { data: createdProfile, error: createError } = await supabase
@@ -72,6 +75,21 @@ export function useProfile() {
     queryKey: queryKeys.profile.current(user?.id ?? ''),
     queryFn: () => fetchOrCreateProfile(user!.id, user!.email, user!.user_metadata),
     enabled: !!user,
+    // Retry logic for profile not found (trigger timing edge case)
+    // Handles the rare case where React Query fires before database trigger completes
+    retry: (failureCount, error: unknown) => {
+      const pgError = error as { code?: string; message?: string };
+      // Retry up to 3 times if profile not found (PGRST116)
+      if (pgError?.code === 'PGRST116' && failureCount < 3) {
+        return true;
+      }
+      // Also retry on network errors
+      if (pgError?.message?.includes('network') && failureCount < 2) {
+        return true;
+      }
+      return false;
+    },
+    retryDelay: (attemptIndex) => Math.min(100 * 2 ** attemptIndex, 1000), // 100ms, 200ms, 400ms
   });
 
   // Update profile mutation
