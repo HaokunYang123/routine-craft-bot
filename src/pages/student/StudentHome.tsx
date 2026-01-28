@@ -55,7 +55,9 @@ interface CoachNote {
 }
 
 export default function StudentHome() {
+  console.log('[StudentHome] Component rendering');
   const { user } = useAuth();
+  console.log('[StudentHome] User:', user?.id || 'not logged in');
   const { toast } = useToast();
   const { updateTaskStatus } = useAssignments();
   const [tasks, setTasks] = useState<TaskInstance[]>([]);
@@ -108,9 +110,12 @@ export default function StudentHome() {
           fetchTasks(); // Refetch on any change
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[StudentHome] Subscription status:', status);
+      });
 
     return () => {
+      console.log('[StudentHome] Cleaning up subscription');
       supabase.removeChannel(channel);
     };
   }, [user]);

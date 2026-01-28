@@ -70,6 +70,7 @@ export function useRealtimeSubscription({
         }
       )
       .subscribe((status) => {
+        console.log(`[Realtime] ${channelName} status:`, status);
         if (status === 'CHANNEL_ERROR') {
           console.error(`[Realtime] ${channelName} error`);
         }
