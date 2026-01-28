@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { Button, ButtonProps } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -9,6 +10,21 @@ export interface LoadingButtonProps extends ButtonProps {
 
 const LoadingButton = React.forwardRef<HTMLButtonElement, LoadingButtonProps>(
   ({ isLoading, disabled, children, className, ...props }, ref) => {
+    const [showExtended, setShowExtended] = useState(false);
+
+    useEffect(() => {
+      if (!isLoading) {
+        setShowExtended(false);
+        return;
+      }
+
+      const timeout = setTimeout(() => {
+        setShowExtended(true);
+      }, 2000);
+
+      return () => clearTimeout(timeout);
+    }, [isLoading]);
+
     return (
       <Button
         ref={ref}
@@ -17,7 +33,7 @@ const LoadingButton = React.forwardRef<HTMLButtonElement, LoadingButtonProps>(
         {...props}
       >
         {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-        {children}
+        {isLoading && showExtended ? "Still working..." : children}
       </Button>
     );
   }

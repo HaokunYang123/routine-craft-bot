@@ -130,6 +130,10 @@ export default {
           "0%, 100%": { transform: "translateY(0)" },
           "50%": { transform: "translateY(-4px)" },
         },
+        shimmer: {
+          "0%": { backgroundPosition: "-200% 0" },
+          "100%": { backgroundPosition: "200% 0" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -137,6 +141,7 @@ export default {
         float: "float 3s ease-in-out infinite",
         pop: "pop 0.3s ease-out",
         "bounce-subtle": "bounce-subtle 2s ease-in-out infinite",
+        shimmer: "shimmer 1.5s ease-in-out infinite",
       },
       spacing: {
         '18': '4.5rem',
