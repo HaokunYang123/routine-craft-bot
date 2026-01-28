@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-28)
 ## Current Position
 
 Phase: 16 - Realtime Subscriptions
-Plan: 4/4 executed (gaps found)
-Status: Gaps found — needs debugging
-Last activity: 2026-01-28 — Phase 16 verification found gaps
+Plan: 5/5 complete (gaps closed)
+Status: Phase complete
+Last activity: 2026-01-28 — Completed 16-05 gap closure plan
 
-Progress: [██████████░░░░░░░░░░] 42% (1.5/3 phases in v3.0)
+Progress: [████████████░░░░░░░░] 50% (2/3 phases in v3.0)
 
 ## Milestone History
 
@@ -29,7 +29,7 @@ See: .planning/MILESTONES.md for full details
 
 **Phases:**
 - Phase 15: Authentication Rebuild (6 plans) — Complete
-- Phase 16: Realtime Subscriptions (4 plans) — Gaps Found
+- Phase 16: Realtime Subscriptions (5 plans) — Complete
 - Phase 17: Timezone & Rollover — Pending
 
 **Key deliverables (Phase 15 complete):**
@@ -38,20 +38,18 @@ See: .planning/MILESTONES.md for full details
 - [x] Database trigger for atomic profile creation
 - [x] Role-based routing from database (not localStorage)
 
-**Key deliverables (Phase 16 — gaps found):**
+**Key deliverables (Phase 16 complete):**
 - [x] Realtime infrastructure hooks (16-01)
 - [x] Coach dashboard realtime (16-02)
 - [x] Student app realtime (16-03)
-- [x] Verification checkpoint (16-04) — GAPS FOUND
+- [x] Verification checkpoint (16-04)
+- [x] Gap closure: coach_id column and filter parameters (16-05)
 
-**Phase 16 Gaps:**
-- GAP-01: Realtime events not received despite SUBSCRIBED status
-- GAP-02: Need to verify RLS policies allow realtime broadcast
-
-See: `.planning/phases/16-realtime-subscriptions/16-VERIFICATION.md`
+**Phase 16 Gaps (CLOSED):**
+- GAP-01: Fixed by adding filter parameter with denormalized coach_id column
+- GAP-02: Fixed by updating RLS policy to use direct column comparison
 
 **Remaining deliverables:**
-- Fix realtime event delivery
 - UTC storage with local timezone display
 - Daily rollover at user's local midnight
 
@@ -77,6 +75,8 @@ See: `.planning/phases/16-realtime-subscriptions/16-VERIFICATION.md`
 | 16-03 | Manual subscription for student views | Student pages use direct Supabase queries, not React Query, so manual supabase.channel calling fetchTasks() is appropriate |
 | 16-03 | currentMonth in StudentCalendar deps | Ensures channel resubscribes when user navigates to different months |
 | 16-04 | Database config applied directly | task_instances added to supabase_realtime, REPLICA IDENTITY FULL set |
+| 16-05 | Denormalized coach_id for filter efficiency | Realtime filter requires direct column, not subquery-based RLS |
+| 16-05 | Auto-populate via trigger | Ensures consistency without application code changes |
 
 See PROJECT.md Key Decisions table for full list with outcomes.
 
@@ -86,17 +86,17 @@ None.
 
 ### Blockers/Concerns
 
-- **Phase 16 gaps:** Realtime events not consistently received — needs Supabase configuration debugging
 - Pre-existing test failure in useProfile.test.tsx (role assertion) — needs fixing
+- Runtime verification recommended: test realtime in browser with coach + student
 
 ## Session Continuity
 
 Last session: 2026-01-28
-Stopped at: Phase 16 verification — gaps found
+Stopped at: Completed 16-05-PLAN.md (gap closure)
 Resume file: None
 
-Next action: `/gsd:plan-phase 16 --gaps` to create gap closure plan
+Next action: `/gsd:plan-phase 17` for Timezone & Rollover phase
 
 ---
 *State initialized: 2026-01-24*
-*Last updated: 2026-01-28 — Phase 16 gaps found*
+*Last updated: 2026-01-28 — Phase 16 complete*
