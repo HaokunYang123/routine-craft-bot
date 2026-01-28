@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-01-28)
 ## Current Position
 
 Phase: 15 - Authentication Rebuild
-Plan: —
-Status: Roadmap created, ready for phase planning
-Last activity: 2026-01-28 — v3.0 roadmap created
+Plan: 02 of 6
+Status: In progress
+Last activity: 2026-01-28 — Completed 15-02-PLAN.md (OAuth Callback)
 
 Progress: [                    ] 0% (0/3 phases)
 
@@ -28,7 +28,7 @@ See: .planning/MILESTONES.md for full details
 ## v3.0 Auth & Realtime (In Progress)
 
 **Phases:**
-- Phase 15: Authentication Rebuild (13 requirements) — Pending
+- Phase 15: Authentication Rebuild (13 requirements) — In Progress (2/6 plans)
 - Phase 16: Realtime Subscriptions (6 requirements) — Pending
 - Phase 17: Timezone & Rollover (7 requirements) — Pending
 
@@ -49,6 +49,12 @@ See: .planning/MILESTONES.md for full details
 
 ### Decisions
 
+| Plan | Decision | Rationale |
+|------|----------|-----------|
+| 15-02 | Role update uses .is('role', null) filter | Supports AUTH-10 immutability - role can be SET once but never CHANGED |
+| 15-02 | 500ms retry on profile fetch | Handles trigger timing edge case |
+| 15-02 | AuthCallback handles own errors | No RouteErrorBoundary wrapper needed |
+
 See PROJECT.md Key Decisions table for full list with outcomes.
 
 ### Pending Todos
@@ -57,16 +63,16 @@ None.
 
 ### Blockers/Concerns
 
-None — ready for Phase 15 planning.
+None.
 
 ## Session Continuity
 
-Last session: 2026-01-28
-Stopped at: Roadmap creation complete
+Last session: 2026-01-28T11:50:38Z
+Stopped at: Completed 15-02-PLAN.md
 Resume file: None
 
-Next action: `/gsd:plan-phase 15`
+Next action: Execute 15-03-PLAN.md (Landing Page)
 
 ---
 *State initialized: 2026-01-24*
-*Last updated: 2026-01-28 — v3.0 roadmap created*
+*Last updated: 2026-01-28 — Completed 15-02-PLAN.md*
