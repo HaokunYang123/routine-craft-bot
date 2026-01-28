@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-25)
 
 **Core value:** Users can reliably complete their daily workflows without encountering errors, crashes, or unexpected behavior.
-**Current focus:** Phase 14 - Production Prep (next)
+**Current focus:** Phase 14 - Render Optimization (in progress)
 
 ## Current Position
 
-Phase: 13 of 14 (Pagination)
-Plan: 03 of 03 complete
-Status: Phase complete
-Last activity: 2026-01-27 - Completed 13-03-PLAN.md
+Phase: 14 of 14 (Render Optimization)
+Plan: 01 of 03 complete
+Status: In progress
+Last activity: 2026-01-28 - Completed 14-01-PLAN.md
 
-Progress: [==============------] 93% (13/14 phases complete)
+Progress: [===============-----] 95% (14/14 phases, 1/3 plans)
 
 ## Milestone History
 
@@ -68,6 +68,9 @@ See: .planning/ROADMAP.md for full details
 - 13-03: People page integration (complete)
 - All 240 tests passing
 
+**Phase 14 In Progress:**
+- 14-01: Loading skeletons (complete) - shimmer animation, content-shaped skeletons, extended timeout text
+
 ## Accumulated Context
 
 ### Decisions
@@ -106,6 +109,8 @@ Recent key decisions:
 - 1px sentinel height for invisibility while maintaining observability (D-1302-02)
 - Lazy load students on group expand - reduces initial data fetch from O(n) to O(1) (D-1303-01)
 - Track students in local studentsMap state - enables instant UI updates on mutations (D-1303-02)
+- Shimmer via Tailwind gradient (from-muted via-muted/60 to-muted) (D-1401-01)
+- 2-second timeout for "Still working..." text in LoadingButton (D-1401-02)
 
 ### Pending Todos
 
@@ -113,7 +118,7 @@ None.
 
 ### Blockers/Concerns
 
-None - Phase 13 complete, ready for Phase 14.
+None - Phase 14 in progress.
 
 **Research completed for v2.0:**
 - React Query architecture patterns documented
@@ -142,12 +147,16 @@ None - Phase 13 complete, ready for Phase 14.
 - Lazy nested data: fetch on expand, store in local state, show loading per item
 - Pagination integration: PageSizeSelector above list, InfiniteScrollSentinel + ListStatus below
 
+**Skeleton patterns established:**
+- Shimmer animation: Tailwind keyframes with gradient background
+- Content-shaped skeletons: Match actual page layout for perceived performance
+
 ## Session Continuity
 
-Last session: 2026-01-27
-Stopped at: Completed 13-03-PLAN.md
+Last session: 2026-01-28
+Stopped at: Completed 14-01-PLAN.md
 Resume file: None
 
 ---
 *State initialized: 2026-01-24*
-*Last updated: 2026-01-27 - Completed 13-03*
+*Last updated: 2026-01-28 - Completed 14-01*
