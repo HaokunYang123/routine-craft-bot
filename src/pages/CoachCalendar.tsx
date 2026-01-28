@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useGroups } from "@/hooks/useGroups";
@@ -237,13 +237,6 @@ export default function CoachCalendar() {
     }
   };
 
-  const getTasksForDate = (date: Date) => {
-    return tasks.filter((task) => {
-      const taskDate = safeParseISO(task.scheduledDate);
-      return taskDate && isSameDay(taskDate, date);
-    });
-  };
-
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
     const month = date.getMonth();
@@ -269,7 +262,24 @@ export default function CoachCalendar() {
     });
   };
 
-  const navigatePeriod = (direction: number) => {
+  // Memoize tasksByDateMap for efficient lookups
+  const tasksByDateMap = useMemo(() => {
+    const map = new Map<string, ScheduledTask[]>();
+    tasks.forEach(task => {
+      const key = task.scheduledDate;
+      const existing = map.get(key) || [];
+      map.set(key, [...existing, task]);
+    });
+    return map;
+  }, [tasks]);
+
+  // Memoized getTasksForDate using the map
+  const getTasksForDate = useCallback((date: Date) => {
+    const dateKey = format(date, "yyyy-MM-dd");
+    return tasksByDateMap.get(dateKey) || [];
+  }, [tasksByDateMap]);
+
+  const navigatePeriod = useCallback((direction: number) => {
     if (viewMode === "month") {
       setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + direction, 1));
     } else if (viewMode === "week") {
@@ -277,34 +287,34 @@ export default function CoachCalendar() {
     } else {
       setCurrentDate(addDays(currentDate, direction));
     }
-  };
+  }, [viewMode, currentDate]);
 
-  const goToToday = () => {
+  const goToToday = useCallback(() => {
     setCurrentDate(new Date());
     setSelectedDate(new Date());
-  };
+  }, []);
 
-  const handleDateClick = (date: Date) => {
+  const handleDateClick = useCallback((date: Date) => {
     setSelectedDate(date);
     setSheetOpen(true);
-  };
+  }, []);
 
-  const hasEvents = (date: Date) => {
+  const hasEvents = useCallback((date: Date) => {
     return getTasksForDate(date).length > 0;
-  };
+  }, [getTasksForDate]);
 
-  const getCompletionStats = (date: Date) => {
+  const getCompletionStats = useCallback((date: Date) => {
     const dateTasks = getTasksForDate(date);
     const completed = dateTasks.filter((t) => t.status === "completed").length;
     const total = dateTasks.length;
     return { completed, total };
-  };
+  }, [getTasksForDate]);
 
-  const getGroupColorsForDate = (date: Date) => {
+  const getGroupColorsForDate = useCallback((date: Date) => {
     const dateTasks = getTasksForDate(date);
     const uniqueColors = [...new Set(dateTasks.map((t) => t.groupColor))];
     return uniqueColors.slice(0, 3); // Show max 3 colors
-  };
+  }, [getTasksForDate]);
 
   const days = viewMode === "month" ? getDaysInMonth(currentDate) : getWeekDays(currentDate);
   const selectedTasks = getTasksForDate(selectedDate);
