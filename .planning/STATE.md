@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-25)
 ## Current Position
 
 Phase: 14 of 14 (Render Optimization)
-Plan: 01 of 03 complete
+Plan: 02 of 03 complete
 Status: In progress
-Last activity: 2026-01-28 - Completed 14-01-PLAN.md
+Last activity: 2026-01-28 - Completed 14-02-PLAN.md
 
-Progress: [===============-----] 95% (14/14 phases, 1/3 plans)
+Progress: [================----] 97% (14/14 phases, 2/3 plans)
 
 ## Milestone History
 
@@ -70,6 +70,7 @@ See: .planning/ROADMAP.md for full details
 
 **Phase 14 In Progress:**
 - 14-01: Loading skeletons (complete) - shimmer animation, content-shaped skeletons, extended timeout text
+- 14-02: Profiling infrastructure (complete) - React.Profiler wrappers, 50ms threshold, bottleneck analysis
 
 ## Accumulated Context
 
@@ -111,6 +112,8 @@ Recent key decisions:
 - Track students in local studentsMap state - enables instant UI updates on mutations (D-1303-02)
 - Shimmer via Tailwind gradient (from-muted via-muted/60 to-muted) (D-1401-01)
 - 2-second timeout for "Still working..." text in LoadingButton (D-1401-02)
+- 50ms render threshold for performance profiling (D-1402-01)
+- Development-only profiling logging to avoid production overhead (D-1402-02)
 
 ### Pending Todos
 
@@ -151,12 +154,18 @@ None - Phase 14 in progress.
 - Shimmer animation: Tailwind keyframes with gradient background
 - Content-shaped skeletons: Match actual page layout for perceived performance
 
+**Profiling patterns established:**
+- React.Profiler wrapper: `<Profiler id="ComponentName" onRender={onRenderCallback}>`
+- 50ms threshold: renders exceeding threshold logged as warnings
+- Console format: `[Perf] ComponentName phase: Xms` or `[Perf] SLOW: ComponentName...`
+- Bottleneck candidates: DaySheetContent, WeekView, DayView, TaskList in CoachCalendar
+
 ## Session Continuity
 
 Last session: 2026-01-28
-Stopped at: Completed 14-01-PLAN.md
+Stopped at: Completed 14-02-PLAN.md
 Resume file: None
 
 ---
 *State initialized: 2026-01-24*
-*Last updated: 2026-01-28 - Completed 14-01*
+*Last updated: 2026-01-28 - Completed 14-02*
