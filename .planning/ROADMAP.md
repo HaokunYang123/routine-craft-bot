@@ -179,12 +179,12 @@ Plans:
   2. User sees button loading states during mutations
   3. Developer has profiling data identifying render bottlenecks
   4. CoachCalendar re-renders only when relevant data changes
-**Plans**: TBD
+**Plans**: 3 plans (2 waves)
 
 Plans:
-- [ ] 14-01: Loading State Audit
-- [ ] 14-02: Performance Profiling
-- [ ] 14-03: CoachCalendar Memoization
+- [ ] 14-01-PLAN.md — Shimmer animation + page skeletons + LoadingButton timeout (Wave 1)
+- [ ] 14-02-PLAN.md — Performance profiling utilities + baseline documentation (Wave 2)
+- [ ] 14-03-PLAN.md — CoachCalendar memoization (React.memo + useCallback) (Wave 2)
 
 ---
 
