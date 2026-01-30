@@ -23,22 +23,27 @@ import {
     Shield,
     Loader2,
     Mail,
+    Globe,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { handleError } from "@/lib/error";
+import { useTimezone } from "@/hooks/useTimezone";
+import { TimezoneSelect } from "@/components/TimezoneSelect";
 
 interface Profile {
     display_name: string | null;
     email: string | null;
     role: string | null;
     avatar_url: string | null;
+    timezone: string | null;
 }
 
 export default function StudentSettings() {
     const { user, signOut } = useAuth();
     const navigate = useNavigate();
     const { toast } = useToast();
+    const { timezone: currentTimezone, isTimezoneSet } = useTimezone();
 
     const [profile, setProfile] = useState<Profile | null>(null);
     const [loading, setLoading] = useState(true);
@@ -47,6 +52,8 @@ export default function StudentSettings() {
     const [saving, setSaving] = useState(false);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
     const [deleting, setDeleting] = useState(false);
+    const [selectedTimezone, setSelectedTimezone] = useState("");
+    const [savingTimezone, setSavingTimezone] = useState(false);
 
     useEffect(() => {
         if (user) {
@@ -60,13 +67,14 @@ export default function StudentSettings() {
         try {
             const { data, error } = await supabase
                 .from("profiles")
-                .select("display_name, email, role, avatar_url")
+                .select("display_name, email, role, avatar_url, timezone")
                 .eq("user_id", user.id)
                 .single();
 
             if (error) throw error;
             setProfile(data);
             setNewDisplayName(data.display_name || "");
+            setSelectedTimezone(data.timezone || currentTimezone);
         } catch (error) {
             handleError(error, { component: 'StudentSettings', action: 'fetch profile', silent: true });
         } finally {
@@ -106,6 +114,32 @@ export default function StudentSettings() {
     const handleCancelEdit = () => {
         setNewDisplayName(profile?.display_name || "");
         setEditingName(false);
+    };
+
+    const handleSaveTimezone = async () => {
+        if (!user) return;
+        setSavingTimezone(true);
+        try {
+            const { error } = await supabase
+                .from("profiles")
+                .update({ timezone: selectedTimezone })
+                .eq("user_id", user.id);
+
+            if (error) throw error;
+            setProfile((prev) => prev ? { ...prev, timezone: selectedTimezone } : null);
+            toast({
+                title: "Timezone Updated",
+                description: "Your timezone has been saved.",
+            });
+        } catch (error: any) {
+            toast({
+                title: "Error",
+                description: error.message || "Failed to update timezone",
+                variant: "destructive",
+            });
+        } finally {
+            setSavingTimezone(false);
+        }
     };
 
     const handleSignOut = async () => {
@@ -229,6 +263,43 @@ export default function StudentSettings() {
                             <p className="font-medium">{user?.email}</p>
                         </div>
                     </div>
+                </CardContent>
+            </Card>
+
+            {/* Timezone */}
+            <Card>
+                <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center gap-2">
+                        <Globe className="w-5 h-5 text-cta-primary" />
+                        Timezone
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                    <TimezoneSelect
+                        value={selectedTimezone}
+                        onChange={setSelectedTimezone}
+                    />
+                    {!isTimezoneSet && (
+                        <p className="text-xs text-muted-foreground">
+                            Auto-detected from your browser
+                        </p>
+                    )}
+                    {selectedTimezone !== (profile?.timezone || "") && (
+                        <Button
+                            onClick={handleSaveTimezone}
+                            disabled={savingTimezone}
+                            className="bg-cta-primary hover:bg-cta-hover text-white"
+                        >
+                            {savingTimezone ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Saving...
+                                </>
+                            ) : (
+                                "Save Timezone"
+                            )}
+                        </Button>
+                    )}
                 </CardContent>
             </Card>
 

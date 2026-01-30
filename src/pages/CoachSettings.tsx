@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { User, Shield, LogOut, Loader2 } from "lucide-react";
+import { User, Shield, LogOut, Loader2, Globe } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
+import { useTimezone } from "@/hooks/useTimezone";
+import { TimezoneSelect } from "@/components/TimezoneSelect";
 import { cn } from "@/lib/utils";
 
 // Coach emoji options
@@ -19,20 +21,23 @@ const COACH_EMOJIS = [
 export default function CoachSettings() {
   const { user, signOut } = useAuth();
   const { profile, loading: profileLoading, updateProfile } = useProfile();
+  const { timezone: currentTimezone, isTimezoneSet } = useTimezone();
   const [nameInput, setNameInput] = useState("");
   const [selectedEmoji, setSelectedEmoji] = useState<string | null>(null);
+  const [selectedTimezone, setSelectedTimezone] = useState("");
   const [saving, setSaving] = useState(false);
 
   // Initialize inputs when profile loads
   useEffect(() => {
     if (profile) {
       setNameInput(profile.display_name || "");
+      setSelectedTimezone(profile.timezone || currentTimezone);
       // Extract emoji from avatar_url if it's an emoji
       if (profile.avatar_url?.startsWith("emoji:")) {
         setSelectedEmoji(profile.avatar_url.replace("emoji:", ""));
       }
     }
-  }, [profile]);
+  }, [profile, currentTimezone]);
 
   const handleSaveProfile = async () => {
     if (!nameInput.trim()) return;
@@ -41,6 +46,7 @@ export default function CoachSettings() {
     await updateProfile({
       display_name: nameInput.trim(),
       avatar_url: selectedEmoji ? `emoji:${selectedEmoji}` : null,
+      timezone: selectedTimezone || null,
     });
     setSaving(false);
   };
@@ -51,7 +57,8 @@ export default function CoachSettings() {
 
   const hasChanges =
     nameInput.trim() !== (profile?.display_name || "") ||
-    selectedEmoji !== currentEmoji;
+    selectedEmoji !== currentEmoji ||
+    selectedTimezone !== (profile?.timezone || "");
 
   return (
     <div className="space-y-6 pb-20 max-w-3xl">
@@ -161,6 +168,38 @@ export default function CoachSettings() {
               </Button>
             </>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Timezone Section */}
+      <Card className="border-border">
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-btn-secondary/20">
+              <Globe className="w-5 h-5 text-btn-secondary" />
+            </div>
+            <div>
+              <CardTitle className="text-lg text-foreground">Timezone</CardTitle>
+              <CardDescription>
+                Your local timezone for task scheduling
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label className="text-foreground">Current Timezone</Label>
+            <TimezoneSelect
+              value={selectedTimezone}
+              onChange={setSelectedTimezone}
+              disabled={profileLoading}
+            />
+            {!isTimezoneSet && (
+              <p className="text-xs text-muted-foreground">
+                Auto-detected from your browser. Change if incorrect.
+              </p>
+            )}
+          </div>
         </CardContent>
       </Card>
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
+import { detectBrowserTimezone } from "@/lib/timezone";
 
 export default function AuthCallback() {
   const navigate = useNavigate();
@@ -21,27 +22,39 @@ export default function AuthCallback() {
           return;
         }
 
-        // Set role from URL on the profile created by trigger (which has role=null)
-        // This is the ONLY place role gets set - supports AUTH-10 immutability
-        // (role cannot be CHANGED once set, but CAN be SET once from null)
-        if (role) {
-          const { error: updateError } = await supabase
-            .from('profiles')
-            .update({ role })
-            .eq('user_id', session.user.id)
-            .is('role', null);  // Only set if null (not already set)
-
-          if (updateError) {
-            console.warn('Role update failed (may already be set):', updateError);
-          }
-        }
-
-        // Fetch profile to determine where to route
+        // Fetch profile to check current state (role and timezone)
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('role')
+          .select('role, timezone')
           .eq('user_id', session.user.id)
           .single();
+
+        if (profile) {
+          // Build update object for new users (only set fields that are null)
+          const updates: { role?: string; timezone?: string } = {};
+
+          // Set role from URL if not already set (AUTH-10 immutability)
+          if (role && !profile.role) {
+            updates.role = role;
+          }
+
+          // Auto-detect and set timezone for new users (TIME-04)
+          if (!profile.timezone) {
+            updates.timezone = detectBrowserTimezone();
+          }
+
+          // Apply updates if any
+          if (Object.keys(updates).length > 0) {
+            const { error: updateError } = await supabase
+              .from('profiles')
+              .update(updates)
+              .eq('user_id', session.user.id);
+
+            if (updateError) {
+              console.warn('Profile update failed:', updateError);
+            }
+          }
+        }
 
         if (profileError || !profile) {
           // Profile doesn't exist yet - retry once after short delay
@@ -57,8 +70,17 @@ export default function AuthCallback() {
             return;
           }
 
-          // Route based on retried profile
-          if (retryProfile.role === 'coach') {
+          // Also set timezone on retry if needed
+          if (!retryProfile.role || !(retryProfile as any).timezone) {
+            const updates: { role?: string; timezone?: string } = {};
+            if (role && !retryProfile.role) updates.role = role;
+            updates.timezone = detectBrowserTimezone();
+            await supabase.from('profiles').update(updates).eq('user_id', session.user.id);
+          }
+
+          // Route based on role (use URL role if set, else profile role)
+          const effectiveRole = role || retryProfile.role;
+          if (effectiveRole === 'coach') {
             navigate('/dashboard', { replace: true });
           } else {
             navigate('/app', { replace: true });
@@ -66,8 +88,9 @@ export default function AuthCallback() {
           return;
         }
 
-        // Route based on role
-        if (profile.role === 'coach') {
+        // Route based on role (use URL role if we just set it, else existing profile role)
+        const effectiveRole = (role && !profile.role) ? role : profile.role;
+        if (effectiveRole === 'coach') {
           navigate('/dashboard', { replace: true });
         } else {
           navigate('/app', { replace: true });

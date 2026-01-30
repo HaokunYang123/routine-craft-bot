@@ -95,7 +95,7 @@ export function useProfile() {
 
   // Update profile mutation
   const updateProfileMutation = useMutation({
-    mutationFn: async (updates: Partial<Pick<Profile, "display_name" | "avatar_url">>) => {
+    mutationFn: async (updates: Partial<Pick<Profile, "display_name" | "avatar_url" | "timezone">>) => {
       const { error } = await supabase
         .from("profiles")
         .update({
@@ -120,7 +120,7 @@ export function useProfile() {
   });
 
   // Backward-compatible wrapper maintaining boolean return
-  const updateProfile = async (updates: Partial<Pick<Profile, "display_name" | "avatar_url">>) => {
+  const updateProfile = async (updates: Partial<Pick<Profile, "display_name" | "avatar_url" | "timezone">>) => {
     if (!user) return false;
     try {
       await updateProfileMutation.mutateAsync(updates);
