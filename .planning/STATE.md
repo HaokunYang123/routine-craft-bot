@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-01-28)
 
 ## Current Position
 
-Phase: 16 - Realtime Subscriptions
-Plan: 5/5 complete (gaps closed)
-Status: Phase complete
-Last activity: 2026-01-28 — Completed 16-05 gap closure plan
+Phase: 17 - Timezone & Rollover
+Plan: 1 of ? complete
+Status: In progress
+Last activity: 2026-01-30 — Completed 17-01-PLAN.md (timezone foundation)
 
-Progress: [████████████░░░░░░░░] 50% (2/3 phases in v3.0)
+Progress: [█████████████░░░░░░░] 55% (2.5/3 phases in v3.0)
 
 ## Milestone History
 
@@ -30,7 +30,7 @@ See: .planning/MILESTONES.md for full details
 **Phases:**
 - Phase 15: Authentication Rebuild (6 plans) — Complete
 - Phase 16: Realtime Subscriptions (5 plans) — Complete
-- Phase 17: Timezone & Rollover — Pending
+- Phase 17: Timezone & Rollover — In progress (1 plan complete)
 
 **Key deliverables (Phase 15 complete):**
 - [x] Role selection landing page ("I am a Coach" / "I am a Student")
@@ -49,9 +49,11 @@ See: .planning/MILESTONES.md for full details
 - GAP-01: Fixed by adding filter parameter with denormalized coach_id column
 - GAP-02: Fixed by updating RLS policy to use direct column comparison
 
-**Remaining deliverables:**
-- UTC storage with local timezone display
-- Daily rollover at user's local midnight
+**Key deliverables (Phase 17 in progress):**
+- [x] Timezone foundation: date-fns-tz, utilities, migration (17-01)
+- [ ] useTimezone hook
+- [ ] UTC storage with local timezone display
+- [ ] Daily rollover at user's local midnight
 
 **Previous milestone:** v2.0 Performance shipped 2026-01-28
 
@@ -77,6 +79,9 @@ See: .planning/MILESTONES.md for full details
 | 16-04 | Database config applied directly | task_instances added to supabase_realtime, REPLICA IDENTITY FULL set |
 | 16-05 | Denormalized coach_id for filter efficiency | Realtime filter requires direct column, not subquery-based RLS |
 | 16-05 | Auto-populate via trigger | Ensures consistency without application code changes |
+| 17-01 | IANA timezone names as text | More flexible than offsets, handles DST automatically |
+| 17-01 | UTC fallback for null timezone | Empty/null timezone defaults to 'UTC' to prevent errors |
+| 17-01 | Intl.supportedValuesOf with fallback | Common timezones hardcoded for older browser compatibility |
 
 See PROJECT.md Key Decisions table for full list with outcomes.
 
@@ -91,12 +96,12 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-01-28
-Stopped at: Completed 16-05-PLAN.md (gap closure)
+Last session: 2026-01-30
+Stopped at: Completed 17-01-PLAN.md (timezone foundation)
 Resume file: None
 
-Next action: `/gsd:plan-phase 17` for Timezone & Rollover phase
+Next action: Execute 17-02-PLAN.md for useTimezone hook
 
 ---
 *State initialized: 2026-01-24*
-*Last updated: 2026-01-28 — Phase 16 complete*
+*Last updated: 2026-01-30 — Phase 17 plan 01 complete*
