@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useAssignments } from "@/hooks/useAssignments";
+import { useTimezone } from "@/hooks/useTimezone";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,9 +20,7 @@ import {
   Trophy,
 } from "lucide-react";
 import {
-  format,
   isSameDay,
-  parseISO,
   startOfMonth,
   endOfMonth,
   isToday,
@@ -46,6 +45,7 @@ interface TaskInstance {
 export default function StudentCalendar() {
   const { user } = useAuth();
   const { updateTaskStatus } = useAssignments();
+  const { formatDate } = useTimezone();
   const [tasks, setTasks] = useState<TaskInstance[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -100,8 +100,9 @@ export default function StudentCalendar() {
   const fetchTasks = async () => {
     if (!user) return;
 
-    const monthStart = format(startOfMonth(currentMonth), "yyyy-MM-dd");
-    const monthEnd = format(endOfMonth(currentMonth), "yyyy-MM-dd");
+    // Use timezone-aware formatting for date range (TIME-02)
+    const monthStart = formatDate(startOfMonth(currentMonth), "yyyy-MM-dd");
+    const monthEnd = formatDate(endOfMonth(currentMonth), "yyyy-MM-dd");
 
     try {
       const { data, error } = await supabase
@@ -137,7 +138,7 @@ export default function StudentCalendar() {
       completed ? "completed" : "pending",
       undefined, // note
       user?.id, // assigneeId for cache key
-      selectedDate ? format(selectedDate, "yyyy-MM-dd") : undefined // date for cache key
+      selectedDate ? formatDate(selectedDate, "yyyy-MM-dd") : undefined // date for cache key (timezone-aware)
     );
 
     // Revert local state if mutation failed
@@ -214,7 +215,7 @@ export default function StudentCalendar() {
             <div className="flex items-center gap-2">
               <Trophy className="w-5 h-5 text-cta-primary" />
               <span className="font-semibold text-foreground">
-                {format(currentMonth, "MMMM")} Progress
+                {formatDate(currentMonth, "MMMM")} Progress
               </span>
             </div>
             <span className="text-2xl font-bold text-cta-primary">
@@ -235,7 +236,7 @@ export default function StudentCalendar() {
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg">
-                {format(currentMonth, "MMMM yyyy")}
+                {formatDate(currentMonth, "MMMM yyyy")}
               </CardTitle>
               <div className="flex gap-1">
                 <Button
@@ -351,10 +352,10 @@ export default function StudentCalendar() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">
-                  {isToday(selectedDate) ? "Today" : format(selectedDate, "EEEE")}
+                  {isToday(selectedDate) ? "Today" : formatDate(selectedDate, "EEEE")}
                 </p>
                 <CardTitle className="text-xl">
-                  {format(selectedDate, "MMMM d")}
+                  {formatDate(selectedDate, "MMMM d")}
                 </CardTitle>
               </div>
               {dayStats.total > 0 && (

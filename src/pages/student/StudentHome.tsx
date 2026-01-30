@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useAssignments } from "@/hooks/useAssignments";
-import { format, isToday, isTomorrow, differenceInDays, parseISO, isValid, isBefore, startOfDay } from "date-fns";
+import { useTimezone } from "@/hooks/useTimezone";
+import { differenceInDays } from "date-fns";
 import { cn, safeParseISO } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -60,6 +61,7 @@ export default function StudentHome() {
   console.log('[StudentHome] User:', user?.id || 'not logged in');
   const { toast } = useToast();
   const { updateTaskStatus } = useAssignments();
+  const { todayDateString, formatDate } = useTimezone();
   const [tasks, setTasks] = useState<TaskInstance[]>([]);
   const [upcomingTasks, setUpcomingTasks] = useState<TaskInstance[]>([]);
   const [loading, setLoading] = useState(true);
@@ -340,8 +342,9 @@ export default function StudentHome() {
   const fetchTasks = async () => {
     if (!user) return;
 
-    const today = format(new Date(), "yyyy-MM-dd");
-    const nextWeek = format(new Date(Date.now() + 7 * 86400000), "yyyy-MM-dd");
+    // Use user's local date, not UTC date (TIME-03)
+    const today = todayDateString;
+    const nextWeek = formatDate(new Date(Date.now() + 7 * 86400000), "yyyy-MM-dd");
 
     try {
       // Fetch today's tasks AND overdue pending tasks (scheduled_date <= today with status pending)
@@ -442,7 +445,7 @@ export default function StudentHome() {
       completed ? "completed" : "pending",
       undefined, // note
       user?.id, // assigneeId for cache key
-      format(new Date(), "yyyy-MM-dd") // date for cache key
+      todayDateString // date for cache key (user's local date)
     );
 
     // Revert local state if mutation failed
@@ -458,13 +461,19 @@ export default function StudentHome() {
   };
 
   const formatDueDate = (dateStr: string) => {
+    // Timezone-aware date comparison (TIME-03)
+    if (dateStr === todayDateString) return "Today";
+    // Calculate tomorrow in user's timezone
+    const tomorrowDate = new Date();
+    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+    const tomorrowStr = formatDate(tomorrowDate, "yyyy-MM-dd");
+    if (dateStr === tomorrowStr) return "Tomorrow";
+
     const date = safeParseISO(dateStr);
     if (!date) return "No date";
-    if (isToday(date)) return "Today";
-    if (isTomorrow(date)) return "Tomorrow";
     const days = differenceInDays(date, new Date());
-    if (days <= 7) return `In ${days} days`;
-    return format(date, "MMM d");
+    if (days <= 7 && days > 0) return `In ${days} days`;
+    return formatDate(dateStr, "MMM d");
   };
 
   if (loading) {
@@ -479,10 +488,10 @@ export default function StudentHome() {
   const totalCount = tasks.length;
   const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
-  const today = new Date();
-  const dayNumber = format(today, "d");
-  const monthName = format(today, "MMMM");
-  const dayName = format(today, "EEEE");
+  // Display today in user's timezone (TIME-02)
+  const dayNumber = formatDate(new Date(), "d");
+  const monthName = formatDate(new Date(), "MMMM");
+  const dayName = formatDate(new Date(), "EEEE");
 
   return (
     <div className="p-4 md:p-6 max-w-2xl mx-auto space-y-6">
@@ -667,7 +676,7 @@ export default function StudentHome() {
                           </>
                         )}
                         <span>•</span>
-                        <span>{format(new Date(note.created_at), "MMM d, h:mm a")}</span>
+                        <span>{formatDate(note.created_at, "MMM d, h:mm a")}</span>
                       </div>
                     </div>
                     {note.is_new && (
@@ -711,9 +720,8 @@ export default function StudentHome() {
               {tasks.map((task) => {
                 const isExpanded = expandedTasks.has(task.id);
                 const hasDescription = !!task.description;
-                // Check if task is overdue (scheduled before today and still pending)
-                const taskDate = safeParseISO(task.scheduled_date);
-                const isOverdue = taskDate && task.status === "pending" && isBefore(taskDate, startOfDay(new Date()));
+                // Check if task is overdue (scheduled before today in user's timezone and still pending) (TIME-03)
+                const isOverdue = task.status === "pending" && task.scheduled_date < todayDateString;
 
                 return (
                   <div

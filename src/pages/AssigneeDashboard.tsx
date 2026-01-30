@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
+import { useTimezone } from "@/hooks/useTimezone";
 import { supabase } from "@/integrations/supabase/client";
 import {
   CheckCircle2,
@@ -19,8 +20,6 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
-import { format, parseISO } from "date-fns";
-import { safeFormatDate } from "@/lib/utils";
 import { handleError } from "@/lib/error";
 
 // Use task_instances table - these have the correctly calculated scheduled_date
@@ -45,6 +44,7 @@ interface CoachNote {
 export default function AssigneeDashboard() {
   const { user } = useAuth();
   const { profile } = useProfile();
+  const { todayDateString, formatDate } = useTimezone();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [tasks, setTasks] = useState<TaskInstance[]>([]);
@@ -63,7 +63,8 @@ export default function AssigneeDashboard() {
     setLoading(true);
 
     try {
-      const today = format(new Date(), "yyyy-MM-dd");
+      // Use user's local date, not UTC date (TIME-03)
+      const today = todayDateString;
 
       // Fetch today's task instances (not tasks!)
       const { data: instances, error } = await supabase
@@ -256,7 +257,7 @@ export default function AssigneeDashboard() {
             {getGreeting()}, {profile?.display_name || "there"}!
           </h1>
           <p className="text-muted-foreground mt-1">
-            {format(new Date(), "EEEE, MMMM d")}
+            {formatDate(new Date(), "EEEE, MMMM d")}
           </p>
         </div>
         {streak > 0 && (
@@ -401,7 +402,7 @@ export default function AssigneeDashboard() {
                       From {note.from_name}
                     </span>
                     <span className="text-xs text-muted-foreground">
-                      {safeFormatDate(note.created_at, "MMM d, h:mm a")}
+                      {formatDate(note.created_at, "MMM d, h:mm a")}
                     </span>
                   </div>
                 </div>
