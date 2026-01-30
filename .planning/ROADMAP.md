@@ -190,7 +190,7 @@ Plans:
 - [x] 16-02-PLAN.md — Coach views integration (Dashboard + Calendar) (Wave 2)
 - [x] 16-03-PLAN.md — Student views integration (Home + Calendar) (Wave 2)
 - [x] 16-04-PLAN.md — End-to-end verification checkpoint (Wave 3) — GAPS FOUND
-- [ ] 16-05-PLAN.md — Gap closure: Add coach_id filter for realtime (Wave 4)
+- [x] 16-05-PLAN.md — Gap closure: Add coach_id filter for realtime (Wave 4)
 
 ### Phase 17: Timezone & Rollover
 **Goal**: Time displays respect user's local timezone with correct daily task boundaries.
@@ -206,7 +206,12 @@ Plans:
 4. User can view and change their timezone in settings
 5. Historical task times display correctly even after DST transitions
 
-Plans: TBD
+**Plans**: 3 plans in 3 waves
+
+Plans:
+- [ ] 17-01-PLAN.md — Foundation: DB migration + date-fns-tz + utilities (Wave 1)
+- [ ] 17-02-PLAN.md — useTimezone hook + TimezoneSelect + Settings integration (Wave 2)
+- [ ] 17-03-PLAN.md — Daily rollover + timestamp displays + verification (Wave 3)
 
 </details>
 
@@ -231,8 +236,8 @@ Plans: TBD
 | 13. Pagination | v2.0 | 3/3 | Complete | 2026-01-27 |
 | 14. Render Optimization | v2.0 | 3/3 | Complete | 2026-01-28 |
 | 15. Authentication Rebuild | v3.0 | 6/6 | Complete | 2026-01-28 |
-| 16. Realtime Subscriptions | v3.0 | 4/5 | Gap Closure | — |
-| 17. Timezone & Rollover | v3.0 | 0/? | Pending | — |
+| 16. Realtime Subscriptions | v3.0 | 5/5 | Complete | 2026-01-28 |
+| 17. Timezone & Rollover | v3.0 | 0/3 | Planned | — |
 
 ---
 
