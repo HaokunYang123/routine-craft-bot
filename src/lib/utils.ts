@@ -67,3 +67,25 @@ export function safeFormatDate(
     return fallback;
   }
 }
+
+/**
+ * Generate time slots from 5:00 AM to 10:00 PM in 30-minute increments.
+ * Returns array like ["05:00 AM", "05:30 AM", ..., "10:00 PM"]
+ */
+export function generateTimeSlots(): string[] {
+  const slots: string[] = [];
+  // Start at 5:00 AM (hour 5), end at 10:00 PM (hour 22)
+  for (let hour = 5; hour <= 22; hour++) {
+    for (let minute = 0; minute < 60; minute += 30) {
+      // Don't add 10:30 PM - stop at 10:00 PM
+      if (hour === 22 && minute > 0) break;
+
+      const hour12 = hour % 12 || 12;
+      const ampm = hour < 12 ? "AM" : "PM";
+      const hourStr = hour12.toString().padStart(2, "0");
+      const minuteStr = minute.toString().padStart(2, "0");
+      slots.push(`${hourStr}:${minuteStr} ${ampm}`);
+    }
+  }
+  return slots;
+}

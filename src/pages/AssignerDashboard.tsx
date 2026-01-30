@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useAssignments } from "@/hooks/useAssignments";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Users,
@@ -12,12 +13,15 @@ import {
   Loader2,
   Send,
   MessageSquare,
+  Plus,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -25,10 +29,18 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { handleError } from "@/lib/error";
+import { generateTimeSlots } from "@/lib/utils";
 
 interface StudentStats {
   id: string;
@@ -51,9 +63,18 @@ interface OverviewStats {
   inactive: number;
 }
 
+interface Group {
+  id: string;
+  name: string;
+}
+
+// Pre-generate time slots for performance
+const TIME_SLOTS = generateTimeSlots();
+
 export default function AssignerDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { assignGroupTask, isAssigningGroupTask } = useAssignments();
   const [loading, setLoading] = useState(true);
   const [students, setStudents] = useState<StudentStats[]>([]);
   const [stats, setStats] = useState<OverviewStats | null>(null);
@@ -62,11 +83,58 @@ export default function AssignerDashboard() {
   const [noteContent, setNoteContent] = useState("");
   const [sendingNote, setSendingNote] = useState(false);
 
+  // Assign task dialog state
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [selectedGroupId, setSelectedGroupId] = useState("");
+  const [taskTitle, setTaskTitle] = useState("");
+  const [taskDescription, setTaskDescription] = useState("");
+  const [startDate, setStartDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [endDate, setEndDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
+
   useEffect(() => {
     if (user) {
       fetchDashboardData();
+      fetchGroups();
     }
   }, [user]);
+
+  // Helper to convert "HH:MM AM/PM" to 24-hour minutes for comparison
+  const timeToMinutes = (timeStr: string): number => {
+    if (!timeStr) return -1;
+    const match = timeStr.match(/^(\d{2}):(\d{2})\s*(AM|PM)$/i);
+    if (!match) return -1;
+    let hours = parseInt(match[1], 10);
+    const minutes = parseInt(match[2], 10);
+    const period = match[3].toUpperCase();
+    if (period === "PM" && hours !== 12) hours += 12;
+    if (period === "AM" && hours === 12) hours = 0;
+    return hours * 60 + minutes;
+  };
+
+  // Validate that end time is after start time
+  const isTimeRangeValid = (): boolean => {
+    if (!startTime || !endTime) return true; // No validation if times not set
+    return timeToMinutes(endTime) > timeToMinutes(startTime);
+  };
+
+  const fetchGroups = async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from("groups")
+        .select("id, name")
+        .eq("created_by", user.id)
+        .order("name");
+
+      if (error) throw error;
+      setGroups(data || []);
+    } catch (error) {
+      handleError(error, { component: "AssignerDashboard", action: "fetch groups", silent: true });
+    }
+  };
 
   const fetchDashboardData = async () => {
     if (!user) return;
@@ -163,6 +231,44 @@ export default function AssignerDashboard() {
     }
   };
 
+  const handleAssignTask = async () => {
+    if (!selectedGroupId || !taskTitle.trim()) return;
+
+    // Validate time range
+    if (!isTimeRangeValid()) {
+      toast({
+        title: "Invalid Time Range",
+        description: "End time must be after start time",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const result = await assignGroupTask({
+      groupId: selectedGroupId,
+      title: taskTitle.trim(),
+      description: taskDescription.trim() || undefined,
+      startDate,
+      endDate,
+      startTime: startTime || undefined,
+      endTime: endTime || undefined,
+    });
+
+    if (result !== null) {
+      // Success - close dialog and reset form
+      setAssignDialogOpen(false);
+      setSelectedGroupId("");
+      setTaskTitle("");
+      setTaskDescription("");
+      setStartDate(format(new Date(), "yyyy-MM-dd"));
+      setEndDate(format(new Date(), "yyyy-MM-dd"));
+      setStartTime("");
+      setEndTime("");
+      // Refresh dashboard data
+      fetchDashboardData();
+    }
+  };
+
   const sendNote = async () => {
     if (!selectedStudent || !noteContent.trim() || !user) return;
     setSendingNote(true);
@@ -207,11 +313,20 @@ export default function AssignerDashboard() {
   return (
     <div className="space-y-6 pb-20">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-display font-bold text-foreground">Assigner Dashboard</h1>
-        <p className="text-muted-foreground mt-1">
-          Track progress and manage your students
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-display font-bold text-foreground">Assigner Dashboard</h1>
+          <p className="text-muted-foreground mt-1">
+            Track progress and manage your students
+          </p>
+        </div>
+        <Button
+          onClick={() => setAssignDialogOpen(true)}
+          className="bg-cta-primary hover:bg-cta-hover text-white"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Assign Task
+        </Button>
       </div>
 
       {/* Overview Stats */}
@@ -442,6 +557,153 @@ export default function AssignerDashboard() {
             >
               <Send className="w-4 h-4 mr-2" />
               {sendingNote ? "Sending..." : "Send Note"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Assign Task Dialog */}
+      <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Assign Task to Group</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {/* Group Selection */}
+            <div className="space-y-2">
+              <Label htmlFor="group">Group</Label>
+              <Select value={selectedGroupId} onValueChange={setSelectedGroupId}>
+                <SelectTrigger className="bg-card border-border">
+                  <SelectValue placeholder="Select a group" />
+                </SelectTrigger>
+                <SelectContent>
+                  {groups.length === 0 ? (
+                    <SelectItem value="none" disabled>
+                      No groups available
+                    </SelectItem>
+                  ) : (
+                    groups.map((group) => (
+                      <SelectItem key={group.id} value={group.id}>
+                        {group.name}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Task Title */}
+            <div className="space-y-2">
+              <Label htmlFor="title">Task Title</Label>
+              <Input
+                id="title"
+                value={taskTitle}
+                onChange={(e) => setTaskTitle(e.target.value)}
+                placeholder="Enter task title"
+                className="bg-card border-border"
+              />
+            </div>
+
+            {/* Task Description */}
+            <div className="space-y-2">
+              <Label htmlFor="description">Description (optional)</Label>
+              <Textarea
+                id="description"
+                value={taskDescription}
+                onChange={(e) => setTaskDescription(e.target.value)}
+                placeholder="Enter task description"
+                rows={2}
+                className="bg-card border-border"
+              />
+            </div>
+
+            {/* Date Range */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="startDate">Start Date</Label>
+                <Input
+                  id="startDate"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="bg-card border-border"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="endDate">End Date</Label>
+                <Input
+                  id="endDate"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="bg-card border-border"
+                />
+              </div>
+            </div>
+
+            {/* Time Range */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="startTime">Start Time (optional)</Label>
+                <Select value={startTime} onValueChange={setStartTime}>
+                  <SelectTrigger className="bg-card border-border">
+                    <SelectValue placeholder="Select time" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TIME_SLOTS.map((slot) => (
+                      <SelectItem key={slot} value={slot}>
+                        {slot}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="endTime">End Time (optional)</Label>
+                <Select value={endTime} onValueChange={setEndTime}>
+                  <SelectTrigger className="bg-card border-border">
+                    <SelectValue placeholder="Select time" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TIME_SLOTS.map((slot) => (
+                      <SelectItem key={slot} value={slot}>
+                        {slot}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Time validation warning */}
+            {startTime && endTime && !isTimeRangeValid() && (
+              <p className="text-sm text-destructive">
+                End time must be after start time
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAssignDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleAssignTask}
+              disabled={
+                !selectedGroupId ||
+                !taskTitle.trim() ||
+                isAssigningGroupTask ||
+                (startTime && endTime && !isTimeRangeValid())
+              }
+              className="bg-cta-primary hover:bg-cta-hover text-white"
+            >
+              {isAssigningGroupTask ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Assigning...
+                </>
+              ) : (
+                "Assign Task"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

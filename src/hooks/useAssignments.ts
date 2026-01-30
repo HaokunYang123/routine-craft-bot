@@ -71,6 +71,16 @@ interface UpdateTaskStatusInput {
   date?: string;
 }
 
+interface AssignGroupTaskInput {
+  groupId: string;
+  title: string;
+  description?: string;
+  startDate: string;
+  endDate: string;
+  startTime?: string;
+  endTime?: string;
+}
+
 export function useAssignments() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -526,6 +536,59 @@ export function useAssignments() {
     }
   }, [updateTaskStatusMutation]);
 
+  // Assign task to all members of a group using RPC function
+  const assignGroupTaskMutation = useMutation({
+    mutationFn: async (input: AssignGroupTaskInput) => {
+      if (!user) {
+        throw new Error("No authenticated user");
+      }
+
+      console.log("[useAssignments] assignGroupTask called with input:", JSON.stringify(input, null, 2));
+
+      const { data, error } = await supabase.rpc("assign_task_to_group", {
+        p_group_id: input.groupId,
+        p_title: input.title,
+        p_description: input.description || null,
+        p_start_date: input.startDate,
+        p_end_date: input.endDate,
+        p_start_time: input.startTime || null,
+        p_end_time: input.endTime || null,
+      });
+
+      if (error) {
+        console.error("[useAssignments] assignGroupTask RPC error:", error);
+        throw error;
+      }
+
+      console.log("[useAssignments] assignGroupTask success, created", data, "task instances");
+      return data as number;
+    },
+    onSuccess: (count) => {
+      toast({
+        title: "Tasks Assigned",
+        description: `Created ${count} task instance${count !== 1 ? "s" : ""} for group members`,
+      });
+      return queryClient.invalidateQueries({ queryKey: queryKeys.assignments.all });
+    },
+    onError: (error) => {
+      handleError(error, { component: "useAssignments", action: "assign group task" });
+    },
+  });
+
+  // Backward-compatible wrapper for assignGroupTask
+  const assignGroupTask = useCallback(async (input: AssignGroupTaskInput) => {
+    if (!user) {
+      console.log("[useAssignments] No user, returning null");
+      return null;
+    }
+    try {
+      return await assignGroupTaskMutation.mutateAsync(input);
+    } catch {
+      // Error already handled by onError
+      return null;
+    }
+  }, [user, assignGroupTaskMutation]);
+
   const getGroupProgress = useCallback(async (groupId: string, date?: string) => {
     // Note: For timezone-aware "today", callers should pass todayDateString from useTimezone
     // Default uses server/browser date which may differ from user's local date (TIME-03)
@@ -636,6 +699,8 @@ export function useAssignments() {
     updateTaskStatus,
     isUpdatingTask: updateTaskStatusMutation.isPending,
     getGroupProgress,
+    assignGroupTask,
+    isAssigningGroupTask: assignGroupTaskMutation.isPending,
   };
 }
 
