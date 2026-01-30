@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useGroups } from "@/hooks/useGroups";
 import { useAssignments } from "@/hooks/useAssignments";
+import { useTimezone } from "@/hooks/useTimezone";
 import { useRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
 import { useVisibilityRefetch } from "@/hooks/useVisibilityRefetch";
 import { REALTIME_CHANNELS } from "@/lib/realtime/channels";
@@ -34,7 +35,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Users, Plus, Loader2, Sparkles, FileText } from "lucide-react";
-import { format } from "date-fns";
 import { handleError } from "@/lib/error";
 
 const GROUP_COLORS = [
@@ -53,6 +53,7 @@ export default function CoachDashboard() {
   const navigate = useNavigate();
   const { groups, loading: groupsLoading, createGroup, fetchGroups } = useGroups();
   const { getGroupProgress } = useAssignments();
+  const { todayDateString, formatDate } = useTimezone();
 
   // Realtime subscription for task completions (REAL-01)
   // Filter by coach_id for efficient realtime delivery (GAP-01 closure)
@@ -109,7 +110,8 @@ export default function CoachDashboard() {
 
   const loadGroupStats = async () => {
     setLoading(true);
-    const today = format(new Date(), "yyyy-MM-dd");
+    // Use user's local date for "today" queries (TIME-03)
+    const today = todayDateString;
 
     try {
       const statsPromises = groups.map(async (group) => {
@@ -240,7 +242,7 @@ export default function CoachDashboard() {
         <div>
           <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
           <p className="text-muted-foreground mt-1">
-            {format(currentDate, "EEEE, MMMM d, yyyy")}
+            {formatDate(currentDate, "EEEE, MMMM d, yyyy")}
           </p>
         </div>
         <div className="flex items-center gap-2">

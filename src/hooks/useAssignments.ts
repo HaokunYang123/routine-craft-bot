@@ -527,6 +527,8 @@ export function useAssignments() {
   }, [updateTaskStatusMutation]);
 
   const getGroupProgress = useCallback(async (groupId: string, date?: string) => {
+    // Note: For timezone-aware "today", callers should pass todayDateString from useTimezone
+    // Default uses server/browser date which may differ from user's local date (TIME-03)
     const targetDate = date || format(new Date(), "yyyy-MM-dd");
 
     try {

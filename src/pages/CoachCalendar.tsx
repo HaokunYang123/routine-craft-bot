@@ -12,6 +12,7 @@ import { onRenderCallback } from "@/lib/profiling";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useGroups } from "@/hooks/useGroups";
+import { useTimezone } from "@/hooks/useTimezone";
 import { useRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
 import { useVisibilityRefetch } from "@/hooks/useVisibilityRefetch";
 import { REALTIME_CHANNELS } from "@/lib/realtime/channels";
@@ -163,6 +164,7 @@ const DayCell = React.memo(function DayCell({
 export default function CoachCalendar() {
   const { user } = useAuth();
   const { groups, fetchGroups } = useGroups();
+  const { formatDate } = useTimezone();
 
   // Realtime subscription for task completions (REAL-01: coach sees updates)
   // Filter by coach_id for efficient realtime delivery (GAP-01 closure)
@@ -405,9 +407,10 @@ export default function CoachCalendar() {
     } else if (viewMode === "week") {
       const start = startOfWeek(currentDate);
       const end = endOfWeek(currentDate);
-      return `${format(start, "MMM d")} - ${format(end, "MMM d, yyyy")}`;
+      // Use timezone-aware formatting for display (TIME-02)
+      return `${formatDate(start, "MMM d")} - ${formatDate(end, "MMM d, yyyy")}`;
     } else {
-      return format(currentDate, "EEEE, MMMM d, yyyy");
+      return formatDate(currentDate, "EEEE, MMMM d, yyyy");
     }
   };
 
@@ -564,7 +567,7 @@ export default function CoachCalendar() {
             <CardHeader className="pb-2">
               <CardTitle className="text-lg text-foreground flex items-center gap-2">
                 <CalendarIcon className="w-5 h-5 text-cta-primary" />
-                {format(selectedDate, "EEEE, MMM d")}
+                {formatDate(selectedDate, "EEEE, MMM d")}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -580,7 +583,7 @@ export default function CoachCalendar() {
           <SheetHeader className="pb-4 border-b">
             <SheetTitle className="flex items-center gap-2 text-xl">
               <CalendarIcon className="w-5 h-5 text-cta-primary" />
-              {format(selectedDate, "EEEE, MMMM d, yyyy")}
+              {formatDate(selectedDate, "EEEE, MMMM d, yyyy")}
             </SheetTitle>
             {selectedTasks.length > 0 && (
               <div className="flex items-center gap-2 mt-2">
