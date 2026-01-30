@@ -17,23 +17,42 @@ const Auth = () => {
   const showLoginOptions = isCoachLogin || isStudentLogin;
 
   useEffect(() => {
-    // Check if user is already logged in and redirect to their dashboard
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      console.log("🕵️ STAFF DEBUG: Starting Session Check...");
+
+      // 1. Check raw session
+      const { data: { session }, error } = await supabase.auth.getSession();
+
+      if (error) console.error("🕵️ STAFF DEBUG: Auth Error", error);
 
       if (session) {
-        // Fetch profile to determine role
-        const { data: profile } = await supabase
+        console.log("🕵️ STAFF DEBUG: Session FOUND for User ID:", session.user.id);
+        console.log("🕵️ STAFF DEBUG: Email:", session.user.email);
+
+        // 2. Check what the DB actually has for this user
+        const { data: profile, error: profileError } = await supabase
           .from("profiles")
           .select("role")
           .eq("user_id", session.user.id)
-          .single();
+          .maybeSingle(); // Use maybeSingle to avoid 406 errors if empty
+
+        console.log("🕵️ STAFF DEBUG: DB Profile Result:", profile);
+
+        if (profileError) {
+             console.error("🕵️ STAFF DEBUG: DB Error:", profileError);
+        }
 
         if (profile?.role === "coach") {
+          console.log("🕵️ STAFF DEBUG: Redirecting to Coach...");
           navigate("/dashboard", { replace: true });
         } else if (profile?.role === "student") {
+          console.log("🕵️ STAFF DEBUG: Redirecting to Student...");
           navigate("/app", { replace: true });
+        } else {
+           console.log("🕵️ STAFF DEBUG: No Role found (Clean State). Staying on Auth page.");
         }
+      } else {
+        console.log("🕵️ STAFF DEBUG: No Session found. Staying on Auth page.");
       }
       setChecking(false);
     };
