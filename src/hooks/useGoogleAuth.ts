@@ -10,10 +10,14 @@ export function useGoogleAuth() {
         setError(null);
 
         try {
-            // Pass role in redirectTo URL - callback will extract and set it
+            // CRITICAL: Pass role in data so database trigger can read it from raw_user_meta_data
             const { data, error: authError } = await supabase.auth.signInWithOAuth({
                 provider: "google",
                 options: {
+                    // Pass role in data for database trigger
+                    data: {
+                        role: role,
+                    },
                     // No hd parameter = allow any Google account (personal or business)
                     scopes: "profile email",
                     redirectTo: `${window.location.origin}/auth/callback?role=${role}`,

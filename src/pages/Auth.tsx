@@ -1,12 +1,20 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { GraduationCap, Loader2 } from "lucide-react";
 import { RoleSelection } from "@/components/auth/RoleSelection";
+import { LoginOptions } from "@/components/auth/LoginOptions";
 
 const Auth = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [checking, setChecking] = useState(true);
+
+  // Determine which view to show based on path
+  const path = location.pathname;
+  const isCoachLogin = path === "/login/coach";
+  const isStudentLogin = path === "/login/student";
+  const showLoginOptions = isCoachLogin || isStudentLogin;
 
   useEffect(() => {
     // Check if user is already logged in and redirect to their dashboard
@@ -46,19 +54,29 @@ const Auth = () => {
     <div className="min-h-screen gradient-subtle flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="bg-card rounded-2xl shadow-elevated border border-border p-8">
-          {/* Logo and Welcome */}
-          <div className="flex items-center justify-center gap-3 mb-2">
-            <div className="w-12 h-12 rounded-xl gradient-hero flex items-center justify-center shadow-soft">
-              <GraduationCap className="w-6 h-6 text-primary-foreground" />
-            </div>
-          </div>
-          <div className="text-center mb-8">
-            <h1 className="text-2xl font-semibold text-foreground">Welcome to TeachCoachConnect</h1>
-            <p className="text-sm text-muted-foreground mt-1">Task Management for Students & Coaches</p>
-          </div>
+          {/* Logo and Welcome - only show on role selection */}
+          {!showLoginOptions && (
+            <>
+              <div className="flex items-center justify-center gap-3 mb-2">
+                <div className="w-12 h-12 rounded-xl gradient-hero flex items-center justify-center shadow-soft">
+                  <GraduationCap className="w-6 h-6 text-primary-foreground" />
+                </div>
+              </div>
+              <div className="text-center mb-8">
+                <h1 className="text-2xl font-semibold text-foreground">Welcome to TeachCoachConnect</h1>
+                <p className="text-sm text-muted-foreground mt-1">Task Management for Students & Coaches</p>
+              </div>
+            </>
+          )}
 
-          {/* Role Selection */}
-          <RoleSelection />
+          {/* Render based on path */}
+          {isCoachLogin ? (
+            <LoginOptions role="coach" />
+          ) : isStudentLogin ? (
+            <LoginOptions role="student" />
+          ) : (
+            <RoleSelection />
+          )}
         </div>
 
         {/* Footer */}
