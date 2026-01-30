@@ -2,11 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ArrowLeft, Mail, AlertCircle } from "lucide-react";
+import { Loader2, ArrowLeft, AlertCircle } from "lucide-react";
 
 interface LoginOptionsProps {
   role: "coach" | "student";
@@ -18,12 +15,6 @@ export function LoginOptions({ role }: LoginOptionsProps) {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [view, setView] = useState<"options" | "email">("options");
-
-  // Email/Password state
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [isSignUp, setIsSignUp] = useState(false);
 
   const roleLabel = role === "coach" ? "Coach" : "Student";
   const roleColor = role === "coach" ? "blue" : "green";
@@ -54,141 +45,16 @@ export function LoginOptions({ role }: LoginOptionsProps) {
       }
       // OAuth redirects - won't reach here on success
     } catch (err: any) {
-      setError(err.message || "Google sign-in failed");
+      const errorMessage = err.message || "Google sign-in failed";
+      setError(errorMessage);
+      toast({
+        title: "Sign-in Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
       setLoading(false);
     }
   };
-
-  const handleEmailAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-
-    try {
-      if (isSignUp) {
-        // Sign up with role in metadata
-        const { error: signUpError } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            // CRITICAL: Pass role in data so database trigger can read it
-            data: {
-              role: role,
-            },
-            emailRedirectTo: `${window.location.origin}/auth/callback?role=${role}`,
-          },
-        });
-
-        if (signUpError) throw signUpError;
-
-        toast({
-          title: "Check your email",
-          description: "We sent you a confirmation link to complete sign up.",
-        });
-      } else {
-        // Sign in - role should already be set from previous sign up
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-
-        if (signInError) throw signInError;
-
-        // Redirect based on role
-        navigate(role === "coach" ? "/dashboard" : "/app", { replace: true });
-      }
-    } catch (err: any) {
-      setError(err.message || "Authentication failed");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (view === "email") {
-    return (
-      <div className="space-y-6">
-        <Button
-          variant="ghost"
-          className="gap-2 -ml-2 mb-2 p-0 h-auto hover:bg-transparent"
-          onClick={() => setView("options")}
-        >
-          <ArrowLeft className="w-4 h-4" /> Back
-        </Button>
-
-        <div className="text-center">
-          <h2 className="text-xl font-semibold">
-            {isSignUp ? "Create" : "Sign in to"} {roleLabel} Account
-          </h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            {isSignUp ? "Enter your details to get started" : "Welcome back!"}
-          </p>
-        </div>
-
-        <form onSubmit={handleEmailAuth} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              disabled={loading}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={6}
-              disabled={loading}
-            />
-          </div>
-
-          {error && (
-            <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 p-3 rounded-lg">
-              <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
-
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={loading || !email || !password}
-          >
-            {loading ? (
-              <Loader2 className="w-4 h-4 animate-spin mr-2" />
-            ) : null}
-            {isSignUp ? "Create Account" : "Sign In"}
-          </Button>
-        </form>
-
-        <div className="text-center text-sm">
-          <span className="text-muted-foreground">
-            {isSignUp ? "Already have an account?" : "Don't have an account?"}
-          </span>{" "}
-          <button
-            type="button"
-            onClick={() => {
-              setIsSignUp(!isSignUp);
-              setError(null);
-            }}
-            className="text-primary hover:underline font-medium"
-          >
-            {isSignUp ? "Sign in" : "Sign up"}
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -212,7 +78,7 @@ export function LoginOptions({ role }: LoginOptionsProps) {
         </div>
         <h2 className="text-xl font-semibold">Continue as {roleLabel}</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Choose how you'd like to sign in
+          Sign in with your Google account
         </p>
       </div>
 
@@ -245,25 +111,7 @@ export function LoginOptions({ role }: LoginOptionsProps) {
             />
           </svg>
         )}
-        Continue with Google
-      </Button>
-
-      <div className="relative">
-        <Separator />
-        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
-          or
-        </span>
-      </div>
-
-      {/* Email Sign In */}
-      <Button
-        variant="outline"
-        className="w-full h-12 gap-3"
-        onClick={() => setView("email")}
-        disabled={loading}
-      >
-        <Mail className="w-5 h-5" />
-        Continue with Email
+        {roleLabel} Sign-in with Google
       </Button>
 
       {error && (
