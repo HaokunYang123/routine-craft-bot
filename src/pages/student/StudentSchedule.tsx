@@ -35,6 +35,9 @@ interface TaskInstance {
     description: string | null;
     duration_minutes: number | null;
     scheduled_date: string;
+    scheduled_time: string | null;
+    start_time: string | null;
+    end_time: string | null;
     status: "pending" | "completed" | "missed";
     assignee_id: string;
     assignment_id: string;
@@ -45,6 +48,38 @@ interface TaskInstance {
     coach_note?: string | null;
     updated_at?: string | null;
 }
+
+// Helper to convert time string to minutes for sorting
+const timeToSortValue = (timeStr: string | null): number => {
+    if (!timeStr) return Infinity; // nulls sort last
+    // Handle "HH:MM AM/PM" format
+    const match = timeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+    if (match) {
+        let hours = parseInt(match[1], 10);
+        const minutes = parseInt(match[2], 10);
+        const period = match[3].toUpperCase();
+        if (period === "PM" && hours !== 12) hours += 12;
+        if (period === "AM" && hours === 12) hours = 0;
+        return hours * 60 + minutes;
+    }
+    // Handle "HH:MM:SS" or "HH:MM" 24-hour format
+    const parts = timeStr.split(":");
+    if (parts.length >= 2) {
+        const hours = parseInt(parts[0], 10);
+        const minutes = parseInt(parts[1], 10);
+        return hours * 60 + minutes;
+    }
+    return Infinity;
+};
+
+// Sort tasks by start_time (earliest first, nulls last)
+const sortTasksByTime = (tasks: TaskInstance[]): TaskInstance[] => {
+    return [...tasks].sort((a, b) => {
+        const aTime = timeToSortValue(a.start_time);
+        const bTime = timeToSortValue(b.start_time);
+        return aTime - bTime;
+    });
+};
 
 export default function StudentSchedule() {
     const { user } = useAuth();
@@ -88,6 +123,9 @@ export default function StudentSchedule() {
                     description,
                     duration_minutes,
                     scheduled_date,
+                    scheduled_time,
+                    start_time,
+                    end_time,
                     status,
                     assignee_id,
                     assignment_id,
@@ -153,6 +191,9 @@ export default function StudentSchedule() {
                     description: instance.description,
                     duration_minutes: instance.duration_minutes,
                     scheduled_date: instance.scheduled_date,
+                    scheduled_time: instance.scheduled_time,
+                    start_time: instance.start_time,
+                    end_time: instance.end_time,
                     status: instance.status,
                     assignee_id: instance.assignee_id,
                     assignment_id: instance.assignment_id,
@@ -277,15 +318,15 @@ export default function StudentSchedule() {
     });
 
     const groupedTasks = {
-        overdue: overdueTasks, // Always visible if there are overdue tasks
-        today: displayTasks.filter((t) => safeDateCheck(t.scheduled_date, isToday)),
-        tomorrow: displayTasks.filter((t) => safeDateCheck(t.scheduled_date, isTomorrow)),
-        upcoming: displayTasks.filter((t) => {
+        overdue: sortTasksByTime(overdueTasks), // Always visible if there are overdue tasks
+        today: sortTasksByTime(displayTasks.filter((t) => safeDateCheck(t.scheduled_date, isToday))),
+        tomorrow: sortTasksByTime(displayTasks.filter((t) => safeDateCheck(t.scheduled_date, isTomorrow))),
+        upcoming: sortTasksByTime(displayTasks.filter((t) => {
             return safeDateCheck(t.scheduled_date, (d) => isAfter(d, tomorrow) && !isToday(d) && !isTomorrow(d));
-        }),
-        pastCompleted: displayTasks.filter((t) => {
+        })),
+        pastCompleted: sortTasksByTime(displayTasks.filter((t) => {
             return safeDateCheck(t.scheduled_date, (d) => isBefore(d, today) && !isToday(d)) && t.status !== "pending";
-        }),
+        })),
     };
 
     return (
@@ -558,6 +599,14 @@ function TaskSection({ title, tasks, onToggleComplete, isHistory = false, isOver
                                                 </span>
                                             )}
                                         </p>
+
+                                        {/* Time Block - shown prominently if set */}
+                                        {task.start_time && task.end_time && (
+                                            <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded-lg text-sm font-medium">
+                                                <Clock className="w-4 h-4" />
+                                                {task.start_time} - {task.end_time}
+                                            </div>
+                                        )}
 
                                         {/* Meta info - always visible */}
                                         <div className="flex flex-wrap items-center gap-2 mt-2">
