@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-28)
 ## Current Position
 
 Phase: 17 - Timezone & Rollover
-Plan: 1 of ? complete
+Plan: 2 of ? complete
 Status: In progress
-Last activity: 2026-01-30 — Completed 17-01-PLAN.md (timezone foundation)
+Last activity: 2026-01-30 — Completed 17-02-PLAN.md (useTimezone hook and UI)
 
-Progress: [█████████████░░░░░░░] 55% (2.5/3 phases in v3.0)
+Progress: [█████████████░░░░░░░] 58% (2.6/3 phases in v3.0)
 
 ## Milestone History
 
@@ -30,7 +30,7 @@ See: .planning/MILESTONES.md for full details
 **Phases:**
 - Phase 15: Authentication Rebuild (6 plans) — Complete
 - Phase 16: Realtime Subscriptions (5 plans) — Complete
-- Phase 17: Timezone & Rollover — In progress (1 plan complete)
+- Phase 17: Timezone & Rollover — In progress (2 plans complete)
 
 **Key deliverables (Phase 15 complete):**
 - [x] Role selection landing page ("I am a Coach" / "I am a Student")
@@ -51,7 +51,7 @@ See: .planning/MILESTONES.md for full details
 
 **Key deliverables (Phase 17 in progress):**
 - [x] Timezone foundation: date-fns-tz, utilities, migration (17-01)
-- [ ] useTimezone hook
+- [x] useTimezone hook and TimezoneSelect component (17-02)
 - [ ] UTC storage with local timezone display
 - [ ] Daily rollover at user's local midnight
 
@@ -82,6 +82,9 @@ See: .planning/MILESTONES.md for full details
 | 17-01 | IANA timezone names as text | More flexible than offsets, handles DST automatically |
 | 17-01 | UTC fallback for null timezone | Empty/null timezone defaults to 'UTC' to prevent errors |
 | 17-01 | Intl.supportedValuesOf with fallback | Common timezones hardcoded for older browser compatibility |
+| 17-02 | Browser timezone detection as fallback | Always have a valid timezone, never null in hook return |
+| 17-02 | Grouped timezone selector by region | Makes browsing 400+ timezones manageable for users |
+| 17-02 | Separate save button in StudentSettings | StudentSettings uses direct Supabase calls, not useProfile hook |
 
 See PROJECT.md Key Decisions table for full list with outcomes.
 
@@ -97,11 +100,11 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-30
-Stopped at: Completed 17-01-PLAN.md (timezone foundation)
+Stopped at: Completed 17-02-PLAN.md (useTimezone hook and UI)
 Resume file: None
 
-Next action: Execute 17-02-PLAN.md for useTimezone hook
+Next action: Execute 17-03-PLAN.md for UTC storage conversion
 
 ---
 *State initialized: 2026-01-24*
-*Last updated: 2026-01-30 — Phase 17 plan 01 complete*
+*Last updated: 2026-01-30 — Phase 17 plan 02 complete*
