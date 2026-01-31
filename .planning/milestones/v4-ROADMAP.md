@@ -71,11 +71,11 @@ Plans:
 **Plans:** 5 plans
 
 Plans:
-- [ ] 20-01-PLAN.md — Day boundary detection infrastructure
-- [ ] 20-02-PLAN.md — Task categorization and session dismissal hooks
-- [ ] 20-03-PLAN.md — Student task view with rollover sections
-- [ ] 20-04-PLAN.md — Coach overdue badges and excuse functionality
-- [ ] 20-05-PLAN.md — Student notifications and final verification
+- [x] 20-01-PLAN.md — Day boundary detection infrastructure
+- [x] 20-02-PLAN.md — Task categorization and session dismissal hooks
+- [x] 20-03-PLAN.md — Student task view with rollover sections
+- [x] 20-04-PLAN.md — Coach overdue badges and excuse functionality
+- [x] 20-05-PLAN.md — Student notifications and final verification
 
 **Requirements:**
 - TASK-01: Completed tasks gone next day
@@ -94,6 +94,11 @@ Plans:
 ## Phase 21: Task Assignment Cleanup
 
 **Goal:** Simplify custom task form by removing duplicate fields
+
+**Plans:** 1 plan
+
+Plans:
+- [ ] 21-01-PLAN.md — Simplify form with single Due Date and expandable options
 
 **Requirements:**
 - ASSIGN-01: Remove duplicate date fields
@@ -172,4 +177,5 @@ Phase 23 should run last (tests the fixed behaviors).
 
 ---
 *Roadmap created: 2026-01-31*
-*Phase 20 planned: 2026-01-31*
+*Phase 20 complete: 2026-01-31*
+*Phase 21 planned: 2026-01-31*
