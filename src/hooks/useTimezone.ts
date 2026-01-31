@@ -6,9 +6,9 @@
  *   const display = formatDate(task.created_at, 'MMM d, h:mm a');
  */
 import { useProfile } from './useProfile';
+import { useDayBoundary } from './useDayBoundary';
 import {
   detectBrowserTimezone,
-  getUserTodayDateString,
   formatInUserTimezone,
   isDateToday as checkIsDateToday,
 } from '@/lib/timezone';
@@ -19,6 +19,9 @@ export function useTimezone() {
   // User's stored timezone, or browser-detected as fallback
   const timezone = profile?.timezone || detectBrowserTimezone();
 
+  // Day boundary detection - provides auto-updating date strings at midnight
+  const { currentDateString, yesterdayDateString } = useDayBoundary(timezone);
+
   /**
    * Format a date/timestamp in user's timezone
    * @param date - Date object or ISO string
@@ -27,12 +30,6 @@ export function useTimezone() {
   const formatDate = (date: Date | string, formatStr: string): string => {
     return formatInUserTimezone(date, timezone, formatStr);
   };
-
-  /**
-   * Get today's date string (YYYY-MM-DD) in user's timezone
-   * Use this for scheduled_date queries
-   */
-  const todayDateString = getUserTodayDateString(timezone);
 
   /**
    * Check if a date is "today" in user's timezone
@@ -50,8 +47,10 @@ export function useTimezone() {
     isTimezoneSet: !!profile?.timezone,
     /** Format a date in user's timezone */
     formatDate,
-    /** Today's date string for DB queries */
-    todayDateString,
+    /** Today's date string for DB queries - auto-updates at midnight */
+    todayDateString: currentDateString,
+    /** Yesterday's date string for DB queries - auto-updates at midnight */
+    yesterdayDateString,
     /** Check if date is today in user's timezone */
     isDateToday,
   };
