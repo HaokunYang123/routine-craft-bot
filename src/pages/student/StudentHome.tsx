@@ -61,7 +61,7 @@ export default function StudentHome() {
   console.log('[StudentHome] User:', user?.id || 'not logged in');
   const { toast } = useToast();
   const { updateTaskStatus } = useAssignments();
-  const { todayDateString, formatDate } = useTimezone();
+  const { todayDateString, yesterdayDateString, formatDate } = useTimezone();
   const [tasks, setTasks] = useState<TaskInstance[]>([]);
   const [upcomingTasks, setUpcomingTasks] = useState<TaskInstance[]>([]);
   const [loading, setLoading] = useState(true);
@@ -344,11 +344,15 @@ export default function StudentHome() {
 
     // Use user's local date, not UTC date (TIME-03)
     const today = todayDateString;
+    const yesterday = yesterdayDateString;
     const nextWeek = formatDate(new Date(Date.now() + 7 * 86400000), "yyyy-MM-dd");
 
     try {
-      // Fetch today's tasks AND overdue pending tasks (scheduled_date <= today with status pending)
-      // This ensures students see tasks they missed from previous days
+      // Fetch tasks for rollover display:
+      // - All tasks for today (any status)
+      // - All pending tasks from before today (overdue)
+      // - All completed tasks from yesterday (for yesterday section)
+      // Per CONTEXT.md: Section order is Today -> Overdue -> Yesterday
       const { data: todayData, error: todayError } = await supabase
         .from("task_instances")
         .select(`
@@ -356,8 +360,7 @@ export default function StudentHome() {
           assignments!inner(assigned_by, group_id)
         `)
         .eq("assignee_id", user.id)
-        .lte("scheduled_date", today)  // Include today and earlier
-        .in("status", ["pending", "completed"]) // Show pending (including overdue) and today's completed
+        .or(`scheduled_date.eq.${today},scheduled_date.eq.${yesterday},and(scheduled_date.lt.${today},status.eq.pending)`)
         .order("scheduled_date", { ascending: true })
         .order("scheduled_time", { ascending: true });
 
@@ -420,19 +423,9 @@ export default function StudentHome() {
         };
       };
 
-      // Filter tasks for proper display:
-      // - Show ALL pending tasks (today and overdue)
-      // - Show completed tasks ONLY if scheduled for TODAY
-      // This ensures yesterday's completed tasks disappear the next day
-      const filteredTodayTasks = (todayData || [])
-        .filter((task: any) => {
-          if (task.status === "pending") return true; // Always show pending (including overdue)
-          if (task.status === "completed" && task.scheduled_date === today) return true; // Only today's completed
-          return false; // Hide completed tasks from previous days
-        })
-        .map(enrichTask);
-
-      setTasks(filteredTodayTasks);
+      // Store all fetched tasks - let useTaskRollover handle categorization
+      // No client-side filtering needed here anymore
+      setTasks((todayData || []).map(enrichTask));
       setUpcomingTasks((upcomingData || []).map(enrichTask));
     } catch (error) {
       handleError(error, { component: 'StudentHome', action: 'fetch tasks' });
