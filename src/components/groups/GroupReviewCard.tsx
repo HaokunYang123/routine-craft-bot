@@ -13,6 +13,17 @@ export interface GroupMember {
   completedToday: number;
   totalToday: number;
   hasNote?: boolean;
+  overdueCount?: number;
+}
+
+/**
+ * Get badge className for overdue count color escalation
+ * Per CONTEXT.md: yellow (1-2), orange (3-5), red (6+)
+ */
+function getOverdueBadgeClassName(count: number): string {
+  if (count >= 6) return "bg-red-500 text-white border-red-500 hover:bg-red-600";
+  if (count >= 3) return "bg-orange-500 text-white border-orange-500 hover:bg-orange-600";
+  return "bg-yellow-500 text-white border-yellow-500 hover:bg-yellow-600";
 }
 
 export interface GroupData {
@@ -168,7 +179,19 @@ export function GroupReviewCard({
                       {member.name.charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <p className="font-medium text-sm">{member.name}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-sm">{member.name}</p>
+                        {member.overdueCount && member.overdueCount > 0 && (
+                          <Badge
+                            className={cn(
+                              "text-xs h-5 px-1.5",
+                              getOverdueBadgeClassName(member.overdueCount)
+                            )}
+                          >
+                            {member.overdueCount}
+                          </Badge>
+                        )}
+                      </div>
                       <p className="text-xs text-muted-foreground">
                         {member.completedToday}/{member.totalToday} tasks
                       </p>
