@@ -541,7 +541,7 @@ export default function StudentHome() {
       {/* Three-Column Layout: My Groups | Tasks to Do | Coach's Notes */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
         {/* My Groups Card */}
-        <Card className="border-l-4 border-l-blue-500 bg-white shadow-sm rounded-lg">
+        <Card className="border-l-4 border-l-blue-500 bg-card shadow-md rounded-lg border border-border">
           <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <CardTitle className="font-bold text-base">
@@ -645,7 +645,7 @@ export default function StudentHome() {
       </Card>
 
       {/* Coach's Notes - Always visible */}
-      <Card className="border-l-4 border-l-amber-500 bg-white shadow-sm rounded-lg">
+      <Card className="border-l-4 border-l-amber-500 bg-card shadow-md rounded-lg border border-border">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <CardTitle className="font-bold text-base">
@@ -728,7 +728,7 @@ export default function StudentHome() {
       </Card>
 
       {/* Today's Tasks (uses useTaskRollover for categorization) */}
-      <Card className="border-l-4 border-l-emerald-500 bg-white shadow-sm rounded-lg">
+      <Card className="border-l-4 border-l-emerald-500 bg-card shadow-md rounded-lg border border-border">
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center justify-between">
             <span className="font-bold text-base">

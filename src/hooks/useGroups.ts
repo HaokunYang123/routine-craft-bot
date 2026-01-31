@@ -135,9 +135,47 @@ export function useGroups() {
     },
   });
 
-  // Delete group mutation
+  // Delete group mutation - cascades to all related data
   const deleteGroupMutation = useMutation({
     mutationFn: async (data: { groupId: string }) => {
+      // 1. Get all assignments for this group
+      const { data: assignments } = await supabase
+        .from("assignments")
+        .select("id")
+        .eq("group_id", data.groupId);
+
+      // 2. Delete all task_instances for group's assignments
+      if (assignments && assignments.length > 0) {
+        const assignmentIds = assignments.map(a => a.id);
+        const { error: taskError } = await supabase
+          .from("task_instances")
+          .delete()
+          .in("assignment_id", assignmentIds);
+        if (taskError) console.warn("Could not delete task_instances:", taskError.message);
+      }
+
+      // 3. Delete all assignments for this group
+      const { error: assignError } = await supabase
+        .from("assignments")
+        .delete()
+        .eq("group_id", data.groupId);
+      if (assignError) console.warn("Could not delete assignments:", assignError.message);
+
+      // 4. Delete all notes for this group
+      const { error: notesError } = await supabase
+        .from("notes")
+        .delete()
+        .eq("group_id", data.groupId);
+      if (notesError) console.warn("Could not delete notes:", notesError.message);
+
+      // 5. Delete all group_members
+      const { error: membersError } = await supabase
+        .from("group_members")
+        .delete()
+        .eq("group_id", data.groupId);
+      if (membersError) console.warn("Could not delete group_members:", membersError.message);
+
+      // 6. Finally delete the group itself
       const { error } = await supabase
         .from("groups")
         .delete()

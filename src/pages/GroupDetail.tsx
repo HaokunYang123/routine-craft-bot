@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useGroups } from "@/hooks/useGroups";
 import { handleError } from "@/lib/error";
+import { queryKeys } from "@/lib/queries/keys";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -104,6 +107,8 @@ export default function GroupDetail() {
     const navigate = useNavigate();
     const { user } = useAuth();
     const { toast } = useToast();
+    const { deleteGroup } = useGroups();
+    const queryClient = useQueryClient();
 
     const [loading, setLoading] = useState(true);
     const [group, setGroup] = useState<GroupInfo | null>(null);
@@ -286,14 +291,11 @@ export default function GroupDetail() {
         setDeleting(true);
 
         try {
-            const { error } = await supabase
-                .from("groups")
-                .delete()
-                .eq("id", groupId);
-
-            if (error) throw error;
-
-            toast({ title: "Group Deleted", description: "The group and all members have been removed." });
+            // Use hook's deleteGroup for proper query invalidation (real-time UI update)
+            const success = await deleteGroup(groupId);
+            if (!success) {
+                throw new Error("Failed to delete group");
+            }
             navigate("/dashboard");
         } catch (error: any) {
             toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -307,11 +309,7 @@ export default function GroupDetail() {
         setRemoving(true);
 
         try {
-            // First, delete pending task_instances for this student in this group
-            // This prevents "zombie tasks" from remaining after student removal
-            const today = format(new Date(), "yyyy-MM-dd");
-
-            // Get assignments for this group to find related tasks
+            // 1. Get assignments for this group to find related tasks
             const { data: groupAssignments } = await supabase
                 .from("assignments")
                 .select("id")
@@ -320,22 +318,31 @@ export default function GroupDetail() {
             if (groupAssignments && groupAssignments.length > 0) {
                 const assignmentIds = groupAssignments.map(a => a.id);
 
-                // Delete pending tasks for this student from group assignments
+                // 2. Delete ALL task_instances for this student from group assignments
+                // (not just pending - includes completed, missed, etc.)
                 const { error: deleteTasksError } = await supabase
                     .from("task_instances")
                     .delete()
                     .in("assignment_id", assignmentIds)
-                    .eq("assignee_id", studentToRemove.student_id)
-                    .eq("status", "pending")
-                    .gte("scheduled_date", today);
+                    .eq("assignee_id", studentToRemove.student_id);
 
                 if (deleteTasksError) {
-                    console.warn("Could not delete pending tasks for student:", deleteTasksError.message);
-                    // Continue anyway - membership removal is more important
+                    console.warn("Could not delete tasks for student:", deleteTasksError.message);
                 }
             }
 
-            // Remove from group_members table
+            // 3. Delete notes targeted to this student in this group
+            const { error: deleteNotesError } = await supabase
+                .from("notes")
+                .delete()
+                .eq("group_id", groupId)
+                .eq("to_user_id", studentToRemove.student_id);
+
+            if (deleteNotesError) {
+                console.warn("Could not delete notes for student:", deleteNotesError.message);
+            }
+
+            // 4. Remove from group_members table
             const { error } = await supabase
                 .from("group_members")
                 .delete()
@@ -346,9 +353,15 @@ export default function GroupDetail() {
             // Update local state
             setStudents(prev => prev.filter(s => s.id !== studentToRemove.id));
 
+            // Invalidate queries to update UI across the app
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: queryKeys.groups.list(user!.id) }),
+                queryClient.invalidateQueries({ queryKey: queryKeys.assignments.all }),
+            ]);
+
             toast({
                 title: "Student Removed",
-                description: `${studentToRemove.display_name} has been removed from the group and their pending tasks have been cleared.`
+                description: `${studentToRemove.display_name} has been removed from the group and all related data has been cleared.`
             });
         } catch (error: any) {
             toast({ title: "Error", description: error.message, variant: "destructive" });
