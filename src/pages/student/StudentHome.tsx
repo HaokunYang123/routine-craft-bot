@@ -11,11 +11,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Calendar, Clock, CheckCircle2, UserPlus, Users, ChevronDown, ChevronUp, User, AlertTriangle, MessageSquare, X } from "lucide-react";
+import { Loader2, Calendar, Clock, CheckCircle2, UserPlus, Users, ChevronDown, ChevronUp, AlertTriangle, MessageSquare, X } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { useTaskRollover } from "@/hooks/useTaskRollover";
 import { useSessionDismissal } from "@/hooks/useSessionDismissal";
+import { useExcusedNotification } from "@/hooks/useExcusedNotification";
 import { handleError } from "@/lib/error";
 import { REALTIME_CHANNELS } from "@/lib/realtime/channels";
 
@@ -59,9 +60,7 @@ interface CoachNote {
 }
 
 export default function StudentHome() {
-  console.log('[StudentHome] Component rendering');
   const { user } = useAuth();
-  console.log('[StudentHome] User:', user?.id || 'not logged in');
   const { toast } = useToast();
   const { updateTaskStatus } = useAssignments();
   const { todayDateString, yesterdayDateString, formatDate } = useTimezone();
@@ -85,6 +84,9 @@ export default function StudentHome() {
 
   // Session-scoped dismissal for yesterday's completed section
   const { isDismissed: isYesterdayDismissed, dismiss: dismissYesterday, reset: resetYesterdayDismissal } = useSessionDismissal();
+
+  // Show toast notification for tasks excused by coach (TASK-01, TASK-02)
+  useExcusedNotification(user?.id || "");
 
   // Reset yesterday dismissal when day changes
   useEffect(() => {
@@ -126,17 +128,13 @@ export default function StudentHome() {
           table: 'task_instances',
           filter: `assignee_id=eq.${user.id}`,
         },
-        (payload) => {
-          console.log('[StudentHome] Realtime update:', payload.eventType);
+        () => {
           fetchTasks(); // Refetch on any change
         }
       )
-      .subscribe((status) => {
-        console.log('[StudentHome] Subscription status:', status);
-      });
+      .subscribe();
 
     return () => {
-      console.log('[StudentHome] Cleaning up subscription');
       supabase.removeChannel(channel);
     };
   }, [user]);
@@ -145,7 +143,6 @@ export default function StudentHome() {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && user) {
-        console.log('[StudentHome] Tab visible, refetching');
         fetchTasks();
         fetchConnectedGroups();
         fetchCoachNotes();
