@@ -1071,7 +1071,11 @@ export default function StudentHome() {
                           }}
                         >
                           <div className="flex items-start gap-3">
-                            {/* No checkbox - read-only per CONTEXT.md */}
+                            {/*
+                              IMPORTANT: Yesterday's completed section is READ-ONLY (TASK-01).
+                              Do NOT add Checkbox here - students cannot uncheck yesterday's tasks.
+                              Using static CheckCircle2 icon intentionally.
+                            */}
                             <CheckCircle2 className="w-5 h-5 text-muted-foreground mt-0.5" />
                             <div className="flex-1 min-w-0">
                               <p className="font-medium line-through text-muted-foreground">
