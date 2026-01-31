@@ -44,6 +44,11 @@ Plans:
 
 **Goal:** Consistent three-box dashboard layout with proper styling
 
+**Plans:** 1 plan
+
+Plans:
+- [x] 19-01-PLAN.md — Student dashboard layout with color-coded boxes (2026-01-31)
+
 **Requirements:**
 - STUDENT-01: Remove Delete Account
 - STUDENT-02: Always show 3 boxes
@@ -62,6 +67,15 @@ Plans:
 ## Phase 20: Task Rollover Logic
 
 **Goal:** Correct daily task visibility based on completion and date
+
+**Plans:** 5 plans
+
+Plans:
+- [ ] 20-01-PLAN.md — Day boundary detection infrastructure
+- [ ] 20-02-PLAN.md — Task categorization and session dismissal hooks
+- [ ] 20-03-PLAN.md — Student task view with rollover sections
+- [ ] 20-04-PLAN.md — Coach overdue badges and excuse functionality
+- [ ] 20-05-PLAN.md — Student notifications and final verification
 
 **Requirements:**
 - TASK-01: Completed tasks gone next day
@@ -158,3 +172,4 @@ Phase 23 should run last (tests the fixed behaviors).
 
 ---
 *Roadmap created: 2026-01-31*
+*Phase 20 planned: 2026-01-31*
