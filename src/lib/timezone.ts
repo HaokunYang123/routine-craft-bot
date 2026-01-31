@@ -5,7 +5,7 @@
  * Uses date-fns-tz v3 API (toZonedTime, fromZonedTime, formatInTimeZone)
  */
 import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
-import { format, isSameDay } from 'date-fns';
+import { format, isSameDay, subDays } from 'date-fns';
 
 const DEFAULT_TIMEZONE = 'UTC';
 
@@ -46,6 +46,19 @@ export function getUserTodayDateString(timezone: string): string {
   const now = new Date();
   const userNow = toZonedTime(now, timezone || DEFAULT_TIMEZONE);
   return format(userNow, 'yyyy-MM-dd');
+}
+
+/**
+ * Get yesterday's date string (YYYY-MM-DD) in user's timezone
+ * Used for querying yesterday's completed tasks
+ *
+ * Used by useDayBoundary hook for task rollover logic
+ */
+export function getYesterdayDateString(timezone: string): string {
+  const now = new Date();
+  const userNow = toZonedTime(now, timezone || DEFAULT_TIMEZONE);
+  const yesterday = subDays(userNow, 1);
+  return format(yesterday, 'yyyy-MM-dd');
 }
 
 /**
