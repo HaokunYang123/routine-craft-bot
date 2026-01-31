@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 ## Current Position
 
 Phase: 20 of 23 (Task Rollover Logic) - In progress
-Plan: 3 of 5 in current phase
-Status: Plan 20-03 complete
-Last activity: 2026-01-31 - Completed 20-03-PLAN.md
+Plan: 4 of 5 in current phase
+Status: Plan 20-04 complete
+Last activity: 2026-01-31 - Completed 20-04-PLAN.md
 
-Progress: [████░░░░░░░░░░░░░░░░] 50% (3/6 phases)
+Progress: [████████░░░░░░░░░░░░] 67% (4/6 phases)
 
 ## Milestone History
 
@@ -56,6 +56,9 @@ See: .planning/MILESTONES.md for full details
 | 20 | Progress shows today's tasks only | Overdue and yesterday are separate concerns |
 | 20 | Overdue collapses at 5 tasks | Prevents list from becoming overwhelming |
 | 20 | Day boundary resets yesterday dismissal | New day = new yesterday section |
+| 20 | Use 'excused' status for coach task excusal | Keeps audit trail vs deletion |
+| 20 | className-based badge styling | Badge component lacks warning/orange variants |
+| 20 | Color escalation: yellow 1-2, orange 3-5, red 6+ | Per CONTEXT.md overdue visibility spec |
 
 ### Pending Todos
 
@@ -69,11 +72,11 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-31
-Stopped at: Completed 20-03-PLAN.md (section UI rendering in StudentHome)
+Stopped at: Completed 20-04-PLAN.md (coach overdue visibility)
 Resume file: None
 
-Next action: Continue with Plan 20-04 (coach overdue visibility)
+Next action: Continue with Plan 20-05 (if exists, otherwise phase 20 complete)
 
 ---
 *State initialized: 2026-01-24*
-*Last updated: 2026-01-31 - Plan 20-03 complete*
+*Last updated: 2026-01-31 - Plan 20-04 complete*
