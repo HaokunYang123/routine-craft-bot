@@ -40,12 +40,10 @@ export interface MockQueryBuilder {
 export interface MockAuth {
   getSession: ReturnType<typeof vi.fn>;
   getUser: ReturnType<typeof vi.fn>;
-  signInWithPassword: ReturnType<typeof vi.fn>;
   signInWithOAuth: ReturnType<typeof vi.fn>;
   signUp: ReturnType<typeof vi.fn>;
   signOut: ReturnType<typeof vi.fn>;
   onAuthStateChange: ReturnType<typeof vi.fn>;
-  resetPasswordForEmail: ReturnType<typeof vi.fn>;
 }
 
 /**
@@ -130,10 +128,6 @@ export function createMockSupabaseClient<T = unknown>(
       data: { user: null },
       error: null,
     }),
-    signInWithPassword: vi.fn().mockResolvedValue({
-      data: { user: null, session: null },
-      error: null,
-    }),
     signInWithOAuth: vi.fn().mockResolvedValue({
       data: { provider: 'google', url: 'https://example.com' },
       error: null,
@@ -146,10 +140,6 @@ export function createMockSupabaseClient<T = unknown>(
     onAuthStateChange: vi.fn(() => ({
       data: { subscription: { unsubscribe: vi.fn() } },
     })),
-    resetPasswordForEmail: vi.fn().mockResolvedValue({
-      data: {},
-      error: null,
-    }),
   };
 
   // Assemble the mock client
