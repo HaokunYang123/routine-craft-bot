@@ -1,5 +1,5 @@
 ---
-status: complete
+status: diagnosed
 phase: 20-task-rollover-logic
 source: 20-01-SUMMARY.md, 20-02-SUMMARY.md, 20-03-SUMMARY.md, 20-04-SUMMARY.md, 20-05-SUMMARY.md
 started: 2026-01-31T23:00:00Z
@@ -78,27 +78,42 @@ skipped: 5
   reason: "User reported: overdue UI needs contrast, currently is all white which is hard to see"
   severity: minor
   test: 1
-  root_cause: ""
-  artifacts: []
-  missing: []
+  root_cause: "Overdue section lacks a background container - only has top border separator, no distinct background/border/shadow"
+  artifacts:
+    - path: "src/pages/student/StudentHome.tsx"
+      issue: "Lines 856-1035: Overdue section has no visual container wrapper"
+  missing:
+    - "Wrap overdue section in styled container with bg-red-50 border border-red-200 rounded-lg p-4"
   debug_session: ""
 
 - truth: "Coach can see tasks assigned to students with overdue badge"
-  status: failed
+  status: needs_reverification
   reason: "User reported: no we cant even see what task is assigned to the student"
   severity: major
   test: 7
-  root_cause: ""
-  artifacts: []
-  missing: []
-  debug_session: ""
+  root_cause: "Code is complete and correct - badges only appear when overdue tasks exist (scheduled_date < today, status = 'pending'). Likely data/test setup issue."
+  artifacts:
+    - path: "src/components/groups/GroupReviewCard.tsx"
+      issue: "Lines 184-193: Badge rendering exists with correct color escalation"
+    - path: "src/hooks/useAssignments.ts"
+      issue: "Lines 685-718: getGroupProgress correctly queries and returns overdueCount"
+    - path: "src/pages/CoachDashboard.tsx"
+      issue: "Lines 128-140: Data mapping is correct"
+  missing:
+    - "Verify test data has tasks with scheduled_date < today AND status = 'pending'"
+  debug_session: ".planning/debug/coach-overdue-badge-visibility.md"
 
 - truth: "Coach can excuse overdue tasks via Excuse button in student detail"
-  status: failed
+  status: needs_reverification
   reason: "User reported: not there, either the UI is not there or both the backend and UI is not there"
   severity: major
   test: 8
-  root_cause: ""
-  artifacts: []
-  missing: []
-  debug_session: ""
+  root_cause: "Functionality IS FULLY IMPLEMENTED - excuseTask mutation exists (lines 596-637), UI exists (lines 389-410). Button only shows for tasks where status='pending' AND scheduled_date < today."
+  artifacts:
+    - path: "src/hooks/useAssignments.ts"
+      issue: "Lines 596-637: excuseTask mutation fully implemented"
+    - path: "src/components/dashboard/StudentDetailSheet.tsx"
+      issue: "Lines 389-410: Excuse button renders for overdue tasks"
+  missing:
+    - "Re-verify with tasks that have status='pending' AND scheduled_date before today"
+  debug_session: ".planning/debug/coach-excuse-task-missing.md"
