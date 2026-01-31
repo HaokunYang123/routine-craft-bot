@@ -10,6 +10,7 @@ import {
   Calendar,
   Clock,
   ChevronRight,
+  ChevronDown,
   Loader2,
   Send,
   MessageSquare,
@@ -36,6 +37,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
@@ -71,6 +77,17 @@ interface Group {
 // Pre-generate time slots for performance
 const TIME_SLOTS = generateTimeSlots();
 
+// Days of week for custom schedule selection
+const DAYS_OF_WEEK = [
+  { value: 0, label: "Sun" },
+  { value: 1, label: "Mon" },
+  { value: 2, label: "Tue" },
+  { value: 3, label: "Wed" },
+  { value: 4, label: "Thu" },
+  { value: 5, label: "Fri" },
+  { value: 6, label: "Sat" },
+];
+
 export default function AssignerDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -89,8 +106,11 @@ export default function AssignerDashboard() {
   const [selectedGroupId, setSelectedGroupId] = useState("");
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDescription, setTaskDescription] = useState("");
-  const [startDate, setStartDate] = useState(format(new Date(), "yyyy-MM-dd"));
-  const [endDate, setEndDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [dueDate, setDueDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [endDate, setEndDate] = useState("");
+  const [scheduleType, setScheduleType] = useState<"once" | "daily" | "weekly" | "custom">("once");
+  const [scheduleDays, setScheduleDays] = useState<number[]>([]);
+  const [isMultiDayOpen, setIsMultiDayOpen] = useState(false);
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
 
@@ -118,6 +138,15 @@ export default function AssignerDashboard() {
   const isTimeRangeValid = (): boolean => {
     if (!startTime || !endTime) return true; // No validation if times not set
     return timeToMinutes(endTime) > timeToMinutes(startTime);
+  };
+
+  // Toggle day of week selection for custom schedule
+  const toggleDayOfWeek = (day: number) => {
+    setScheduleDays(current =>
+      current.includes(day)
+        ? current.filter(d => d !== day)
+        : [...current, day].sort((a, b) => a - b)
+    );
   };
 
   const fetchGroups = async () => {
@@ -617,29 +646,98 @@ export default function AssignerDashboard() {
               />
             </div>
 
-            {/* Date Range */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="startDate">Start Date</Label>
-                <Input
-                  id="startDate"
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="bg-card border-border"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="endDate">End Date</Label>
-                <Input
-                  id="endDate"
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="bg-card border-border"
-                />
-              </div>
+            {/* Due Date */}
+            <div className="space-y-2">
+              <Label htmlFor="dueDate">Due Date</Label>
+              <Input
+                id="dueDate"
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                min={format(new Date(), "yyyy-MM-dd")}
+                className="bg-card border-border"
+              />
             </div>
+
+            {/* Schedule Type */}
+            <div className="space-y-2">
+              <Label>Schedule</Label>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { value: "once", label: "One-time" },
+                  { value: "daily", label: "Daily" },
+                  { value: "weekly", label: "Weekly" },
+                  { value: "custom", label: "Custom days" },
+                ].map((opt) => (
+                  <Button
+                    key={opt.value}
+                    type="button"
+                    variant={scheduleType === opt.value ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setScheduleType(opt.value as typeof scheduleType)}
+                    className={scheduleType === opt.value ? "bg-cta-primary hover:bg-cta-hover" : ""}
+                  >
+                    {opt.label}
+                  </Button>
+                ))}
+              </div>
+              {scheduleType !== "once" && (
+                <p className="text-xs text-muted-foreground">
+                  Tasks will start from the Due Date
+                </p>
+              )}
+            </div>
+
+            {/* Day-of-week selector (only for custom schedule) */}
+            {scheduleType === "custom" && (
+              <div className="space-y-2">
+                <Label>Days of Week</Label>
+                <div className="flex flex-wrap gap-2">
+                  {DAYS_OF_WEEK.map((day) => (
+                    <Button
+                      key={day.value}
+                      type="button"
+                      variant={scheduleDays.includes(day.value) ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => toggleDayOfWeek(day.value)}
+                      className={scheduleDays.includes(day.value) ? "bg-cta-primary hover:bg-cta-hover" : ""}
+                    >
+                      {day.label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Multi-day task (only for one-time schedule) */}
+            {scheduleType === "once" && (
+              <Collapsible open={isMultiDayOpen} onOpenChange={setIsMultiDayOpen}>
+                <CollapsibleTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-between text-muted-foreground hover:text-foreground"
+                  >
+                    <span>Multi-day task</span>
+                    <ChevronDown className={`w-4 h-4 transition-transform ${isMultiDayOpen ? "rotate-180" : ""}`} />
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pt-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="endDate">End Date</Label>
+                    <Input
+                      id="endDate"
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      min={dueDate}
+                      className="bg-card border-border"
+                    />
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            )}
 
             {/* Time Range */}
             <div className="grid grid-cols-2 gap-4">
