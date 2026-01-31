@@ -1,39 +1,31 @@
-# Routine Craft Bot
+# TeachCoachConnect
 
 ## What This Is
 
-A coach/student task management system built with React and Supabase. Coaches create task assignments with flexible scheduling, students complete tasks and track progress. Includes AI assistant for task planning, group management, and daily check-ins.
+A coach/student task management system built with React and Supabase. Coaches create task assignments with flexible scheduling, students complete tasks and track progress. Features Google OAuth authentication, realtime sync between coach and student views, and timezone-aware task scheduling.
 
-**v2.0 Performance shipped 2026-01-28** — React Query migration, optimistic updates, pagination, and render optimization for faster, smoother UX.
-
-## Current Milestone: v3.0 Auth & Realtime
-
-**Goal:** Rebuild authentication with atomic profile creation, add realtime sync, and fix timezone/calendar issues.
-
-**Target features:**
-- Role selection landing page ("I am a Coach" / "I am a Student")
-- Google OAuth only (remove email/password, remove login-via-code)
-- Database trigger for atomic profile creation (user + profile in one transaction)
-- Role-based routing (database is source of truth)
-- Student onboarding: login first → join class second
-- Supabase Realtime subscriptions for all data
-- Proper timezone handling (store UTC, display local)
-- Daily rollover logic for tasks
-- Calendar freshness via realtime
+**v3.0 Auth & Realtime shipped 2026-01-30** — Google OAuth only, atomic profile creation, realtime subscriptions, and timezone handling for seamless user experience.
 
 ## Core Value
 
-Users can reliably complete their daily workflows (task assignment, task completion, group management) without encountering errors, crashes, or unexpected behavior — with instant feedback and smooth performance.
+Users can reliably complete their daily workflows (task assignment, task completion, group management) without encountering errors, crashes, or unexpected behavior — with instant feedback, smooth performance, and accurate timezone handling.
 
 ## Current State
 
-**Shipped: v2.0 Performance (2026-01-28)**
+**Shipped: v3.0 Auth & Realtime (2026-01-30)**
 
 Tech stack: React 18 + Vite + TypeScript + Tailwind + Supabase + React Query
 Test coverage: 240 tests passing (hooks + components)
 Type safety: TypeScript strict mode, 0 `as any` casts in src/
 Data layer: React Query with 5-min caching, optimistic updates, infinite scroll
-Error handling: React Error Boundaries + handleError utility + global query error handling
+Auth: Google OAuth only with role selection landing page
+Realtime: Supabase Realtime with React Query cache invalidation
+Timezone: User-selectable timezone with UTC storage and local display
+
+**Codebase:**
+- 35,682 lines of TypeScript
+- 17 phases completed (54 plans total)
+- 3 milestones shipped (v1, v2.0, v3.0)
 
 ## Requirements
 
@@ -79,23 +71,25 @@ Error handling: React Error Boundaries + handleError utility + global query erro
 - ✓ Performance profiling infrastructure — v2.0
 - ✓ 240 tests passing (137 new) — v2.0
 
+**v3.0 Auth & Realtime (2026-01-30):**
+- ✓ Role selection landing page with "I am a Coach" / "I am a Student" — v3.0
+- ✓ Google OAuth only for all users — v3.0
+- ✓ Database trigger `handle_new_user` for atomic profile creation — v3.0
+- ✓ Role passed via OAuth redirect URL (survives redirect) — v3.0
+- ✓ Role-based routing that queries database (not local state) — v3.0
+- ✓ Remove email/password login — v3.0
+- ✓ Remove login-via-code (keep for class joining) — v3.0
+- ✓ Supabase Realtime subscriptions for task completions — v3.0
+- ✓ Supabase Realtime subscriptions for new assignments — v3.0
+- ✓ React Query cache invalidation on realtime events — v3.0
+- ✓ Timezone handling: store UTC, display local time — v3.0
+- ✓ Daily rollover logic at user's local midnight — v3.0
+- ✓ User-selectable timezone in settings — v3.0
+- ✓ Emergency logout buttons on error pages — v3.0
+
 ### Active
 
-**v3.0 Auth & Realtime:**
-- [ ] Role selection landing page with "I am a Coach" / "I am a Student"
-- [ ] Google OAuth only for all users
-- [ ] Database trigger `handle_new_user` for atomic profile creation
-- [ ] Role passed as metadata during Google signup
-- [ ] Role-based routing that queries database (not local state)
-- [ ] Student empty state → class joining flow (QR/code after login)
-- [ ] Remove email/password login
-- [ ] Remove login-via-code (keep for class joining)
-- [ ] Supabase Realtime subscriptions for task completions
-- [ ] Supabase Realtime subscriptions for new assignments
-- [ ] Supabase Realtime subscriptions for all data entities
-- [ ] Timezone handling: store UTC, display local time
-- [ ] Daily rollover logic for recurring tasks
-- [ ] Calendar freshness via realtime updates
+(None — awaiting v4.0 milestone planning)
 
 ### Out of Scope
 
@@ -106,6 +100,7 @@ Error handling: React Error Boundaries + handleError utility + global query erro
 | Offline support | Complex, defer to dedicated milestone |
 | 100% test coverage | Diminishing returns; critical paths covered |
 | One user with multiple roles | Will never happen per user requirement |
+| Server-side daily rollover | Client-side calculation is simpler, no cron needed |
 
 ### Future Candidates (Deferred)
 
@@ -114,6 +109,13 @@ Error handling: React Error Boundaries + handleError utility + global query erro
 - Suspense integration (cleaner loading states)
 - Virtualized lists for 1000+ items
 - Code-splitting for heavy components
+
+**Realtime Advanced:**
+- Presence indicators ("User X is online")
+- Typing indicators for chat/comments
+
+**Timezone Advanced:**
+- Multi-timezone classroom support (coach views student times in student's timezone)
 
 **Security:**
 - Remove .env from git history
@@ -126,18 +128,12 @@ Error handling: React Error Boundaries + handleError utility + global query erro
 
 ## Context
 
-**Codebase (post-v2.0):**
-- 33,935 lines of TypeScript
-- 240 tests (hooks + components)
-- Zero `as any` casts
-- 6 hooks migrated to React Query
-- Query key factory with hierarchical keys for all entities
-- Infinite scroll pagination on People page
-- CoachCalendar optimized with React.memo and useCallback
-
-**Tech Debt (from v1, carried forward):**
+**Tech Debt (accumulated):**
 - CheckInModal not wired into application (tests exist)
-- No explicit tests for setTimeout cleanup (verified by code review)
+- Pre-existing test failure in useProfile.test.tsx (role assertion)
+- MultiAuthLogin.tsx unused (email/password auth removed)
+- useGoogleAuth partially duplicated by AuthTabs inline OAuth
+- Student pages use inline subscriptions instead of useRealtimeSubscription hook
 
 ## Constraints
 
@@ -163,6 +159,13 @@ Error handling: React Error Boundaries + handleError utility + global query erro
 | Cursor-based pagination | Stable ordering with concurrent inserts | ✓ Good — handles large lists |
 | React.memo for sub-components | Reduce parent re-render propagation | ✓ Good — calendar smoother |
 | Map-based task lookup | O(1) vs O(n) filtering per date | ✓ Good — month view faster |
+| Google OAuth only | Simplifies auth, one provider | ✓ Good — v3.0 shipped |
+| Role via redirectTo URL | Survives OAuth redirect | ✓ Good — reliable role passing |
+| Database trigger for profile | Atomic creation, zero latency | ✓ Good — no race conditions |
+| invalidateQueries for realtime | Simpler than setQueryData | ✓ Good — consistent cache |
+| Denormalized coach_id | Realtime filter requires direct column | ✓ Good — events delivered |
+| IANA timezone names | Handles DST automatically | ✓ Good — correct times |
+| Simplified timezone selector | User feedback: too many options | ✓ Good — 6 US timezones |
 
 ---
-*Last updated: 2026-01-28 after v3.0 milestone started*
+*Last updated: 2026-01-30 after v3.0 milestone*

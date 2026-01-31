@@ -1,4 +1,30 @@
-# Project Milestones: Routine Craft Bot
+# Project Milestones: TeachCoachConnect
+
+## v3.0 Auth & Realtime (Shipped: 2026-01-30)
+
+**Delivered:** Rebuilt authentication with Google OAuth only, atomic profile creation, realtime sync between coach and student views, and timezone-aware date handling.
+
+**Phases completed:** 15-17 (14 plans total)
+
+**Key accomplishments:**
+- Role selection landing page ("I am a Coach" / "I am a Student") with Google OAuth only
+- Database trigger for atomic profile creation with zero latency after OAuth
+- Realtime subscriptions for instant sync (student task completion visible to coach instantly)
+- Timezone-aware date handling with user-selectable timezone
+- "Today's tasks" respects user's local date and midnight rollover
+- Emergency logout buttons on error pages for user escape
+
+**Stats:**
+- 73 files modified (+6,934 lines net)
+- 35,682 lines of TypeScript
+- 3 phases, 14 plans
+- 3 days from start to ship (2026-01-28 → 2026-01-30)
+
+**Git range:** `feat(15-02)` → `docs(phase-17)`
+
+**What's next:** User testing, then v4.0 for next features
+
+---
 
 ## v2.0 Performance (Shipped: 2026-01-28)
 
