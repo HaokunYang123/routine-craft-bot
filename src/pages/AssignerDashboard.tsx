@@ -121,6 +121,17 @@ export default function AssignerDashboard() {
     }
   }, [user]);
 
+  // Reset derived state when schedule type changes
+  useEffect(() => {
+    if (scheduleType !== "once") {
+      setIsMultiDayOpen(false);
+      setEndDate(""); // Clear end date when recurring
+    }
+    if (scheduleType !== "custom") {
+      setScheduleDays([]);
+    }
+  }, [scheduleType]);
+
   // Helper to convert "HH:MM AM/PM" to 24-hour minutes for comparison
   const timeToMinutes = (timeStr: string): number => {
     if (!timeStr) return -1;
@@ -260,6 +271,20 @@ export default function AssignerDashboard() {
     }
   };
 
+  // Reset form to initial state
+  const resetAssignForm = () => {
+    setSelectedGroupId("");
+    setTaskTitle("");
+    setTaskDescription("");
+    setDueDate(format(new Date(), "yyyy-MM-dd"));
+    setEndDate("");
+    setScheduleType("once");
+    setScheduleDays([]);
+    setIsMultiDayOpen(false);
+    setStartTime("");
+    setEndTime("");
+  };
+
   const handleAssignTask = async () => {
     if (!selectedGroupId || !taskTitle.trim()) return;
 
@@ -273,12 +298,29 @@ export default function AssignerDashboard() {
       return;
     }
 
+    // For recurring tasks with custom days, need at least one day selected
+    if (scheduleType === "custom" && scheduleDays.length === 0) {
+      toast({
+        title: "No Days Selected",
+        description: "Please select at least one day for custom schedule",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Calculate effective end date:
+    // - If multi-day is open and has end date: use that
+    // - Otherwise: use due date (single day task)
+    const effectiveEndDate = scheduleType === "once" && isMultiDayOpen && endDate
+      ? endDate
+      : dueDate;
+
     const result = await assignGroupTask({
       groupId: selectedGroupId,
       title: taskTitle.trim(),
       description: taskDescription.trim() || undefined,
-      startDate,
-      endDate,
+      startDate: dueDate,  // Due Date maps to startDate
+      endDate: effectiveEndDate,
       startTime: startTime || undefined,
       endTime: endTime || undefined,
     });
@@ -286,13 +328,7 @@ export default function AssignerDashboard() {
     if (result !== null) {
       // Success - close dialog and reset form
       setAssignDialogOpen(false);
-      setSelectedGroupId("");
-      setTaskTitle("");
-      setTaskDescription("");
-      setStartDate(format(new Date(), "yyyy-MM-dd"));
-      setEndDate(format(new Date(), "yyyy-MM-dd"));
-      setStartTime("");
-      setEndTime("");
+      resetAssignForm();
       // Refresh dashboard data
       fetchDashboardData();
     }
@@ -790,7 +826,8 @@ export default function AssignerDashboard() {
                 !selectedGroupId ||
                 !taskTitle.trim() ||
                 isAssigningGroupTask ||
-                (startTime && endTime && !isTimeRangeValid())
+                (startTime && endTime && !isTimeRangeValid()) ||
+                (scheduleType === "custom" && scheduleDays.length === 0)
               }
               className="bg-cta-primary hover:bg-cta-hover text-white"
             >
