@@ -345,7 +345,15 @@ export default function CoachDashboard() {
                   <Label>Color</Label>
                   <Select value={newGroupColor} onValueChange={setNewGroupColor}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a color" />
+                      <SelectValue placeholder="Select a color">
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-4 h-4 rounded-full"
+                            style={{ backgroundColor: newGroupColor }}
+                          />
+                          {GROUP_COLORS.find(c => c.value === newGroupColor)?.label}
+                        </div>
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {GROUP_COLORS.map((color) => (
