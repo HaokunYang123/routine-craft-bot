@@ -14,9 +14,10 @@ updated: 2026-01-31T23:15:00Z
 
 ### 1. Task Sections Display
 expected: Student dashboard shows Today's Tasks at top, then Overdue section (if any tasks from before today), then Yesterday section (if any completed tasks from yesterday). Each section is visually distinct.
-result: issue
+result: fixed
 reported: "overdue UI needs contrast, currently is all white which is hard to see"
 severity: minor
+fix_commit: 8fb82e2
 
 ### 2. Yesterday Section Collapsed by Default
 expected: Yesterday section starts collapsed. Clicking header expands it to show completed tasks from yesterday.
@@ -74,7 +75,7 @@ skipped: 5
 ## Gaps
 
 - truth: "Each section is visually distinct with good contrast"
-  status: failed
+  status: fixed
   reason: "User reported: overdue UI needs contrast, currently is all white which is hard to see"
   severity: minor
   test: 1
@@ -82,9 +83,8 @@ skipped: 5
   artifacts:
     - path: "src/pages/student/StudentHome.tsx"
       issue: "Lines 856-1035: Overdue section has no visual container wrapper"
-  missing:
-    - "Wrap overdue section in styled container with bg-red-50 border border-red-200 rounded-lg p-4"
-  debug_session: ""
+  fix_commit: "8fb82e2"
+  fix_description: "Wrapped overdue section in bg-red-50 container with border-red-200 rounded-lg p-4"
 
 - truth: "Coach can see tasks assigned to students with overdue badge"
   status: needs_reverification
