@@ -22,11 +22,13 @@ import {
   Sparkles,
   AlertCircle,
   History,
+  X,
 } from "lucide-react";
 import { format, parseISO, subDays, isAfter } from "date-fns";
 import { cn, safeFormatDate } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { handleError } from "@/lib/error";
+import { useAssignments } from "@/hooks/useAssignments";
 
 interface TaskInstance {
   id: string;
@@ -63,11 +65,13 @@ export function StudentDetailSheet({
   groupId,
 }: StudentDetailSheetProps) {
   const { toast } = useToast();
+  const { excuseTask, isExcusingTask } = useAssignments();
   const [loading, setLoading] = useState(true);
   const [tasks, setTasks] = useState<TaskInstance[]>([]);
   const [activeTab, setActiveTab] = useState<"active" | "past">("active");
   const [generatingSummary, setGeneratingSummary] = useState(false);
   const [aiSummary, setAiSummary] = useState("");
+  const [excusingTaskId, setExcusingTaskId] = useState<string | null>(null);
 
   useEffect(() => {
     if (open && studentId) {
@@ -139,7 +143,25 @@ export function StudentDetailSheet({
     }
   };
 
-  // Filter tasks by tab
+  const handleExcuseTask = async (taskId: string) => {
+    if (!studentId) return;
+    setExcusingTaskId(taskId);
+
+    const success = await excuseTask({ taskId, studentId });
+    if (success) {
+      // Remove from local state immediately for responsive UI
+      setTasks(prev => prev.filter(t => t.id !== taskId));
+    }
+    setExcusingTaskId(null);
+  };
+
+  // Helper to determine if a task is overdue
+  const todayStr = format(new Date(), "yyyy-MM-dd");
+  const isTaskOverdue = (task: TaskInstance): boolean => {
+    return task.status === "pending" && task.scheduled_date < todayStr;
+  };
+
+  // Filter tasks by tab - exclude excused tasks
   const activeTasks = tasks.filter((t) => t.status === "pending");
   const pastTasks = tasks.filter((t) => t.status === "completed" || t.status === "missed");
 
@@ -242,7 +264,13 @@ export function StudentDetailSheet({
                   ) : (
                     <div className="space-y-2">
                       {activeTasks.map((task) => (
-                        <TaskCard key={task.id} task={task} />
+                        <TaskCard
+                          key={task.id}
+                          task={task}
+                          isOverdue={isTaskOverdue(task)}
+                          onExcuse={() => handleExcuseTask(task.id)}
+                          isExcusing={excusingTaskId === task.id}
+                        />
                       ))}
                     </div>
                   )}
@@ -316,9 +344,12 @@ export function StudentDetailSheet({
 interface TaskCardProps {
   task: TaskInstance;
   isHistory?: boolean;
+  isOverdue?: boolean;
+  onExcuse?: () => void;
+  isExcusing?: boolean;
 }
 
-function TaskCard({ task, isHistory = false }: TaskCardProps) {
+function TaskCard({ task, isHistory = false, isOverdue = false, onExcuse, isExcusing = false }: TaskCardProps) {
   const isCompleted = task.status === "completed";
   const isMissed = task.status === "missed";
 
@@ -328,7 +359,8 @@ function TaskCard({ task, isHistory = false }: TaskCardProps) {
         "transition-all",
         isHistory && "opacity-60",
         isCompleted && "bg-green-50/50 dark:bg-green-900/10 border-green-200/50",
-        isMissed && "bg-destructive/5 border-destructive/20"
+        isMissed && "bg-destructive/5 border-destructive/20",
+        isOverdue && "bg-orange-50/50 dark:bg-orange-900/10 border-orange-200/50"
       )}
     >
       <CardContent className="py-3 px-4">
@@ -338,19 +370,45 @@ function TaskCard({ task, isHistory = false }: TaskCardProps) {
               <CheckCircle2 className="w-5 h-5 text-green-600" />
             ) : isMissed ? (
               <AlertCircle className="w-5 h-5 text-destructive" />
+            ) : isOverdue ? (
+              <AlertCircle className="w-5 h-5 text-orange-500" />
             ) : (
               <Circle className="w-5 h-5 text-muted-foreground" />
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <p
-              className={cn(
-                "font-medium text-sm",
-                isCompleted && "line-through text-muted-foreground"
+            <div className="flex items-start justify-between gap-2">
+              <p
+                className={cn(
+                  "font-medium text-sm",
+                  isCompleted && "line-through text-muted-foreground"
+                )}
+              >
+                {task.name}
+              </p>
+              {/* Excuse button for overdue tasks - coach action */}
+              {isOverdue && onExcuse && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onExcuse();
+                  }}
+                  disabled={isExcusing}
+                  className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground shrink-0"
+                >
+                  {isExcusing ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <>
+                      <X className="w-3 h-3 mr-1" />
+                      Excuse
+                    </>
+                  )}
+                </Button>
               )}
-            >
-              {task.name}
-            </p>
+            </div>
             {task.description && (
               <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
                 {task.description}
@@ -361,10 +419,11 @@ function TaskCard({ task, isHistory = false }: TaskCardProps) {
                 variant={isCompleted ? "default" : isMissed ? "destructive" : "secondary"}
                 className={cn(
                   "text-xs h-5",
-                  isCompleted && "bg-green-500/20 text-green-700 border-green-500/30"
+                  isCompleted && "bg-green-500/20 text-green-700 border-green-500/30",
+                  isOverdue && "bg-orange-500/20 text-orange-700 border-orange-500/30"
                 )}
               >
-                {isCompleted ? "Done" : isMissed ? "Missed" : "Pending"}
+                {isCompleted ? "Done" : isMissed ? "Missed" : isOverdue ? "Overdue" : "Pending"}
               </Badge>
               <span className="text-xs text-muted-foreground flex items-center gap-1">
                 <Calendar className="w-3 h-3" />
@@ -380,7 +439,7 @@ function TaskCard({ task, isHistory = false }: TaskCardProps) {
             {/* Completion timestamp - helps catch cheaters */}
             {isHistory && task.completed_at && (
               <div className="mt-1.5 text-xs text-muted-foreground">
-                ✓ Completed: {safeFormatDate(task.completed_at, "MMM d 'at' h:mm a")}
+                Completed: {safeFormatDate(task.completed_at, "MMM d 'at' h:mm a")}
               </div>
             )}
           </div>
