@@ -7,8 +7,8 @@
 
 ### Coach Dashboard
 
-- [ ] **COACH-01**: Color picker in Create Group modal shows single color dot (not two)
-- [ ] **COACH-02**: Remove "No group yet" empty state button, use only top-right "New Group" button
+- [x] **COACH-01**: Color picker in Create Group modal shows single color dot (not two)
+- [x] **COACH-02**: Remove "No group yet" empty state button, use only top-right "New Group" button
 
 ### Student Dashboard
 
@@ -49,8 +49,8 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| COACH-01 | 18 | Pending |
-| COACH-02 | 18 | Pending |
+| COACH-01 | 18 | Complete |
+| COACH-02 | 18 | Complete |
 | STUDENT-01 | 19 | Pending |
 | STUDENT-02 | 19 | Pending |
 | STUDENT-03 | 19 | Pending |
