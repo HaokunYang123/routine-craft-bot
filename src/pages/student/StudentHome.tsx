@@ -14,6 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Loader2, Calendar, Clock, CheckCircle2, UserPlus, Users, ChevronDown, ChevronUp, User, AlertTriangle, MessageSquare } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
+import { useTaskRollover } from "@/hooks/useTaskRollover";
+import { useSessionDismissal } from "@/hooks/useSessionDismissal";
 import { handleError } from "@/lib/error";
 import { REALTIME_CHANNELS } from "@/lib/realtime/channels";
 
@@ -26,6 +28,7 @@ interface TaskInstance {
   scheduled_time: string | null;
   status: "pending" | "completed" | "missed";
   student_note: string | null;
+  created_at: string | null;
   coach_name?: string;
   group_name?: string;
   group_color?: string;
@@ -73,6 +76,20 @@ export default function StudentHome() {
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   const [coachNotes, setCoachNotes] = useState<CoachNote[]>([]);
   const [showNotes, setShowNotes] = useState(true);
+
+  // Task rollover categorization (TASK-01, TASK-02)
+  // Casts local TaskInstance to match hook's expected type
+  const { today, overdue, yesterdayCompleted } = useTaskRollover(tasks as any);
+
+  // Session-scoped dismissal for yesterday's completed section
+  const { isDismissed: isYesterdayDismissed, dismiss: dismissYesterday, reset: resetYesterdayDismissal } = useSessionDismissal();
+
+  // Reset yesterday dismissal when day changes
+  useEffect(() => {
+    // When todayDateString changes (day boundary crossed), reset yesterday dismissal
+    // so the new "yesterday's completed" section can appear
+    resetYesterdayDismissal();
+  }, [todayDateString, resetYesterdayDismissal]);
 
   const toggleTaskExpanded = (taskId: string) => {
     setExpandedTasks(prev => {
@@ -489,8 +506,10 @@ export default function StudentHome() {
     );
   }
 
-  const completedCount = tasks.filter((t) => t.status === "completed").length;
-  const totalCount = tasks.length;
+  // Progress is calculated from TODAY's tasks only (not overdue or yesterday)
+  // Per CONTEXT.md: Today's tasks show progress, overdue is separate
+  const completedCount = today.filter((t) => t.status === "completed").length;
+  const totalCount = today.length;
   const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
   // Display today in user's timezone (TIME-02)
