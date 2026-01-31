@@ -80,6 +80,11 @@ interface AssignGroupTaskInput {
   endTime?: string;
 }
 
+interface ExcuseTaskInput {
+  taskId: string;
+  studentId: string;
+}
+
 export function useAssignments() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -586,6 +591,51 @@ export function useAssignments() {
     }
   }, [user, assignGroupTaskMutation]);
 
+  // Mutation for excusing overdue tasks (coach-only action)
+  // Sets task status to 'excused' to keep audit trail per CONTEXT.md
+  const excuseTaskMutation = useMutation({
+    mutationFn: async ({ taskId }: ExcuseTaskInput) => {
+      const { error } = await supabase
+        .from("task_instances")
+        .update({
+          status: "excused",
+          updated_at: new Date().toISOString(),
+          updated_by: user?.id,
+        })
+        .eq("id", taskId);
+
+      if (error) throw error;
+      return { taskId };
+    },
+
+    onSuccess: () => {
+      toast({
+        title: "Task Excused",
+        description: "The task has been excused and removed from the student's overdue list.",
+      });
+      return queryClient.invalidateQueries({ queryKey: queryKeys.assignments.all });
+    },
+
+    onError: (error) => {
+      handleError(error, { component: "useAssignments", action: "excuse task" });
+    },
+  });
+
+  // Backward-compatible wrapper: returns boolean for success/failure
+  const excuseTask = useCallback(async (input: ExcuseTaskInput) => {
+    if (!user) {
+      console.log("[useAssignments] No user, returning false");
+      return false;
+    }
+    try {
+      await excuseTaskMutation.mutateAsync(input);
+      return true;
+    } catch {
+      // Error already handled by onError
+      return false;
+    }
+  }, [user, excuseTaskMutation]);
+
   const getGroupProgress = useCallback(async (groupId: string, date?: string) => {
     // Note: For timezone-aware "today", callers should pass todayDateString from useTimezone
     // Default uses server/browser date which may differ from user's local date (TIME-03)
@@ -698,6 +748,8 @@ export function useAssignments() {
     getGroupProgress,
     assignGroupTask,
     isAssigningGroupTask: assignGroupTaskMutation.isPending,
+    excuseTask,
+    isExcusingTask: excuseTaskMutation.isPending,
   };
 }
 
