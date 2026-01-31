@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { User, Shield, LogOut, Loader2, Globe } from "lucide-react";
+import { User, LogOut, Loader2, Globe } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -200,43 +200,6 @@ export default function CoachSettings() {
               </p>
             )}
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Privacy Section */}
-      <Card className="border-border">
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-btn-secondary/20">
-              <Shield className="w-5 h-5 text-btn-secondary" />
-            </div>
-            <div>
-              <CardTitle className="text-lg text-foreground">
-                Privacy & Security
-              </CardTitle>
-              <CardDescription>Manage your security settings</CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Button
-            variant="outline"
-            className="w-full justify-start border-border text-foreground hover:bg-muted"
-          >
-            Change Password
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full justify-start border-border text-foreground hover:bg-muted"
-          >
-            Two-Factor Authentication
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full justify-start border-border text-foreground hover:bg-muted"
-          >
-            Download My Data
-          </Button>
         </CardContent>
       </Card>
 
