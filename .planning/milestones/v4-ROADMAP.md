@@ -22,6 +22,11 @@
 
 **Goal:** Fix UI bugs in coach group creation flow
 
+**Plans:** 1 plan
+
+Plans:
+- [ ] 18-01-PLAN.md — Fix color picker double-dot and verify empty state
+
 **Requirements:**
 - COACH-01: Color picker shows single dot
 - COACH-02: Remove empty state button
