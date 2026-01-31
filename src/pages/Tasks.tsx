@@ -118,10 +118,9 @@ export default function Tasks() {
     name: string;
     description: string;
     duration_minutes: number | null;
-    start_date: string | null;
-    due_date: string | null;
+    scheduled_date: string | null;
     scheduled_time: string | null;
-  }>>([{ name: "", description: "", duration_minutes: null, start_date: null, due_date: null, scheduled_time: null }]);
+  }>>([{ name: "", description: "", duration_minutes: null, scheduled_date: null, scheduled_time: null }]);
 
   // Generate time slots in 30-minute intervals with AM/PM
   const TIME_SLOTS = (() => {
@@ -224,7 +223,7 @@ export default function Tasks() {
     setAssignmentType("template");
     setSelectedTemplateId("");
     setTemplateTasks([]);
-    setCustomTasks([{ name: "", description: "", duration_minutes: null, start_date: null, due_date: null, scheduled_time: null }]);
+    setCustomTasks([{ name: "", description: "", duration_minutes: null, scheduled_date: null, scheduled_time: null }]);
     setScheduleType("once");
     setScheduleDays([]);
     setStartDate(format(new Date(), "yyyy-MM-dd"));
@@ -269,7 +268,7 @@ export default function Tasks() {
   };
 
   const addCustomTask = () => {
-    setCustomTasks([...customTasks, { name: "", description: "", duration_minutes: null, start_date: null, due_date: null, scheduled_time: null }]);
+    setCustomTasks([...customTasks, { name: "", description: "", duration_minutes: null, scheduled_date: null, scheduled_time: null }]);
   };
 
   const removeCustomTask = (index: number) => {
@@ -389,8 +388,7 @@ export default function Tasks() {
         name: t.name.trim(),
         description: (t.description || "").trim() || undefined,
         duration_minutes: t.duration_minutes || undefined,
-        start_date: t.start_date || undefined,
-        due_date: t.due_date || undefined,
+        scheduled_date: t.scheduled_date || undefined,
         scheduled_time: t.scheduled_time || undefined,
         day_offset: 0,
       }));
@@ -827,7 +825,7 @@ export default function Tasks() {
                         />
                       </div>
 
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                         <div>
                           <Label className="text-xs text-muted-foreground mb-1 block">
                             Duration (min)
@@ -848,25 +846,13 @@ export default function Tasks() {
                         </div>
                         <div>
                           <Label className="text-xs text-muted-foreground mb-1 block">
-                            Start Date
+                            Schedule Date
                           </Label>
                           <Input
                             type="date"
-                            value={task.start_date || ""}
+                            value={task.scheduled_date || ""}
                             onChange={(e) =>
-                              updateCustomTask(index, "start_date", e.target.value || null)
-                            }
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-xs text-muted-foreground mb-1 block">
-                            Due Date
-                          </Label>
-                          <Input
-                            type="date"
-                            value={task.due_date || ""}
-                            onChange={(e) =>
-                              updateCustomTask(index, "due_date", e.target.value || null)
+                              updateCustomTask(index, "scheduled_date", e.target.value || null)
                             }
                           />
                         </div>

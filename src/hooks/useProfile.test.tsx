@@ -69,7 +69,7 @@ describe('useProfile', () => {
       user: {
         id: 'user-1',
         email: 'test@example.com',
-        user_metadata: { full_name: 'Test User' },
+        user_metadata: { full_name: 'Test User', role: 'coach' },
       } as User,
       session: { access_token: 'mock-token' } as Session,
       loading: false,

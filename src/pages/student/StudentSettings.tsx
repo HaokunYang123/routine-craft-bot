@@ -7,13 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogFooter,
-} from "@/components/ui/dialog";
-import {
     LogOut,
     User,
     Edit2,
@@ -50,8 +43,6 @@ export default function StudentSettings() {
     const [editingName, setEditingName] = useState(false);
     const [newDisplayName, setNewDisplayName] = useState("");
     const [saving, setSaving] = useState(false);
-    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-    const [deleting, setDeleting] = useState(false);
     const [selectedTimezone, setSelectedTimezone] = useState("");
     const [savingTimezone, setSavingTimezone] = useState(false);
 
@@ -148,21 +139,6 @@ export default function StudentSettings() {
             navigate("/", { replace: true });
         } catch (error) {
             handleError(error, { component: 'StudentSettings', action: 'sign out', silent: true });
-        }
-    };
-
-    const handleDeleteAccount = async () => {
-        setDeleting(true);
-        try {
-            const { error } = await supabase.functions.invoke("delete-account");
-            if (error) throw error;
-            await signOut();
-            navigate("/", { replace: true });
-        } catch (error) {
-            handleError(error, { component: 'StudentSettings', action: 'delete account' });
-        } finally {
-            setDeleting(false);
-            setShowDeleteDialog(false);
         }
     };
 
@@ -333,47 +309,12 @@ export default function StudentSettings() {
                     <LogOut className="w-4 h-4 mr-2" />
                     Sign Out
                 </Button>
-
-                <Button
-                    variant="ghost"
-                    className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
-                    onClick={() => setShowDeleteDialog(true)}
-                >
-                    Delete Account
-                </Button>
             </div>
 
             <p className="text-center text-sm text-muted-foreground pt-4">
                 Version 1.0.0
             </p>
 
-            {/* Delete Account Dialog */}
-            <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle className="text-destructive">Delete Account?</DialogTitle>
-                    </DialogHeader>
-                    <p className="text-muted-foreground">
-                        This will permanently delete your account and all your data. This action cannot be undone.
-                    </p>
-                    <DialogFooter>
-                        <Button
-                            variant="outline"
-                            onClick={() => setShowDeleteDialog(false)}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            variant="destructive"
-                            onClick={handleDeleteAccount}
-                            disabled={deleting}
-                        >
-                            {deleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                            Yes, Delete My Account
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
         </div>
     );
 }

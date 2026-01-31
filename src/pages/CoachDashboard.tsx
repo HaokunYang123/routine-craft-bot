@@ -345,13 +345,7 @@ export default function CoachDashboard() {
                   <Label>Color</Label>
                   <Select value={newGroupColor} onValueChange={setNewGroupColor}>
                     <SelectTrigger>
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-4 h-4 rounded-full"
-                          style={{ backgroundColor: newGroupColor }}
-                        />
-                        <SelectValue />
-                      </div>
+                      <SelectValue placeholder="Select a color" />
                     </SelectTrigger>
                     <SelectContent>
                       {GROUP_COLORS.map((color) => (
@@ -436,16 +430,9 @@ export default function CoachDashboard() {
             <CardContent className="py-16 text-center">
               <Users className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-xl font-medium mb-2">No Groups Yet</h3>
-              <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                Create groups to organize your students (e.g., "Baseball Team", "Period 1")
+              <p className="text-muted-foreground max-w-md mx-auto">
+                Click "New Group" above to create your first group and start organizing your students.
               </p>
-              <Button
-                onClick={() => setCreateOpen(true)}
-                className="bg-cta-primary hover:bg-cta-hover text-white"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Create Your First Group
-              </Button>
             </CardContent>
           </Card>
         ) : (

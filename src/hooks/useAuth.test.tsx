@@ -203,4 +203,101 @@ describe('useAuth', () => {
       expect(mockUnsubscribe).toHaveBeenCalled();
     });
   });
+
+  describe('auth state change events', () => {
+    it('updates user on SIGNED_IN event', async () => {
+      getMockSupabase().auth.getSession.mockResolvedValue({
+        data: { session: null },
+        error: null,
+      });
+
+      const { result } = renderHook(() => useAuth(), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      expect(result.current.user).toBeNull();
+
+      // Simulate sign-in event
+      const newSession = createMockSession({ userId: 'new-user-123' });
+      act(() => {
+        authStateCallback?.('SIGNED_IN', newSession);
+      });
+
+      expect(result.current.user?.id).toBe('new-user-123');
+      expect(result.current.sessionExpired).toBe(false);
+    });
+
+    it('clears user on auth state change with null session', async () => {
+      const mockSession = createMockSession({ userId: 'user-1' });
+      getMockSupabase().auth.getSession.mockResolvedValue({
+        data: { session: mockSession },
+        error: null,
+      });
+
+      const { result } = renderHook(() => useAuth(), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.user?.id).toBe('user-1'));
+
+      // Simulate sign-out event
+      act(() => {
+        authStateCallback?.('SIGNED_OUT', null);
+      });
+
+      expect(result.current.user).toBeNull();
+      expect(result.current.session).toBeNull();
+    });
+  });
+
+  describe('clearSessionExpired', () => {
+    it('resets sessionExpired state to false', async () => {
+      getMockSupabase().auth.getSession.mockResolvedValue({
+        data: { session: null },
+        error: null,
+      });
+
+      const { result } = renderHook(() => useAuth(), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      // Set sessionExpired via SIGNED_OUT
+      act(() => {
+        authStateCallback?.('SIGNED_OUT', null);
+      });
+      expect(result.current.sessionExpired).toBe(true);
+
+      // Clear it manually
+      act(() => {
+        result.current.clearSessionExpired();
+      });
+      expect(result.current.sessionExpired).toBe(false);
+    });
+  });
+
+  describe('session data integrity', () => {
+    it('preserves full session object with tokens', async () => {
+      const mockSession = createMockSession({ userId: 'user-with-tokens' });
+      getMockSupabase().auth.getSession.mockResolvedValue({
+        data: { session: mockSession },
+        error: null,
+      });
+
+      const { result } = renderHook(() => useAuth(), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      expect(result.current.session?.access_token).toBe('mock-access-token');
+      expect(result.current.session?.refresh_token).toBe('mock-refresh-token');
+      expect(result.current.session?.user.email).toBe('test@example.com');
+    });
+
+    it('handles getSession error gracefully', async () => {
+      getMockSupabase().auth.getSession.mockResolvedValue({
+        data: { session: null },
+        error: { message: 'Network error', code: 'NETWORK_ERROR' },
+      });
+
+      const { result } = renderHook(() => useAuth(), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      // Should still complete loading even with error
+      expect(result.current.user).toBeNull();
+      expect(result.current.session).toBeNull();
+    });
+  });
 });

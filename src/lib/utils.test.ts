@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { cn, safeParseISO, safeFormatDate } from './utils';
+import { cn, safeParseISO, safeFormatDate, generateTimeSlots } from './utils';
 
 describe('cn utility', () => {
   it('merges class names', () => {
@@ -134,5 +134,158 @@ describe('safeFormatDate', () => {
   it('returns custom fallback "-" for invalid string', () => {
     const result = safeFormatDate('invalid-date', 'yyyy-MM-dd', '-');
     expect(result).toBe('-');
+  });
+});
+
+describe('cn edge cases', () => {
+  it('handles deeply nested arrays', () => {
+    const result = cn(['a', ['b', ['c']]]);
+    expect(result).toBe('a b c');
+  });
+
+  it('handles multiple Tailwind color conflicts', () => {
+    // bg-red-500 should be overridden by bg-blue-500
+    const result = cn('bg-red-500', 'bg-blue-500');
+    expect(result).toBe('bg-blue-500');
+  });
+
+  it('handles responsive variants correctly', () => {
+    const result = cn('p-2', 'md:p-4', 'lg:p-6');
+    expect(result).toBe('p-2 md:p-4 lg:p-6');
+  });
+
+  it('handles hover/focus states', () => {
+    const result = cn('hover:bg-blue-500', 'hover:bg-red-500');
+    expect(result).toBe('hover:bg-red-500');
+  });
+
+  it('returns empty string for all falsy values', () => {
+    const result = cn(undefined, null, false, '');
+    expect(result).toBe('');
+  });
+
+  it('handles complex real-world example', () => {
+    const isActive = true;
+    const isDisabled = false;
+    const result = cn(
+      'px-4 py-2 rounded-md',
+      'bg-primary text-white',
+      isActive && 'ring-2 ring-offset-2',
+      isDisabled && 'opacity-50 cursor-not-allowed',
+      { 'font-bold': isActive }
+    );
+    expect(result).toBe('px-4 py-2 rounded-md bg-primary text-white ring-2 ring-offset-2 font-bold');
+  });
+});
+
+describe('safeParseISO edge cases', () => {
+  it('handles Feb 29 on leap year', () => {
+    const result = safeParseISO('2024-02-29'); // 2024 is a leap year
+    expect(result).toBeInstanceOf(Date);
+    expect(result?.getMonth()).toBe(1); // February
+    expect(result?.getDate()).toBe(29);
+  });
+
+  it('returns null for Feb 29 on non-leap year', () => {
+    const result = safeParseISO('2023-02-29'); // 2023 is not a leap year
+    expect(result).toBeNull();
+  });
+
+  it('returns null for Feb 30 (invalid day)', () => {
+    const result = safeParseISO('2024-02-30');
+    expect(result).toBeNull();
+  });
+
+  it('returns null for April 31 (invalid day)', () => {
+    const result = safeParseISO('2024-04-31');
+    expect(result).toBeNull();
+  });
+
+  it('handles year boundaries correctly', () => {
+    const dec31 = safeParseISO('2024-12-31');
+    expect(dec31?.getFullYear()).toBe(2024);
+    expect(dec31?.getMonth()).toBe(11);
+    expect(dec31?.getDate()).toBe(31);
+
+    const jan1 = safeParseISO('2025-01-01');
+    expect(jan1?.getFullYear()).toBe(2025);
+    expect(jan1?.getMonth()).toBe(0);
+    expect(jan1?.getDate()).toBe(1);
+  });
+
+  it('returns null for month 0', () => {
+    const result = safeParseISO('2024-00-15');
+    expect(result).toBeNull();
+  });
+
+  it('returns null for day 0', () => {
+    const result = safeParseISO('2024-01-00');
+    expect(result).toBeNull();
+  });
+
+  it('handles ISO string with timezone offset', () => {
+    const result = safeParseISO('2024-01-15T10:30:00+05:30');
+    expect(result).toBeInstanceOf(Date);
+  });
+});
+
+describe('generateTimeSlots', () => {
+  it('returns an array of time slots', () => {
+    const slots = generateTimeSlots();
+    expect(Array.isArray(slots)).toBe(true);
+    expect(slots.length).toBeGreaterThan(0);
+  });
+
+  it('starts at 5:00 AM', () => {
+    const slots = generateTimeSlots();
+    expect(slots[0]).toBe('05:00 AM');
+  });
+
+  it('ends at 10:00 PM', () => {
+    const slots = generateTimeSlots();
+    expect(slots[slots.length - 1]).toBe('10:00 PM');
+  });
+
+  it('does not include 10:30 PM', () => {
+    const slots = generateTimeSlots();
+    expect(slots).not.toContain('10:30 PM');
+  });
+
+  it('has 30-minute increments', () => {
+    const slots = generateTimeSlots();
+    // Check a few consecutive slots
+    const idx = slots.indexOf('06:00 AM');
+    expect(slots[idx + 1]).toBe('06:30 AM');
+    expect(slots[idx + 2]).toBe('07:00 AM');
+  });
+
+  it('correctly handles AM/PM transition at noon', () => {
+    const slots = generateTimeSlots();
+    expect(slots).toContain('11:30 AM');
+    expect(slots).toContain('12:00 PM');
+    expect(slots).toContain('12:30 PM');
+    expect(slots).toContain('01:00 PM');
+  });
+
+  it('returns correct number of slots (5AM-10PM = 17 hours * 2 + 1 = 35 slots)', () => {
+    const slots = generateTimeSlots();
+    // From 5:00 AM to 10:00 PM in 30-min increments
+    // 5:00, 5:30, 6:00, ... 10:00 (excluding 10:30)
+    // Hours: 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22
+    // That's 18 hours - 1 (no 10:30) = 17 * 2 + 1 = 35 slots
+    expect(slots.length).toBe(35);
+  });
+
+  it('formats hours with leading zeros', () => {
+    const slots = generateTimeSlots();
+    expect(slots).toContain('05:00 AM');
+    expect(slots).toContain('09:30 AM');
+  });
+
+  it('uses 12-hour format', () => {
+    const slots = generateTimeSlots();
+    // Should not have 13:00, should have 01:00 PM
+    expect(slots.some(s => s.startsWith('13:'))).toBe(false);
+    expect(slots).toContain('01:00 PM');
   });
 });

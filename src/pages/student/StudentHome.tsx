@@ -420,7 +420,19 @@ export default function StudentHome() {
         };
       };
 
-      setTasks((todayData || []).map(enrichTask));
+      // Filter tasks for proper display:
+      // - Show ALL pending tasks (today and overdue)
+      // - Show completed tasks ONLY if scheduled for TODAY
+      // This ensures yesterday's completed tasks disappear the next day
+      const filteredTodayTasks = (todayData || [])
+        .filter((task: any) => {
+          if (task.status === "pending") return true; // Always show pending (including overdue)
+          if (task.status === "completed" && task.scheduled_date === today) return true; // Only today's completed
+          return false; // Hide completed tasks from previous days
+        })
+        .map(enrichTask);
+
+      setTasks(filteredTodayTasks);
       setUpcomingTasks((upcomingData || []).map(enrichTask));
     } catch (error) {
       handleError(error, { component: 'StudentHome', action: 'fetch tasks' });
@@ -515,12 +527,14 @@ export default function StudentHome() {
         </div>
       </header>
 
-      {/* Join Group / My Connections */}
-      <Card>
-        <CardHeader className="pb-2">
+      {/* Three-Column Layout: My Groups | Tasks to Do | Coach's Notes */}
+      <div className="grid grid-cols-1 gap-6">
+        {/* My Groups Card */}
+        <Card className="border-l-4 border-l-blue-500">
+          <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-base">
-              <Users className="w-5 h-5 text-cta-primary" />
+              <Users className="w-5 h-5 text-blue-500" />
               My Groups
               {connectedGroups.length > 0 && (
                 <Badge variant="secondary" className="ml-1">
@@ -620,18 +634,18 @@ export default function StudentHome() {
         </CardContent>
       </Card>
 
-      {/* Coach's Notes */}
-      {coachNotes.length > 0 && (
-        <Card className="border-l-4 border-l-amber-500">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <MessageSquare className="w-5 h-5 text-amber-500" />
-                Coach's Notes
-                {coachNotes.some(n => n.is_new) && (
-                  <Badge className="bg-amber-500 text-white text-xs">New</Badge>
-                )}
-              </CardTitle>
+      {/* Coach's Notes - Always visible */}
+      <Card className="border-l-4 border-l-amber-500">
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <MessageSquare className="w-5 h-5 text-amber-500" />
+              Coach's Notes
+              {coachNotes.some(n => n.is_new) && (
+                <Badge className="bg-amber-500 text-white text-xs">New</Badge>
+              )}
+            </CardTitle>
+            {coachNotes.length > 0 && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -640,63 +654,78 @@ export default function StudentHome() {
               >
                 {showNotes ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
               </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {coachNotes.length === 0 ? (
+            <div className="text-center py-4">
+              <MessageSquare className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">No notes yet</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Notes from your coach will appear here
+              </p>
             </div>
-          </CardHeader>
-          {showNotes && (
-            <CardContent className="space-y-3">
-              {coachNotes.map((note) => (
-                <div
-                  key={note.id}
-                  className={cn(
-                    "p-3 rounded-lg border",
-                    note.is_new
-                      ? "bg-amber-100 border-amber-300"
-                      : "bg-muted/30 border-border"
-                  )}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      {note.title && (
-                        <p className={cn("font-medium", note.is_new ? "text-amber-900" : "text-foreground")}>{note.title}</p>
-                      )}
-                      <p className={cn(
-                        "text-sm whitespace-pre-wrap",
-                        note.is_new
-                          ? "text-amber-800"
-                          : note.title ? "text-muted-foreground mt-1" : "text-foreground"
-                      )}>
-                        {note.content}
-                      </p>
-                      <div className={cn("flex items-center gap-2 mt-2 text-xs", note.is_new ? "text-amber-700" : "text-muted-foreground")}>
-                        <span>{note.coach_name}</span>
-                        {note.group_name && (
-                          <>
-                            <span>•</span>
-                            <span>{note.group_name}</span>
-                          </>
-                        )}
-                        <span>•</span>
-                        <span>{formatDate(note.created_at, "MMM d, h:mm a")}</span>
-                      </div>
-                    </div>
-                    {note.is_new && (
-                      <Badge variant="outline" className="shrink-0 text-amber-600 border-amber-300 text-xs">
-                        New
-                      </Badge>
+          ) : showNotes ? (
+            coachNotes.map((note) => (
+              <div
+                key={note.id}
+                className={cn(
+                  "p-3 rounded-lg border",
+                  note.is_new
+                    ? "bg-amber-100 border-amber-300"
+                    : "bg-muted/30 border-border"
+                )}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    {note.title && (
+                      <p className={cn("font-medium", note.is_new ? "text-amber-900" : "text-foreground")}>{note.title}</p>
                     )}
+                    <p className={cn(
+                      "text-sm whitespace-pre-wrap",
+                      note.is_new
+                        ? "text-amber-800"
+                        : note.title ? "text-muted-foreground mt-1" : "text-foreground"
+                    )}>
+                      {note.content}
+                    </p>
+                    <div className={cn("flex items-center gap-2 mt-2 text-xs", note.is_new ? "text-amber-700" : "text-muted-foreground")}>
+                      <span>{note.coach_name}</span>
+                      {note.group_name && (
+                        <>
+                          <span>•</span>
+                          <span>{note.group_name}</span>
+                        </>
+                      )}
+                      <span>•</span>
+                      <span>{formatDate(note.created_at, "MMM d, h:mm a")}</span>
+                    </div>
                   </div>
+                  {note.is_new && (
+                    <Badge variant="outline" className="shrink-0 text-amber-600 border-amber-300 text-xs">
+                      New
+                    </Badge>
+                  )}
                 </div>
-              ))}
-            </CardContent>
+              </div>
+            ))
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-2">
+              {coachNotes.length} note{coachNotes.length !== 1 ? 's' : ''} hidden
+            </p>
           )}
-        </Card>
-      )}
+        </CardContent>
+      </Card>
 
       {/* Today's Tasks (and Overdue) */}
-      <Card>
+      <Card className="border-l-4 border-l-emerald-500">
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center justify-between">
-            <span>Tasks to Do</span>
+            <span className="flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+              Tasks to Do
+            </span>
             <span className="text-sm font-normal text-muted-foreground">
               {completedCount}/{totalCount}
             </span>
@@ -829,6 +858,7 @@ export default function StudentHome() {
           )}
         </CardContent>
       </Card>
+      </div>
 
       {/* Upcoming Tasks */}
       {upcomingTasks.length > 0 && (
