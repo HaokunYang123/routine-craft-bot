@@ -89,7 +89,20 @@ Timezone: User-selectable timezone with UTC storage and local display
 
 ### Active
 
-(None — awaiting v4.0 milestone planning)
+**v4.0 Bug Fixes & Polish (2026-01-31):**
+- [ ] Fix color picker double-dot in Create Group modal — v4.0
+- [ ] Remove empty state "No group yet" button — v4.0
+- [ ] Remove Delete Account from student settings — v4.0
+- [ ] Consistent three-box layout (My Group, Tasks to Do, Coach's Notes) — v4.0
+- [ ] Color-coded dashboard boxes — v4.0
+- [ ] Task rollover: completed tasks gone next day — v4.0
+- [ ] Task rollover: daily tasks show correct state — v4.0
+- [ ] Remove duplicate start/due date in task assignment — v4.0
+- [ ] Remove Change Password UI/backend — v4.0
+- [ ] Remove 2FA UI/backend — v4.0
+- [ ] Remove Download Data UI/backend — v4.0
+- [ ] Supabase scalability audit (100+ users) — v4.0
+- [ ] E2E tests with Playwright — v4.0
 
 ### Out of Scope
 
@@ -168,4 +181,4 @@ Timezone: User-selectable timezone with UTC storage and local display
 | Simplified timezone selector | User feedback: too many options | ✓ Good — 6 US timezones |
 
 ---
-*Last updated: 2026-01-30 after v3.0 milestone*
+*Last updated: 2026-01-31 after v4.0 milestone planning*

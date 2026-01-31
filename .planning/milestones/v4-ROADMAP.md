@@ -1,0 +1,155 @@
+# Roadmap: v4.0 Bug Fixes & Polish
+
+**Created:** 2026-01-31
+**Milestone:** v4.0
+**Phases:** 18-23 (6 phases)
+**Requirements:** 14
+
+## Phase Overview
+
+| Phase | Name | Goal | Requirements |
+|-------|------|------|--------------|
+| 18 | Coach Dashboard UI | Fix color picker and empty state button | COACH-01, COACH-02 |
+| 19 | Student Dashboard Layout | Consistent three-box layout with colors | STUDENT-01, STUDENT-02, STUDENT-03 |
+| 20 | Task Rollover Logic | Correct daily task visibility and state | TASK-01, TASK-02 |
+| 21 | Task Assignment Cleanup | Simplify custom task form | ASSIGN-01, ASSIGN-02 |
+| 22 | Security Section Removal | Remove unused auth features | SEC-01, SEC-02, SEC-03 |
+| 23 | Infrastructure & E2E | Scalability audit and Playwright tests | INFRA-01, INFRA-02 |
+
+---
+
+## Phase 18: Coach Dashboard UI
+
+**Goal:** Fix UI bugs in coach group creation flow
+
+**Requirements:**
+- COACH-01: Color picker shows single dot
+- COACH-02: Remove empty state button
+
+**Success Criteria:**
+1. Coach opens Create Group modal → sees single color dot per color option
+2. Coach with no groups sees only the top-right "New Group" button
+3. No "Create your first group" or similar empty state CTA button exists
+
+**Estimated Complexity:** Low (UI-only changes)
+
+---
+
+## Phase 19: Student Dashboard Layout
+
+**Goal:** Consistent three-box dashboard layout with proper styling
+
+**Requirements:**
+- STUDENT-01: Remove Delete Account
+- STUDENT-02: Always show 3 boxes
+- STUDENT-03: Color-coded boxes
+
+**Success Criteria:**
+1. Student settings has no "Delete Account" option
+2. Student dashboard always shows exactly 3 boxes: "My Group", "Tasks to Do", "Coach's Notes"
+3. Layout doesn't change when tasks are assigned vs. no tasks
+4. Each box has distinct, consistent color coding
+
+**Estimated Complexity:** Medium (layout restructure)
+
+---
+
+## Phase 20: Task Rollover Logic
+
+**Goal:** Correct daily task visibility based on completion and date
+
+**Requirements:**
+- TASK-01: Completed tasks gone next day
+- TASK-02: Daily task state accuracy
+
+**Success Criteria:**
+1. Student completes task on Monday → task not visible on Tuesday
+2. Student views dashboard → sees only today's tasks
+3. Recurring task appears fresh each day (unchecked)
+4. One-time completed task from previous day is not shown
+
+**Estimated Complexity:** Medium (behavior/logic changes)
+
+---
+
+## Phase 21: Task Assignment Cleanup
+
+**Goal:** Simplify custom task form by removing duplicate fields
+
+**Requirements:**
+- ASSIGN-01: Remove duplicate date fields
+- ASSIGN-02: Keep recurring schedule
+
+**Success Criteria:**
+1. Custom task form has single date picker (not separate start/due date)
+2. Recurring schedule options still work (daily, weekly, custom)
+3. Form is cleaner and less confusing
+
+**Estimated Complexity:** Low (form simplification)
+
+---
+
+## Phase 22: Security Section Removal
+
+**Goal:** Remove unused security features (Google OAuth handles auth)
+
+**Requirements:**
+- SEC-01: Remove Change Password
+- SEC-02: Remove 2FA
+- SEC-03: Remove Download Data
+
+**Success Criteria:**
+1. No "Change Password" UI in any settings page
+2. No "Two-Factor Authentication" UI in any settings page
+3. No "Download My Data" UI in any settings page
+4. No dead backend endpoints for these features
+5. No database tables/columns specifically for these features (if any)
+
+**Estimated Complexity:** Low (removal only)
+
+---
+
+## Phase 23: Infrastructure & E2E Testing
+
+**Goal:** Validate scalability and add automated testing
+
+**Requirements:**
+- INFRA-01: Scalability audit
+- INFRA-02: E2E tests
+
+**Success Criteria:**
+1. Document confirms Supabase can handle 100+ concurrent users (connection pooling, RLS performance)
+2. Playwright configured and running
+3. E2E tests cover: Coach login → create group → assign task → Student login → complete task
+4. Tests run in CI (optional but recommended)
+
+**Estimated Complexity:** Medium (new tooling setup)
+
+---
+
+## Dependency Graph
+
+```
+Phase 18 (Coach UI) ────────────────────┐
+Phase 19 (Student Layout) ──────────────┼──→ Phase 23 (E2E tests all flows)
+Phase 20 (Task Rollover) ───────────────┤
+Phase 21 (Task Assignment) ─────────────┤
+Phase 22 (Security Removal) ────────────┘
+```
+
+Phases 18-22 can be executed in any order (independent).
+Phase 23 should run last (tests the fixed behaviors).
+
+---
+
+## Execution Order (Recommended)
+
+1. **Phase 18** - Quick win, low risk
+2. **Phase 22** - Removal is straightforward
+3. **Phase 19** - Student layout changes
+4. **Phase 21** - Form cleanup
+5. **Phase 20** - Logic changes (test thoroughly)
+6. **Phase 23** - E2E tests validate everything
+
+---
+*Roadmap created: 2026-01-31*
