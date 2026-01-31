@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 ## Current Position
 
 Phase: 20 of 23 (Task Rollover Logic) - In progress
-Plan: 1 of ? in current phase
-Status: Plan 20-01 complete
-Last activity: 2026-01-31 - Completed 20-01-PLAN.md
+Plan: 2 of 5 in current phase
+Status: Plan 20-02 complete
+Last activity: 2026-01-31 - Completed 20-02-PLAN.md
 
 Progress: [████░░░░░░░░░░░░░░░░] 33% (2/6 phases)
 
@@ -51,6 +51,8 @@ See: .planning/MILESTONES.md for full details
 | 20 | 60-second polling for midnight detection | Balance of responsiveness (max 60s delay) vs performance |
 | 20 | Absolute time comparison (not counters) | Avoids timer drift (~2.66 min/day with incrementing counters) |
 | 20 | Integrate useDayBoundary into useTimezone | Existing consumers get reactive date behavior automatically |
+| 20 | BroadcastChannel for cross-tab sync | Cleaner API than storage events, works with sessionStorage |
+| 20 | Overdue sorted by scheduled_date desc | Newest-first per CONTEXT.md (yesterday's at top) |
 
 ### Pending Todos
 
@@ -64,11 +66,11 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-31
-Stopped at: Completed 20-01-PLAN.md (day boundary detection)
+Stopped at: Completed 20-02-PLAN.md (task categorization hooks)
 Resume file: None
 
-Next action: Continue with Phase 20 remaining plans (task categorization, section rendering, etc.)
+Next action: Continue with Plan 20-03 (section UI rendering in StudentHome)
 
 ---
 *State initialized: 2026-01-24*
-*Last updated: 2026-01-31 - Plan 20-01 complete*
+*Last updated: 2026-01-31 - Plan 20-02 complete*
