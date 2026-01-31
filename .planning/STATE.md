@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-28)
 
 **Core value:** Users can reliably complete their daily workflows with instant feedback and smooth performance.
-**Current focus:** v3.0 Auth & Realtime
+**Current focus:** v3.0 Auth & Realtime — COMPLETE
 
 ## Current Position
 
 Phase: 17 - Timezone & Rollover
-Plan: 2 of ? complete
-Status: In progress
-Last activity: 2026-01-30 — Completed 17-02-PLAN.md (useTimezone hook and UI)
+Plan: 3 of 3 complete
+Status: Complete
+Last activity: 2026-01-30 — Completed Phase 17 and v3.0 milestone
 
-Progress: [█████████████░░░░░░░] 58% (2.6/3 phases in v3.0)
+Progress: [████████████████████] 100% (3/3 phases in v3.0)
 
 ## Milestone History
 
@@ -22,40 +22,34 @@ Progress: [█████████████░░░░░░░] 58% (2.
 |---------|------|--------|---------|
 | v1 | Reliability Hardening | 1-8 (23 plans) | 2026-01-25 |
 | v2.0 | Performance | 9-14 (17 plans) | 2026-01-28 |
+| v3.0 | Auth & Realtime | 15-17 (14 plans) | 2026-01-30 |
 
 See: .planning/MILESTONES.md for full details
 
-## v3.0 Auth & Realtime (In Progress)
+## v3.0 Auth & Realtime (Complete)
 
 **Phases:**
 - Phase 15: Authentication Rebuild (6 plans) — Complete
 - Phase 16: Realtime Subscriptions (5 plans) — Complete
-- Phase 17: Timezone & Rollover — In progress (2 plans complete)
+- Phase 17: Timezone & Rollover (3 plans) — Complete
 
-**Key deliverables (Phase 15 complete):**
+**Key deliverables (Phase 15):**
 - [x] Role selection landing page ("I am a Coach" / "I am a Student")
 - [x] Google OAuth only (email/password and login-via-code removed)
 - [x] Database trigger for atomic profile creation
 - [x] Role-based routing from database (not localStorage)
 
-**Key deliverables (Phase 16 complete):**
-- [x] Realtime infrastructure hooks (16-01)
-- [x] Coach dashboard realtime (16-02)
-- [x] Student app realtime (16-03)
-- [x] Verification checkpoint (16-04)
-- [x] Gap closure: coach_id column and filter parameters (16-05)
+**Key deliverables (Phase 16):**
+- [x] Realtime infrastructure hooks
+- [x] Coach dashboard realtime
+- [x] Student app realtime
+- [x] Gap closure: coach_id column and filter parameters
 
-**Phase 16 Gaps (CLOSED):**
-- GAP-01: Fixed by adding filter parameter with denormalized coach_id column
-- GAP-02: Fixed by updating RLS policy to use direct column comparison
-
-**Key deliverables (Phase 17 in progress):**
-- [x] Timezone foundation: date-fns-tz, utilities, migration (17-01)
-- [x] useTimezone hook and TimezoneSelect component (17-02)
-- [ ] UTC storage with local timezone display
-- [ ] Daily rollover at user's local midnight
-
-**Previous milestone:** v2.0 Performance shipped 2026-01-28
+**Key deliverables (Phase 17):**
+- [x] Timezone foundation: date-fns-tz, utilities, migration
+- [x] useTimezone hook and TimezoneSelect component
+- [x] UTC storage with local timezone display
+- [x] Simplified US timezone selector per user feedback
 
 ## Accumulated Context
 
@@ -83,8 +77,8 @@ See: .planning/MILESTONES.md for full details
 | 17-01 | UTC fallback for null timezone | Empty/null timezone defaults to 'UTC' to prevent errors |
 | 17-01 | Intl.supportedValuesOf with fallback | Common timezones hardcoded for older browser compatibility |
 | 17-02 | Browser timezone detection as fallback | Always have a valid timezone, never null in hook return |
-| 17-02 | Grouped timezone selector by region | Makes browsing 400+ timezones manageable for users |
-| 17-02 | Separate save button in StudentSettings | StudentSettings uses direct Supabase calls, not useProfile hook |
+| 17-03 | Simplified timezone selector | User feedback: 6 US timezones with UTC offsets instead of 400+ IANA zones |
+| 17-03 | Dynamic offset calculation | Automatically adjusts for daylight saving time |
 
 See PROJECT.md Key Decisions table for full list with outcomes.
 
@@ -95,16 +89,15 @@ None.
 ### Blockers/Concerns
 
 - Pre-existing test failure in useProfile.test.tsx (role assertion) — needs fixing
-- Runtime verification recommended: test realtime in browser with coach + student
 
 ## Session Continuity
 
 Last session: 2026-01-30
-Stopped at: Completed 17-02-PLAN.md (useTimezone hook and UI)
+Stopped at: Completed v3.0 milestone
 Resume file: None
 
-Next action: Execute 17-03-PLAN.md for UTC storage conversion
+Next action: Run `/gsd:audit-milestone` to verify milestone completion
 
 ---
 *State initialized: 2026-01-24*
-*Last updated: 2026-01-30 — Phase 17 plan 02 complete*
+*Last updated: 2026-01-30 — v3.0 milestone complete*

@@ -22,22 +22,22 @@ Requirements for Auth & Realtime milestone. Each maps to roadmap phases.
 
 ### Realtime
 
-- [ ] **REAL-01**: Task completion by student is visible to coach instantly via Supabase Realtime
-- [ ] **REAL-02**: New assignments created by coach appear for students without page refresh
-- [ ] **REAL-03**: Realtime subscriptions are properly cleaned up on component unmount (no memory leaks)
-- [ ] **REAL-04**: Realtime events invalidate React Query cache (not bypass it)
-- [ ] **REAL-05**: Optimistic updates are confirmed by realtime events (belt and suspenders)
-- [ ] **REAL-06**: Subscriptions are filtered by user_id to reduce unnecessary traffic
+- [x] **REAL-01**: Task completion by student is visible to coach instantly via Supabase Realtime
+- [x] **REAL-02**: New assignments created by coach appear for students without page refresh
+- [x] **REAL-03**: Realtime subscriptions are properly cleaned up on component unmount (no memory leaks)
+- [x] **REAL-04**: Realtime events invalidate React Query cache (not bypass it)
+- [x] **REAL-05**: Optimistic updates are confirmed by realtime events (belt and suspenders)
+- [x] **REAL-06**: Subscriptions are filtered by user_id to reduce unnecessary traffic
 
 ### Timezone
 
-- [ ] **TIME-01**: All timestamps are stored as UTC in database (timestamptz)
-- [ ] **TIME-02**: All timestamps are displayed in user's local timezone
-- [ ] **TIME-03**: Daily task rollover occurs at user's local midnight (not UTC midnight)
-- [ ] **TIME-04**: User timezone is auto-detected from browser on first login
-- [ ] **TIME-05**: User timezone is stored in profiles table (IANA format)
-- [ ] **TIME-06**: DST transitions are handled correctly (no skipped or duplicate tasks)
-- [ ] **TIME-07**: User can change timezone in settings
+- [x] **TIME-01**: All timestamps are stored as UTC in database (timestamptz)
+- [x] **TIME-02**: All timestamps are displayed in user's local timezone
+- [x] **TIME-03**: Daily task rollover occurs at user's local midnight (not UTC midnight)
+- [x] **TIME-04**: User timezone is auto-detected from browser on first login
+- [x] **TIME-05**: User timezone is stored in profiles table (IANA format)
+- [x] **TIME-06**: DST transitions are handled correctly (no skipped or duplicate tasks)
+- [x] **TIME-07**: User can change timezone in settings
 
 ### Cleanup (Removals)
 
@@ -92,19 +92,19 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AUTH-08 | Phase 15 | Complete |
 | AUTH-09 | Phase 15 | Complete |
 | AUTH-10 | Phase 15 | Complete |
-| REAL-01 | Phase 16 | Pending |
-| REAL-02 | Phase 16 | Pending |
-| REAL-03 | Phase 16 | Pending |
-| REAL-04 | Phase 16 | Pending |
-| REAL-05 | Phase 16 | Pending |
-| REAL-06 | Phase 16 | Pending |
-| TIME-01 | Phase 17 | Pending |
-| TIME-02 | Phase 17 | Pending |
-| TIME-03 | Phase 17 | Pending |
-| TIME-04 | Phase 17 | Pending |
-| TIME-05 | Phase 17 | Pending |
-| TIME-06 | Phase 17 | Pending |
-| TIME-07 | Phase 17 | Pending |
+| REAL-01 | Phase 16 | Complete |
+| REAL-02 | Phase 16 | Complete |
+| REAL-03 | Phase 16 | Complete |
+| REAL-04 | Phase 16 | Complete |
+| REAL-05 | Phase 16 | Complete |
+| REAL-06 | Phase 16 | Complete |
+| TIME-01 | Phase 17 | Complete |
+| TIME-02 | Phase 17 | Complete |
+| TIME-03 | Phase 17 | Complete |
+| TIME-04 | Phase 17 | Complete |
+| TIME-05 | Phase 17 | Complete |
+| TIME-06 | Phase 17 | Complete |
+| TIME-07 | Phase 17 | Complete |
 | CLEAN-01 | Phase 15 | Complete |
 | CLEAN-02 | Phase 15 | Complete |
 | CLEAN-03 | Phase 15 | Complete |
@@ -116,4 +116,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-28*
-*Last updated: 2026-01-28 after roadmap creation*
+*Last updated: 2026-01-30 — v3.0 milestone complete*

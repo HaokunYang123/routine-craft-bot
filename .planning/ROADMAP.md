@@ -4,7 +4,7 @@
 
 - v1 Reliability Hardening — Phases 1-8 (shipped 2026-01-25)
 - v2.0 Performance — Phases 9-14 (shipped 2026-01-28)
-- v3.0 Auth & Realtime — Phases 15-17 (in progress)
+- v3.0 Auth & Realtime — Phases 15-17 (shipped 2026-01-30)
 
 ## Phases
 
@@ -143,8 +143,8 @@ Plans:
 
 </details>
 
-<details open>
-<summary>v3.0 Auth & Realtime (Phases 15-17) — IN PROGRESS</summary>
+<details>
+<summary>v3.0 Auth & Realtime (Phases 15-17) — SHIPPED 2026-01-30</summary>
 
 ### Phase 15: Authentication Rebuild
 **Goal**: Users can securely access their accounts via Google OAuth with role-based routing.
@@ -209,9 +209,9 @@ Plans:
 **Plans**: 3 plans in 3 waves
 
 Plans:
-- [ ] 17-01-PLAN.md — Foundation: DB migration + date-fns-tz + utilities (Wave 1)
-- [ ] 17-02-PLAN.md — useTimezone hook + TimezoneSelect + Settings integration (Wave 2)
-- [ ] 17-03-PLAN.md — Daily rollover + timestamp displays + verification (Wave 3)
+- [x] 17-01-PLAN.md — Foundation: DB migration + date-fns-tz + utilities (Wave 1)
+- [x] 17-02-PLAN.md — useTimezone hook + TimezoneSelect + Settings integration (Wave 2)
+- [x] 17-03-PLAN.md — Daily rollover + timestamp displays + verification (Wave 3)
 
 </details>
 
@@ -237,10 +237,10 @@ Plans:
 | 14. Render Optimization | v2.0 | 3/3 | Complete | 2026-01-28 |
 | 15. Authentication Rebuild | v3.0 | 6/6 | Complete | 2026-01-28 |
 | 16. Realtime Subscriptions | v3.0 | 5/5 | Complete | 2026-01-28 |
-| 17. Timezone & Rollover | v3.0 | 0/3 | Planned | — |
+| 17. Timezone & Rollover | v3.0 | 3/3 | Complete | 2026-01-30 |
 
 ---
 
 *Roadmap created: 2026-01-24*
 *v2.0 Performance: Shipped 2026-01-28*
-*v3.0 Auth & Realtime: Started 2026-01-28*
+*v3.0 Auth & Realtime: Shipped 2026-01-30*
