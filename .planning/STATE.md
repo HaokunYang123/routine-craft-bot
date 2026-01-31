@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 ## Current Position
 
 Phase: 20 of 23 (Task Rollover Logic) - In progress
-Plan: 2 of 5 in current phase
-Status: Plan 20-02 complete
-Last activity: 2026-01-31 - Completed 20-02-PLAN.md
+Plan: 3 of 5 in current phase
+Status: Plan 20-03 complete
+Last activity: 2026-01-31 - Completed 20-03-PLAN.md
 
-Progress: [████░░░░░░░░░░░░░░░░] 33% (2/6 phases)
+Progress: [████░░░░░░░░░░░░░░░░] 50% (3/6 phases)
 
 ## Milestone History
 
@@ -53,6 +53,9 @@ See: .planning/MILESTONES.md for full details
 | 20 | Integrate useDayBoundary into useTimezone | Existing consumers get reactive date behavior automatically |
 | 20 | BroadcastChannel for cross-tab sync | Cleaner API than storage events, works with sessionStorage |
 | 20 | Overdue sorted by scheduled_date desc | Newest-first per CONTEXT.md (yesterday's at top) |
+| 20 | Progress shows today's tasks only | Overdue and yesterday are separate concerns |
+| 20 | Overdue collapses at 5 tasks | Prevents list from becoming overwhelming |
+| 20 | Day boundary resets yesterday dismissal | New day = new yesterday section |
 
 ### Pending Todos
 
@@ -66,11 +69,11 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-31
-Stopped at: Completed 20-02-PLAN.md (task categorization hooks)
+Stopped at: Completed 20-03-PLAN.md (section UI rendering in StudentHome)
 Resume file: None
 
-Next action: Continue with Plan 20-03 (section UI rendering in StudentHome)
+Next action: Continue with Plan 20-04 (coach overdue visibility)
 
 ---
 *State initialized: 2026-01-24*
-*Last updated: 2026-01-31 - Plan 20-02 complete*
+*Last updated: 2026-01-31 - Plan 20-03 complete*
