@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Calendar, Clock, CheckCircle2, UserPlus, Users, ChevronDown, ChevronUp, User, AlertTriangle, MessageSquare } from "lucide-react";
+import { Loader2, Calendar, Clock, CheckCircle2, UserPlus, Users, ChevronDown, ChevronUp, User, AlertTriangle, MessageSquare, X } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { useTaskRollover } from "@/hooks/useTaskRollover";
@@ -76,6 +76,8 @@ export default function StudentHome() {
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   const [coachNotes, setCoachNotes] = useState<CoachNote[]>([]);
   const [showNotes, setShowNotes] = useState(true);
+  const [overdueExpanded, setOverdueExpanded] = useState(false);
+  const [yesterdayExpanded, setYesterdayExpanded] = useState(false);
 
   // Task rollover categorization (TASK-01, TASK-02)
   // Casts local TaskInstance to match hook's expected type
@@ -728,12 +730,12 @@ export default function StudentHome() {
         </CardContent>
       </Card>
 
-      {/* Today's Tasks (and Overdue) */}
+      {/* Today's Tasks (uses useTaskRollover for categorization) */}
       <Card className="border-l-4 border-l-emerald-500 bg-white shadow-sm rounded-lg">
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center justify-between">
             <span className="font-bold text-base">
-              Tasks to Do
+              Today's Tasks
             </span>
             <span className="text-sm font-normal text-muted-foreground">
               {completedCount}/{totalCount}
@@ -745,124 +747,355 @@ export default function StudentHome() {
             <Progress value={progressPercent} className="mb-4 h-2" />
           )}
 
-          {tasks.length === 0 ? (
+          {/* Empty state for today's tasks - only show if no today and no overdue */}
+          {today.length === 0 && overdue.length === 0 ? (
             <div className="text-center py-8">
-              <CheckCircle2 className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-              <p className="text-muted-foreground">No tasks for today</p>
+              <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-3" />
+              <p className="text-foreground font-medium">All done!</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Check back later for new assignments
+                No tasks for today. Enjoy your day!
               </p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {tasks.map((task) => {
-                const isExpanded = expandedTasks.has(task.id);
-                const hasDescription = !!task.description;
-                // Check if task is overdue (scheduled before today in user's timezone and still pending) (TIME-03)
-                const isOverdue = task.status === "pending" && task.scheduled_date < todayDateString;
+            <div className="space-y-4">
+              {/* Today's Tasks Section */}
+              {today.length > 0 && (
+                <div className="space-y-3">
+                  {today.map((task) => {
+                    const isExpanded = expandedTasks.has(task.id);
+                    const hasDescription = !!task.description;
 
-                return (
-                  <div
-                    key={task.id}
-                    className={cn(
-                      "p-4 rounded-lg border transition-all",
-                      task.status === "completed"
-                        ? "bg-muted/30 border-border"
-                        : isOverdue
-                        ? "bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-800"
-                        : "bg-card border-border hover:border-cta-primary/30"
-                    )}
-                    style={{
-                      borderLeftWidth: "4px",
-                      borderLeftColor: isOverdue ? "#ef4444" : (task.group_color || "#6366f1"),
-                    }}
-                  >
-                    <div className="flex items-start gap-3">
-                      <Checkbox
-                        checked={task.status === "completed"}
-                        onCheckedChange={(checked) =>
-                          toggleTaskStatus(task.id, checked as boolean)
-                        }
-                        className="mt-0.5"
-                      />
-                      <div className="flex-1 min-w-0">
-                        {/* Task Title */}
-                        <p
-                          className={cn(
-                            "font-medium",
-                            task.status === "completed"
-                              ? "line-through text-muted-foreground"
-                              : "text-foreground"
-                          )}
-                        >
-                          {task.name}
-                        </p>
-
-                        {/* Assigned by - right under title */}
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Assigned by {task.coach_name || "Coach"}
-                          {task.group_name && (
-                            <span className="ml-1">
-                              • <span style={{ color: task.group_color || "#6366f1" }}>{task.group_name}</span>
-                            </span>
-                          )}
-                        </p>
-
-                        {/* Meta info */}
-                        <div className="flex items-center gap-2 mt-2">
-                          {isOverdue && (
-                            <Badge variant="destructive" className="text-xs gap-1">
-                              <AlertTriangle className="w-3 h-3" />
-                              Overdue
-                            </Badge>
-                          )}
-                          {task.scheduled_time && (
-                            <Badge variant="outline" className="text-xs gap-1">
-                              <Clock className="w-3 h-3" />
-                              {task.scheduled_time.slice(0, 5)}
-                            </Badge>
-                          )}
-                          {task.duration_minutes && (
-                            <Badge variant="secondary" className="text-xs">
-                              {task.duration_minutes} min
-                            </Badge>
-                          )}
-                        </div>
-
-                        {/* Expandable description */}
-                        {hasDescription && (
-                          <Collapsible open={isExpanded} onOpenChange={() => toggleTaskExpanded(task.id)}>
-                            <CollapsibleTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="mt-2 h-7 px-2 text-xs text-primary hover:text-primary"
-                              >
-                                {isExpanded ? (
-                                  <>
-                                    <ChevronUp className="w-3 h-3 mr-1" />
-                                    Hide details
-                                  </>
-                                ) : (
-                                  <>
-                                    <ChevronDown className="w-3 h-3 mr-1" />
-                                    Show details
-                                  </>
-                                )}
-                              </Button>
-                            </CollapsibleTrigger>
-                            <CollapsibleContent>
-                              <div className="text-sm text-muted-foreground mt-2 p-3 bg-muted/30 rounded-lg whitespace-pre-wrap">
-                                {task.description}
-                              </div>
-                            </CollapsibleContent>
-                          </Collapsible>
+                    return (
+                      <div
+                        key={task.id}
+                        className={cn(
+                          "p-4 rounded-lg border transition-all",
+                          task.status === "completed"
+                            ? "bg-muted/30 border-border"
+                            : "bg-card border-border hover:border-cta-primary/30"
                         )}
+                        style={{
+                          borderLeftWidth: "4px",
+                          borderLeftColor: task.group_color || "#6366f1",
+                        }}
+                      >
+                        <div className="flex items-start gap-3">
+                          <Checkbox
+                            checked={task.status === "completed"}
+                            onCheckedChange={(checked) =>
+                              toggleTaskStatus(task.id, checked as boolean)
+                            }
+                            className="mt-0.5"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p
+                              className={cn(
+                                "font-medium",
+                                task.status === "completed"
+                                  ? "line-through text-muted-foreground"
+                                  : "text-foreground"
+                              )}
+                            >
+                              {task.name}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Assigned by {task.coach_name || "Coach"}
+                              {task.group_name && (
+                                <span className="ml-1">
+                                  • <span style={{ color: task.group_color || "#6366f1" }}>{task.group_name}</span>
+                                </span>
+                              )}
+                            </p>
+                            <div className="flex items-center gap-2 mt-2">
+                              {task.scheduled_time && (
+                                <Badge variant="outline" className="text-xs gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  {task.scheduled_time.slice(0, 5)}
+                                </Badge>
+                              )}
+                              {task.duration_minutes && (
+                                <Badge variant="secondary" className="text-xs">
+                                  {task.duration_minutes} min
+                                </Badge>
+                              )}
+                            </div>
+                            {hasDescription && (
+                              <Collapsible open={isExpanded} onOpenChange={() => toggleTaskExpanded(task.id)}>
+                                <CollapsibleTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="mt-2 h-7 px-2 text-xs text-primary hover:text-primary"
+                                  >
+                                    {isExpanded ? (
+                                      <>
+                                        <ChevronUp className="w-3 h-3 mr-1" />
+                                        Hide details
+                                      </>
+                                    ) : (
+                                      <>
+                                        <ChevronDown className="w-3 h-3 mr-1" />
+                                        Show details
+                                      </>
+                                    )}
+                                  </Button>
+                                </CollapsibleTrigger>
+                                <CollapsibleContent>
+                                  <div className="text-sm text-muted-foreground mt-2 p-3 bg-muted/30 rounded-lg whitespace-pre-wrap">
+                                    {task.description}
+                                  </div>
+                                </CollapsibleContent>
+                              </Collapsible>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Overdue Section - Per CONTEXT.md: Section order is Today -> Overdue -> Yesterday */}
+              {overdue.length > 0 && (
+                <div className="border-t pt-4 mt-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <AlertTriangle className="w-4 h-4 text-red-500" />
+                    <h3 className="font-semibold text-sm text-red-600">Overdue</h3>
+                    <Badge variant="destructive" className="text-xs">
+                      {overdue.length}
+                    </Badge>
                   </div>
-                );
-              })}
+                  <div className="space-y-3">
+                    {/* Show first 5 overdue tasks */}
+                    {overdue.slice(0, 5).map((task) => {
+                      const isExpanded = expandedTasks.has(task.id);
+                      const hasDescription = !!task.description;
+
+                      return (
+                        <div
+                          key={task.id}
+                          className="p-4 rounded-lg border bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-800"
+                          style={{
+                            borderLeftWidth: "4px",
+                            borderLeftColor: "#ef4444",
+                          }}
+                        >
+                          <div className="flex items-start gap-3">
+                            <Checkbox
+                              checked={task.status === "completed"}
+                              onCheckedChange={(checked) =>
+                                toggleTaskStatus(task.id, checked as boolean)
+                              }
+                              className="mt-0.5"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-foreground">{task.name}</p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Assigned by {task.coach_name || "Coach"}
+                                {task.group_name && (
+                                  <span className="ml-1">
+                                    • <span style={{ color: task.group_color || "#6366f1" }}>{task.group_name}</span>
+                                  </span>
+                                )}
+                              </p>
+                              <div className="flex items-center gap-2 mt-2">
+                                {/* Show original due date per CONTEXT.md */}
+                                <Badge variant="outline" className="text-xs text-red-600 border-red-300">
+                                  Due: {formatDate(task.scheduled_date, "MMM d")}
+                                </Badge>
+                                {task.duration_minutes && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    {task.duration_minutes} min
+                                  </Badge>
+                                )}
+                              </div>
+                              {hasDescription && (
+                                <Collapsible open={isExpanded} onOpenChange={() => toggleTaskExpanded(task.id)}>
+                                  <CollapsibleTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="mt-2 h-7 px-2 text-xs text-primary hover:text-primary"
+                                    >
+                                      {isExpanded ? (
+                                        <>
+                                          <ChevronUp className="w-3 h-3 mr-1" />
+                                          Hide details
+                                        </>
+                                      ) : (
+                                        <>
+                                          <ChevronDown className="w-3 h-3 mr-1" />
+                                          Show details
+                                        </>
+                                      )}
+                                    </Button>
+                                  </CollapsibleTrigger>
+                                  <CollapsibleContent>
+                                    <div className="text-sm text-muted-foreground mt-2 p-3 bg-muted/30 rounded-lg whitespace-pre-wrap">
+                                      {task.description}
+                                    </div>
+                                  </CollapsibleContent>
+                                </Collapsible>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {/* Collapsible for additional overdue tasks (more than 5) */}
+                    {overdue.length > 5 && (
+                      <Collapsible open={overdueExpanded} onOpenChange={setOverdueExpanded}>
+                        <CollapsibleTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            className="w-full text-sm text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <ChevronDown className={cn("w-4 h-4 mr-1 transition-transform", overdueExpanded && "rotate-180")} />
+                            {overdueExpanded ? "Show less" : `and ${overdue.length - 5} more overdue...`}
+                          </Button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="space-y-3 mt-3">
+                          {overdue.slice(5).map((task) => {
+                            const isExpanded = expandedTasks.has(task.id);
+                            const hasDescription = !!task.description;
+
+                            return (
+                              <div
+                                key={task.id}
+                                className="p-4 rounded-lg border bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-800"
+                                style={{
+                                  borderLeftWidth: "4px",
+                                  borderLeftColor: "#ef4444",
+                                }}
+                              >
+                                <div className="flex items-start gap-3">
+                                  <Checkbox
+                                    checked={task.status === "completed"}
+                                    onCheckedChange={(checked) =>
+                                      toggleTaskStatus(task.id, checked as boolean)
+                                    }
+                                    className="mt-0.5"
+                                  />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium text-foreground">{task.name}</p>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      Assigned by {task.coach_name || "Coach"}
+                                      {task.group_name && (
+                                        <span className="ml-1">
+                                          • <span style={{ color: task.group_color || "#6366f1" }}>{task.group_name}</span>
+                                        </span>
+                                      )}
+                                    </p>
+                                    <div className="flex items-center gap-2 mt-2">
+                                      <Badge variant="outline" className="text-xs text-red-600 border-red-300">
+                                        Due: {formatDate(task.scheduled_date, "MMM d")}
+                                      </Badge>
+                                      {task.duration_minutes && (
+                                        <Badge variant="secondary" className="text-xs">
+                                          {task.duration_minutes} min
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    {hasDescription && (
+                                      <Collapsible open={isExpanded} onOpenChange={() => toggleTaskExpanded(task.id)}>
+                                        <CollapsibleTrigger asChild>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="mt-2 h-7 px-2 text-xs text-primary hover:text-primary"
+                                          >
+                                            {isExpanded ? (
+                                              <>
+                                                <ChevronUp className="w-3 h-3 mr-1" />
+                                                Hide details
+                                              </>
+                                            ) : (
+                                              <>
+                                                <ChevronDown className="w-3 h-3 mr-1" />
+                                                Show details
+                                              </>
+                                            )}
+                                          </Button>
+                                        </CollapsibleTrigger>
+                                        <CollapsibleContent>
+                                          <div className="text-sm text-muted-foreground mt-2 p-3 bg-muted/30 rounded-lg whitespace-pre-wrap">
+                                            {task.description}
+                                          </div>
+                                        </CollapsibleContent>
+                                      </Collapsible>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </CollapsibleContent>
+                      </Collapsible>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Yesterday's Completed Section - Per CONTEXT.md: Collapsed by default, dismissible */}
+              {yesterdayCompleted.length > 0 && !isYesterdayDismissed && (
+                <div className="border-t pt-4 mt-4">
+                  <Collapsible open={yesterdayExpanded} onOpenChange={setYesterdayExpanded}>
+                    <div className="flex items-center justify-between mb-3">
+                      <CollapsibleTrigger asChild>
+                        <button className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                          <ChevronDown className={cn("w-4 h-4 transition-transform", yesterdayExpanded && "rotate-180")} />
+                          <span className="font-medium">
+                            {yesterdayCompleted.length} task{yesterdayCompleted.length !== 1 ? "s" : ""} completed yesterday
+                          </span>
+                        </button>
+                      </CollapsibleTrigger>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          dismissYesterday();
+                        }}
+                        className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                        aria-label="Dismiss yesterday's completed tasks"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <CollapsibleContent className="space-y-3">
+                      {yesterdayCompleted.map((task) => (
+                        <div
+                          key={task.id}
+                          className="p-4 rounded-lg border bg-muted/20 border-border opacity-75"
+                          style={{
+                            borderLeftWidth: "4px",
+                            borderLeftColor: task.group_color || "#9ca3af",
+                          }}
+                        >
+                          <div className="flex items-start gap-3">
+                            {/* No checkbox - read-only per CONTEXT.md */}
+                            <CheckCircle2 className="w-5 h-5 text-muted-foreground mt-0.5" />
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium line-through text-muted-foreground">
+                                {task.name}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Completed • {task.coach_name || "Coach"}
+                                {task.group_name && (
+                                  <span className="ml-1">
+                                    • {task.group_name}
+                                  </span>
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </CollapsibleContent>
+                  </Collapsible>
+                </div>
+              )}
             </div>
           )}
         </CardContent>
@@ -905,8 +1138,8 @@ export default function StudentHome() {
         </Card>
       )}
 
-      {/* Empty State */}
-      {tasks.length === 0 && upcomingTasks.length === 0 && (
+      {/* Empty State - Only shown when no tasks at all */}
+      {today.length === 0 && overdue.length === 0 && yesterdayCompleted.length === 0 && upcomingTasks.length === 0 && (
         <Card className="border-dashed">
           <CardContent className="py-12 text-center">
             <Calendar className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
