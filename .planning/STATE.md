@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 
 ## Current Position
 
-Phase: 20 of 23 (Task Rollover Logic) - Complete
-Plan: 5 of 5 in current phase
+Phase: 21 of 23 (Task Assignment Cleanup)
+Plan: 1 of 1 in current phase
 Status: Phase complete
-Last activity: 2026-01-31 - Phase 20 verified ✓
+Last activity: 2026-01-31 - Completed 21-01-PLAN.md
 
-Progress: [████████░░░░░░░░░░░░] 50% (3/6 phases)
+Progress: [██████████░░░░░░░░░░] 67% (4/6 phases)
 
 ## Milestone History
 
@@ -34,7 +34,7 @@ See: .planning/MILESTONES.md for full details
 | 18 | Coach Dashboard UI | COACH-01, COACH-02 | Complete |
 | 19 | Student Dashboard Layout | STUDENT-01, STUDENT-02, STUDENT-03 | Complete |
 | 20 | Task Rollover Logic | TASK-01, TASK-02 | Complete |
-| 21 | Task Assignment Cleanup | ASSIGN-01, ASSIGN-02 | Pending |
+| 21 | Task Assignment Cleanup | ASSIGN-01, ASSIGN-02 | Complete |
 | 22 | Security Section Removal | SEC-01, SEC-02, SEC-03 | Pending |
 | 23 | Infrastructure & E2E | INFRA-01, INFRA-02 | Pending |
 
@@ -61,6 +61,10 @@ See: .planning/MILESTONES.md for full details
 | 20 | Color escalation: yellow 1-2, orange 3-5, red 6+ | Per CONTEXT.md overdue visibility spec |
 | 20 | 24-hour expiry for excused notification IDs | Prevents localStorage unbounded growth |
 | 20 | Cascade deletion for groups/students | Remove all related tasks, notes, assignments when group deleted or student removed |
+| 21 | Single Due Date maps to startDate in hook | Maintains hook contract compatibility |
+| 21 | Multi-day only for one-time tasks | Recurring schedules handle date range differently |
+| 21 | Schedule type UI-only (no backend) | Backend recurring integration is future work |
+| 21 | Collapsible for optional form sections | Progressive disclosure pattern for advanced options |
 
 ### Pending Todos
 
@@ -74,11 +78,11 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-31
-Stopped at: Phase 20 verified ✓ (25/25 must-haves passed)
+Stopped at: Completed 21-01-PLAN.md
 Resume file: None
 
-Next action: Run `/gsd:discuss-phase 21` to gather context for Task Assignment Cleanup
+Next action: Run `/gsd:discuss-phase 22` to gather context for Security Section Removal
 
 ---
 *State initialized: 2026-01-24*
-*Last updated: 2026-01-31 - Phase 20 complete*
+*Last updated: 2026-01-31 - Phase 21 complete*
