@@ -25,7 +25,6 @@ import StudentLayout from "./pages/student/StudentLayout";
 import StudentCalendar from "./pages/student/StudentCalendar";
 import StudentHome from "./pages/student/StudentHome";
 import StudentSettings from "./pages/student/StudentSettings";
-import StudentPrivacy from "./pages/student/StudentPrivacy";
 import StudentHelp from "./pages/student/StudentHelp";
 import AssigneeDashboard from "./pages/AssigneeDashboard";
 import PolygonShowcase from "./pages/PolygonShowcase";
@@ -160,7 +159,6 @@ const App = () => (
               <Route index element={<StudentHome />} />
               <Route path="calendar" element={<StudentCalendar />} />
               <Route path="settings" element={<StudentSettings />} />
-              <Route path="privacy" element={<StudentPrivacy />} />
               <Route path="help" element={<StudentHelp />} />
             </Route>
             {/* Assignee Dashboard Route */}

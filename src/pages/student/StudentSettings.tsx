@@ -13,7 +13,6 @@ import {
     Check,
     X,
     HelpCircle,
-    Shield,
     Loader2,
     Mail,
     Globe,
@@ -284,17 +283,10 @@ export default function StudentSettings() {
                 <CardContent className="p-0">
                     <button
                         onClick={() => navigate("/app/help")}
-                        className="w-full flex items-center gap-3 p-4 hover:bg-muted/50 transition-colors border-b border-border"
+                        className="w-full flex items-center gap-3 p-4 hover:bg-muted/50 transition-colors"
                     >
                         <HelpCircle className="w-5 h-5 text-muted-foreground" />
                         <span className="font-medium">Help & Support</span>
-                    </button>
-                    <button
-                        onClick={() => navigate("/app/privacy")}
-                        className="w-full flex items-center gap-3 p-4 hover:bg-muted/50 transition-colors"
-                    >
-                        <Shield className="w-5 h-5 text-muted-foreground" />
-                        <span className="font-medium">Privacy Policy</span>
                     </button>
                 </CardContent>
             </Card>
