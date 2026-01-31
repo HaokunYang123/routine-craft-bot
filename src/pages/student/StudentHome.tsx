@@ -528,13 +528,12 @@ export default function StudentHome() {
       </header>
 
       {/* Three-Column Layout: My Groups | Tasks to Do | Coach's Notes */}
-      <div className="grid grid-cols-1 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
         {/* My Groups Card */}
-        <Card className="border-l-4 border-l-blue-500">
+        <Card className="border-l-4 border-l-blue-500 bg-white shadow-sm rounded-lg">
           <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Users className="w-5 h-5 text-blue-500" />
+            <CardTitle className="font-bold text-base">
               My Groups
               {connectedGroups.length > 0 && (
                 <Badge variant="secondary" className="ml-1">
@@ -635,11 +634,10 @@ export default function StudentHome() {
       </Card>
 
       {/* Coach's Notes - Always visible */}
-      <Card className="border-l-4 border-l-amber-500">
+      <Card className="border-l-4 border-l-amber-500 bg-white shadow-sm rounded-lg">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <MessageSquare className="w-5 h-5 text-amber-500" />
+            <CardTitle className="font-bold text-base">
               Coach's Notes
               {coachNotes.some(n => n.is_new) && (
                 <Badge className="bg-amber-500 text-white text-xs">New</Badge>
@@ -719,11 +717,10 @@ export default function StudentHome() {
       </Card>
 
       {/* Today's Tasks (and Overdue) */}
-      <Card className="border-l-4 border-l-emerald-500">
+      <Card className="border-l-4 border-l-emerald-500 bg-white shadow-sm rounded-lg">
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center justify-between">
-            <span className="flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+            <span className="font-bold text-base">
               Tasks to Do
             </span>
             <span className="text-sm font-normal text-muted-foreground">
