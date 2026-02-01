@@ -50,14 +50,16 @@ Plans:
 
 ### Phase 26: Group Assignment Sync
 **Goal**: Group assignment ("green button") has same scheduling features as custom tasks
-**Depends on**: Phase 24, Phase 25
+**Depends on**: Phase 24
 **Requirements**: GRP-01, GRP-02, GRP-03, GRP-04
 **Success Criteria** (what must be TRUE):
   1. Group "Assign Task" button uses updated scheduling UI
   2. Group tasks support assign date + due date
   3. Group tasks support time blocks
   4. Group tasks support monthly recurring
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] 26-01-PLAN.md — Add group task assignment UI to GroupDetail with Phase 24 scheduling
 
 ## Progress
 
@@ -68,8 +70,8 @@ Phases execute in numeric order: 24 -> 25 -> 26
 |-------|----------------|--------|-----------|
 | 24. Custom Task Scheduling | 3/3 | ✓ Complete | 2026-01-31 |
 | 25. Template Scheduling | 0/TBD | Not started | - |
-| 26. Group Assignment Sync | 0/TBD | Not started | - |
+| 26. Group Assignment Sync | 0/1 | Planned | - |
 
 ---
 *Roadmap created: 2026-01-31*
-*Last updated: 2026-01-31 - Phase 24 complete*
+*Last updated: 2026-01-31 - Phase 26 planned*
