@@ -229,7 +229,7 @@ export default function Tasks() {
     setCustomTasks([{ name: "", description: "", duration_minutes: null, scheduled_date: null, start_time: null, end_time: null }]);
     setScheduleType("once");
     setScheduleDays([]);
-    setStartDate(format(new Date(), "yyyy-MM-dd"));
+    setAssignDate(format(new Date(), "yyyy-MM-dd"));
     setDueDate(format(new Date(), "yyyy-MM-dd"));
     setEndDate(format(addDays(new Date(), 30), "yyyy-MM-dd"));
     setAssignDialogOpen(true);
@@ -264,7 +264,7 @@ export default function Tasks() {
   // Calculate the end date for template based on start date and duration
   const getTemplateEndDate = () => {
     if (templateDurationDays === 0) return null;
-    const [year, month, day] = startDate.split('-').map(Number);
+    const [year, month, day] = assignDate.split('-').map(Number);
     const start = new Date(year, month - 1, day);
     const end = addDays(start, templateDurationDays - 1);
     return format(end, "MMM d, yyyy");
