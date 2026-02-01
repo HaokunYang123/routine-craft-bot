@@ -90,6 +90,9 @@ export default function Templates() {
         description: t.description,
         duration_minutes: t.duration_minutes,
         day_offset: t.day_offset,
+        due_time_offset_minutes: t.due_time_offset_minutes,
+        start_time: t.start_time,
+        end_time: t.end_time,
       }))
     );
     setManualSaving(false);

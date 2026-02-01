@@ -20,6 +20,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { generateTimeSlots } from "@/lib/utils";
+
+// Pre-generate time slots for performance
+const TIME_SLOTS = generateTimeSlots();
 
 export interface ManualTask {
   title: string;
@@ -28,6 +32,9 @@ export interface ManualTask {
   day_offset: number;
   time?: string;
   priority?: "low" | "medium" | "high";
+  due_time_offset_minutes?: number;
+  start_time?: string;
+  end_time?: string;
 }
 
 interface ManualTemplateBuilderProps {
@@ -39,7 +46,16 @@ export function ManualTemplateBuilder({ onSave, isSaving }: ManualTemplateBuilde
   const [templateName, setTemplateName] = useState("");
   const [templateDescription, setTemplateDescription] = useState("");
   const [tasks, setTasks] = useState<ManualTask[]>([
-    { title: "", description: "", duration_minutes: 15, day_offset: 0, priority: "medium" },
+    {
+      title: "",
+      description: "",
+      duration_minutes: 15,
+      day_offset: 0,
+      priority: "medium",
+      due_time_offset_minutes: undefined,
+      start_time: undefined,
+      end_time: undefined,
+    },
   ]);
 
   const addTask = () => {
@@ -51,6 +67,9 @@ export function ManualTemplateBuilder({ onSave, isSaving }: ManualTemplateBuilde
         duration_minutes: 15,
         day_offset: tasks.length > 0 ? tasks[tasks.length - 1].day_offset : 0,
         priority: "medium",
+        due_time_offset_minutes: undefined,
+        start_time: undefined,
+        end_time: undefined,
       },
     ]);
   };
@@ -212,6 +231,75 @@ export function ManualTemplateBuilder({ onSave, isSaving }: ManualTemplateBuilde
                       rows={2}
                       className="bg-card border-border text-sm"
                     />
+                  </div>
+                  {/* Time scheduling fields */}
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Due Time</Label>
+                      <Select
+                        value={task.due_time_offset_minutes?.toString() ?? ""}
+                        onValueChange={(v) => updateTask(index, "due_time_offset_minutes", v ? parseInt(v) : undefined)}
+                      >
+                        <SelectTrigger className="bg-card border-border">
+                          <SelectValue placeholder="All day" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">All day</SelectItem>
+                          {TIME_SLOTS.map((slot) => (
+                            <SelectItem key={slot.value} value={slot.value.toString()}>
+                              {slot.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Start Time</Label>
+                      <Select
+                        value={task.start_time ?? ""}
+                        onValueChange={(v) => {
+                          updateTask(index, "start_time", v || undefined);
+                          // Clear end_time if start_time is cleared or changed to be after end_time
+                          if (!v || (task.end_time && v >= task.end_time)) {
+                            updateTask(index, "end_time", undefined);
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="bg-card border-border">
+                          <SelectValue placeholder="None" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">None</SelectItem>
+                          {TIME_SLOTS.map((slot) => (
+                            <SelectItem key={slot.label} value={slot.label}>
+                              {slot.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">End Time</Label>
+                      <Select
+                        value={task.end_time ?? ""}
+                        onValueChange={(v) => updateTask(index, "end_time", v || undefined)}
+                        disabled={!task.start_time}
+                      >
+                        <SelectTrigger className="bg-card border-border">
+                          <SelectValue placeholder="None" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">None</SelectItem>
+                          {TIME_SLOTS
+                            .filter((slot) => !task.start_time || slot.label > task.start_time)
+                            .map((slot) => (
+                              <SelectItem key={slot.label} value={slot.label}>
+                                {slot.label}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </div>
                 <Button
