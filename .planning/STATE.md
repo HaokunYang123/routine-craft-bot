@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-31)
 
 **Core value:** Coaches can assign tasks with clear scheduling (assign date vs due date), visible time blocks, and proper recurring options.
-**Current focus:** v5.0 Task Assignment UX - Phase 25 executing
+**Current focus:** v5.0 Task Assignment UX - Phase 25 complete
 
 ## Current Position
 
 Phase: 25 of 26 (Template Scheduling)
-Plan: 2 of 3 in current phase
-Status: In progress
-Last activity: 2026-02-01 - Completed 25-02-PLAN.md (Template Editor UI)
+Plan: 3 of 3 in current phase
+Status: Phase complete
+Last activity: 2026-02-01 - Completed 25-03-PLAN.md (Template Assignment with Time Propagation)
 
-Progress: [████████████░░░░░░░░] 67% (2/3 plans in Phase 25)
+Progress: [████████████████████] 100% (3/3 plans in Phase 25)
 
 ## Milestone History
 
@@ -64,6 +64,11 @@ See: .planning/PROJECT.md Key Decisions table
 - End time dropdown disabled until start time selected, auto-clears when start time changes
 - Blue badges for due time, purple badges for time blocks in template preview
 
+**Plan 25-03 Decisions:**
+- Created new migration to update trigger function rather than editing original migration
+- Trigger copies start_time/end_time directly from template_tasks to tasks table
+- StudentSchedule already had time block support from Phase 24 - no UI changes needed
+
 ### Pending Todos
 
 None.
@@ -77,11 +82,11 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-01
-Stopped at: Completed 25-02-PLAN.md
+Stopped at: Completed 25-03-PLAN.md (Phase 25 complete)
 Resume file: None
 
-Next action: Execute Phase 25-03 (Template Assignment with time propagation)
+Next action: Execute Phase 26 (Group Assignment) or ship v5.0
 
 ---
 *State initialized: 2026-01-24*
-*Last updated: 2026-02-01 - Completed 25-02-PLAN.md (Template Editor UI)*
+*Last updated: 2026-02-01 - Completed 25-03-PLAN.md (Template Assignment with Time Propagation)*
