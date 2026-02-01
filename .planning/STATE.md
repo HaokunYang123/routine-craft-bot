@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-31)
 
 **Core value:** Coaches can quickly create task assignments without confusion about dates, scheduling, or where to click.
-**Current focus:** v5.0 Task Assignment UX - Phase 24 ready to plan
+**Current focus:** v5.0 Task Assignment UX - Phase 24 in progress
 
 ## Current Position
 
 Phase: 24 of 27 (Modal Foundation + Task List)
-Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-01-31 - Roadmap created for v5.0
+Plan: 1 of 2 in current phase
+Status: In progress
+Last activity: 2026-01-31 - Completed 24-01-PLAN.md
 
-Progress: [░░░░░░░░░░░░░░░░░░░░] 0% (v5.0 started)
+Progress: [███░░░░░░░░░░░░░░░░░] 12.5% (v5.0 - 1/8 plans)
 
 ## Milestone History
 
@@ -33,6 +33,13 @@ See: .planning/MILESTONES.md for full details
 
 See: .planning/PROJECT.md Key Decisions table
 
+**v5.0 Phase 24 Decisions:**
+- Modal initializes with one empty task ready for typing
+- Allow deleting all tasks (empty list allowed)
+- Assign button disabled until at least one task has content
+- 560px max-width for modal (within 500-600px range)
+- Inline edit: click text to show input, blur/Enter saves, Escape reverts
+
 ### Pending Todos
 
 None.
@@ -46,11 +53,11 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-31
-Stopped at: v5.0 roadmap created
+Stopped at: Completed 24-01-PLAN.md
 Resume file: None
 
-Next action: /gsd:plan-phase 24
+Next action: Execute 24-02-PLAN.md (drag-drop reordering)
 
 ---
 *State initialized: 2026-01-24*
-*Last updated: 2026-01-31 - v5.0 roadmap created*
+*Last updated: 2026-01-31 - Completed Phase 24 Plan 01*
