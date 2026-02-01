@@ -540,7 +540,9 @@ export function useAssignments() {
     }
   }, [updateTaskStatusMutation]);
 
-  // Assign task to all members of a group using RPC function
+  // Assign task to all members of a group
+  // For one-time tasks: uses RPC for atomicity
+  // For recurring tasks: creates instances directly (RPC doesn't support recurring)
   const assignGroupTaskMutation = useMutation({
     mutationFn: async (input: AssignGroupTaskInput) => {
       if (!user) {
@@ -549,23 +551,130 @@ export function useAssignments() {
 
       console.log("[useAssignments] assignGroupTask called with input:", JSON.stringify(input, null, 2));
 
-      const { data, error } = await supabase.rpc("assign_task_to_group", {
-        p_group_id: input.groupId,
-        p_title: input.title,
-        p_description: input.description || null,
-        p_assign_date: input.assignDate,  // When student sees the task
-        p_due_date: input.dueDate,         // When task is due
-        p_start_time: input.startTime || null,
-        p_end_time: input.endTime || null,
-      });
+      const scheduleType = input.scheduleType || "once";
 
-      if (error) {
-        console.error("[useAssignments] assignGroupTask RPC error:", error);
-        throw error;
+      // For one-time tasks, use the RPC (simpler, atomic)
+      if (scheduleType === "once") {
+        const { data, error } = await supabase.rpc("assign_task_to_group", {
+          p_group_id: input.groupId,
+          p_title: input.title,
+          p_description: input.description || null,
+          p_assign_date: input.assignDate,  // When student sees the task
+          p_due_date: input.dueDate,         // When task is due
+          p_start_time: input.startTime || null,
+          p_end_time: input.endTime || null,
+        });
+
+        if (error) {
+          console.error("[useAssignments] assignGroupTask RPC error:", error);
+          throw error;
+        }
+
+        console.log("[useAssignments] assignGroupTask success, created", data, "task instances");
+        return data as number;
       }
 
-      console.log("[useAssignments] assignGroupTask success, created", data, "task instances");
-      return data as number;
+      // For recurring tasks, handle directly since RPC only supports one-time
+      console.log("[useAssignments] Using recurring schedule path for group task:", scheduleType);
+
+      // Get group members
+      const { data: members, error: membersError } = await supabase
+        .from("group_members")
+        .select("user_id")
+        .eq("group_id", input.groupId);
+
+      if (membersError) throw membersError;
+      if (!members || members.length === 0) {
+        console.log("[useAssignments] No members in group, returning 0");
+        return 0;
+      }
+
+      const assigneeIds = members.map((m) => m.user_id);
+      console.log("[useAssignments] Found", assigneeIds.length, "group members");
+
+      // Parse dates
+      const [ay, am, ad] = input.assignDate.split('-').map(Number);
+      const startDate = new Date(ay, am - 1, ad);
+
+      const [dy, dm, dd] = input.dueDate.split('-').map(Number);
+      const endDate = new Date(dy, dm - 1, dd);
+
+      // Calculate scheduled dates based on schedule type
+      const scheduledDates = getScheduledDates(
+        startDate,
+        endDate,
+        scheduleType,
+        input.scheduleDays || []
+      );
+
+      console.log("[useAssignments] Calculated", scheduledDates.length, "scheduled dates for recurring task");
+
+      // Create assignment record
+      const { data: assignment, error: assignmentError } = await supabase
+        .from("assignments")
+        .insert({
+          assigned_by: user.id,
+          group_id: input.groupId,
+          schedule_type: scheduleType,
+          schedule_days: input.scheduleDays || [],
+          start_date: input.assignDate,
+          end_date: input.dueDate,
+          is_active: true,
+        })
+        .select()
+        .single();
+
+      if (assignmentError) throw assignmentError;
+
+      // Create task instances for each date × each assignee
+      const taskInstances: Array<{
+        assignment_id: string;
+        assignee_id: string;
+        name: string;
+        description: string | null;
+        assign_date: string;
+        scheduled_date: string;
+        start_time: string | null;
+        scheduled_time: string | null;
+        end_time: string | null;
+        status: string;
+        coach_id: string;
+      }> = [];
+
+      for (const date of scheduledDates) {
+        const dateStr = format(date, "yyyy-MM-dd");
+        for (const assigneeId of assigneeIds) {
+          taskInstances.push({
+            assignment_id: assignment.id,
+            assignee_id: assigneeId,
+            name: input.title,
+            description: input.description || null,
+            assign_date: dateStr,
+            scheduled_date: dateStr,
+            start_time: input.startTime || null,
+            scheduled_time: input.startTime || null,
+            end_time: input.endTime || null,
+            status: "pending",
+            coach_id: user.id,
+          });
+        }
+      }
+
+      console.log("[useAssignments] Creating", taskInstances.length, "task instances for recurring group task");
+
+      if (taskInstances.length > 0) {
+        const { error: instancesError } = await supabase
+          .from("task_instances")
+          .insert(taskInstances);
+
+        if (instancesError) {
+          // Rollback: delete orphaned assignment
+          await supabase.from("assignments").delete().eq("id", assignment.id);
+          throw instancesError;
+        }
+      }
+
+      return taskInstances.length;
     },
     onSuccess: (count) => {
       toast({
