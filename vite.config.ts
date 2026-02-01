@@ -24,8 +24,8 @@ export default defineConfig(({ mode }) => ({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "apple-touch-icon.png"],
       manifest: {
-        name: "TaskFlow - Routine Manager",
-        short_name: "TaskFlow",
+        name: "TeachCoachConnect",
+        short_name: "TCC",
         description: "Task and routine management for coaches, teachers, and students",
         theme_color: "#10b981",
         background_color: "#faf8f5",
@@ -54,6 +54,8 @@ export default defineConfig(({ mode }) => ({
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        // Exclude auth routes from service worker to prevent OAuth issues on mobile
+        navigateFallbackDenylist: [/^\/auth\/callback/],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
