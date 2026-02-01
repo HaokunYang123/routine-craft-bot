@@ -106,10 +106,12 @@ export default function AssignerDashboard() {
   const [selectedGroupId, setSelectedGroupId] = useState("");
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDescription, setTaskDescription] = useState("");
+  const [assignDate, setAssignDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [dueDate, setDueDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [endDate, setEndDate] = useState("");
-  const [scheduleType, setScheduleType] = useState<"once" | "daily" | "weekly" | "custom">("once");
+  const [scheduleType, setScheduleType] = useState<"once" | "daily" | "weekly" | "monthly" | "custom">("once");
   const [scheduleDays, setScheduleDays] = useState<number[]>([]);
+  const [monthlyDay, setMonthlyDay] = useState<number>(1);
   const [isMultiDayOpen, setIsMultiDayOpen] = useState(false);
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
@@ -129,6 +131,9 @@ export default function AssignerDashboard() {
     }
     if (scheduleType !== "custom") {
       setScheduleDays([]);
+    }
+    if (scheduleType !== "monthly") {
+      setMonthlyDay(1);
     }
   }, [scheduleType]);
 
@@ -276,10 +281,12 @@ export default function AssignerDashboard() {
     setSelectedGroupId("");
     setTaskTitle("");
     setTaskDescription("");
+    setAssignDate(format(new Date(), "yyyy-MM-dd"));
     setDueDate(format(new Date(), "yyyy-MM-dd"));
     setEndDate("");
     setScheduleType("once");
     setScheduleDays([]);
+    setMonthlyDay(1);
     setIsMultiDayOpen(false);
     setStartTime("");
     setEndTime("");
@@ -308,21 +315,17 @@ export default function AssignerDashboard() {
       return;
     }
 
-    // Calculate effective end date:
-    // - If multi-day is open and has end date: use that
-    // - Otherwise: use due date (single day task)
-    const effectiveEndDate = scheduleType === "once" && isMultiDayOpen && endDate
-      ? endDate
-      : dueDate;
-
     const result = await assignGroupTask({
       groupId: selectedGroupId,
       title: taskTitle.trim(),
       description: taskDescription.trim() || undefined,
-      startDate: dueDate,  // Due Date maps to startDate
-      endDate: effectiveEndDate,
+      assignDate: assignDate,  // When student sees task
+      dueDate: dueDate,        // When task is due
       startTime: startTime || undefined,
       endTime: endTime || undefined,
+      scheduleType: scheduleType,
+      scheduleDays: scheduleType === "custom" ? scheduleDays :
+                    scheduleType === "monthly" ? [monthlyDay] : [],
     });
 
     if (result !== null) {
@@ -682,17 +685,42 @@ export default function AssignerDashboard() {
               />
             </div>
 
-            {/* Due Date */}
-            <div className="space-y-2">
-              <Label htmlFor="dueDate">Due Date</Label>
-              <Input
-                id="dueDate"
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                min={format(new Date(), "yyyy-MM-dd")}
-                className="bg-card border-border"
-              />
+            {/* Assign Date and Due Date */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="assignDate">Assign Date</Label>
+                <Input
+                  id="assignDate"
+                  type="date"
+                  value={assignDate}
+                  onChange={(e) => {
+                    setAssignDate(e.target.value);
+                    // Auto-adjust due date if now before assign date
+                    if (dueDate < e.target.value) {
+                      setDueDate(e.target.value);
+                    }
+                  }}
+                  min={format(new Date(), "yyyy-MM-dd")}
+                  className="bg-card border-border"
+                />
+                <p className="text-xs text-muted-foreground">
+                  When students will see this task
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="dueDate">Due Date</Label>
+                <Input
+                  id="dueDate"
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  min={assignDate}
+                  className="bg-card border-border"
+                />
+                <p className="text-xs text-muted-foreground">
+                  When this task is due
+                </p>
+              </div>
             </div>
 
             {/* Schedule Type */}
@@ -703,6 +731,7 @@ export default function AssignerDashboard() {
                   { value: "once", label: "One-time" },
                   { value: "daily", label: "Daily" },
                   { value: "weekly", label: "Weekly" },
+                  { value: "monthly", label: "Monthly" },
                   { value: "custom", label: "Custom days" },
                 ].map((opt) => (
                   <Button
@@ -719,10 +748,32 @@ export default function AssignerDashboard() {
               </div>
               {scheduleType !== "once" && (
                 <p className="text-xs text-muted-foreground">
-                  Tasks will start from the Due Date
+                  {scheduleType === "monthly"
+                    ? "Task will repeat on the selected day each month"
+                    : "Tasks will repeat starting from the Assign Date"}
                 </p>
               )}
             </div>
+
+            {/* Monthly day picker */}
+            {scheduleType === "monthly" && (
+              <div className="space-y-2">
+                <Label>Day of Month</Label>
+                <Select value={String(monthlyDay)} onValueChange={(v) => setMonthlyDay(Number(v))}>
+                  <SelectTrigger className="bg-card border-border">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                      <SelectItem key={day} value={String(day)}>
+                        {day}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value="-1">Last day of month</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {/* Day-of-week selector (only for custom schedule) */}
             {scheduleType === "custom" && (
