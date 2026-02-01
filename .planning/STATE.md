@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-31)
 
 **Core value:** Coaches can assign tasks with clear scheduling (assign date vs due date), visible time blocks, and proper recurring options.
-**Current focus:** v5.0 Task Assignment UX - Phase 24 executing
+**Current focus:** v5.0 Task Assignment UX - Phase 25 executing
 
 ## Current Position
 
-Phase: 24 of 26 (Custom Task Scheduling)
-Plan: 3 of 3 in current phase (Phase 24 complete)
-Status: Phase complete
-Last activity: 2026-02-01 - Completed 24-03-PLAN.md (StudentSchedule time blocks, end-to-end verification)
+Phase: 25 of 26 (Template Scheduling)
+Plan: 1 of 3 in current phase
+Status: In progress
+Last activity: 2026-02-01 - Completed 25-01-PLAN.md (template scheduling schema and mutations)
 
-Progress: [████████████████████] 100% (3/3 plans in Phase 24)
+Progress: [██████░░░░░░░░░░░░░░] 33% (1/3 plans in Phase 25)
 
 ## Milestone History
 
@@ -54,6 +54,11 @@ See: .planning/PROJECT.md Key Decisions table
 - Added assign_date to StudentSchedule query for future visibility filtering
 - Time blocks only display when both start_time and end_time are set
 
+**Plan 25-01 Decisions:**
+- Used INTEGER for due_time_offset_minutes (0-1439 range, minutes from midnight)
+- Used TEXT for start_time/end_time for 12-hour format consistency with Phase 24
+- Added index on template_id for query optimization
+
 ### Pending Todos
 
 None.
@@ -67,11 +72,11 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-01
-Stopped at: Completed Phase 24 (all 3 plans)
+Stopped at: Completed 25-01-PLAN.md
 Resume file: None
 
-Next action: Plan and execute Phase 25 (Template Scheduling)
+Next action: Execute Phase 25-02 (Template Editor UI)
 
 ---
 *State initialized: 2026-01-24*
-*Last updated: 2026-02-01 - Completed Phase 24 (Custom Task Scheduling complete)*
+*Last updated: 2026-02-01 - Completed 25-01-PLAN.md (Template Scheduling schema)*
