@@ -63,7 +63,6 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
-import { AssignTaskModal } from "@/components/task-assignment/AssignTaskModal";
 
 interface GroupInfo {
     id: string;
@@ -133,9 +132,6 @@ export default function GroupDetail() {
     // Remove Student State
     const [studentToRemove, setStudentToRemove] = useState<StudentWithProgress | null>(null);
     const [removing, setRemoving] = useState(false);
-
-    // Assign Task Modal State
-    const [assignModalOpen, setAssignModalOpen] = useState(false);
 
     useEffect(() => {
         if (!user || !groupId) return;
@@ -455,12 +451,6 @@ export default function GroupDetail() {
                     </div>
                 </div>
                 <div className="flex gap-2">
-                    <Button
-                        onClick={() => setAssignModalOpen(true)}
-                        className="bg-cta-primary hover:bg-cta-hover text-white"
-                    >
-                        Assign Task
-                    </Button>
                     <AlertDialog>
                         <AlertDialogTrigger asChild>
                             <Button variant="destructive" size="sm">
@@ -777,19 +767,6 @@ export default function GroupDetail() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-
-            {/* Assign Task Modal */}
-            <AssignTaskModal
-                open={assignModalOpen}
-                onOpenChange={setAssignModalOpen}
-                targetName={group?.name || 'Group'}
-                targetType="group"
-                onAssign={(tasks) => {
-                    console.log('Tasks to assign:', tasks);
-                    // TODO: Wire to actual assignment logic in Phase 25+
-                    setAssignModalOpen(false);
-                }}
-            />
         </div>
     );
 }
