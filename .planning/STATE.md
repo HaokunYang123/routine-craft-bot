@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 
 ## Current Position
 
-Phase: 23 of 23 (Infrastructure & E2E) - In Progress
-Plan: 1 of 2 in current phase
-Status: Plan 23-01 complete
-Last activity: 2026-01-31 - Completed 23-01-PLAN.md (Supabase Scalability Audit)
+Phase: 23 of 23 (Infrastructure & E2E) - Complete
+Plan: 2 of 2 in current phase
+Status: Phase complete
+Last activity: 2026-01-31 - Completed 23-02-PLAN.md (E2E Testing Infrastructure)
 
-Progress: [█████████████████░░░] 92% (5.5/6 phases)
+Progress: [████████████████████] 100% (6/6 phases)
 
 ## Milestone History
 
@@ -36,7 +36,7 @@ See: .planning/MILESTONES.md for full details
 | 20 | Task Rollover Logic | TASK-01, TASK-02 | Complete |
 | 21 | Task Assignment Cleanup | ASSIGN-01, ASSIGN-02 | Complete |
 | 22 | Security Section Removal | SEC-01, SEC-02, SEC-03 | Complete |
-| 23 | Infrastructure & E2E | INFRA-01, INFRA-02 | In Progress (1/2 plans) |
+| 23 | Infrastructure & E2E | INFRA-01, INFRA-02 | Complete |
 
 ## Accumulated Context
 
@@ -70,6 +70,9 @@ See: .planning/MILESTONES.md for full details
 | 22 | Clean test mocks to match production OAuth-only interface | Keep mocks aligned with production |
 | 23-01 | RLS policies acceptable as-is for 100 users | Direct auth.uid() pattern sufficient at current scale |
 | 23-01 | No immediate infrastructure changes needed | System production-ready, optimization recommendations for future |
+| 23-02 | Use domcontentloaded instead of networkidle | Better compatibility with mocked environments in E2E tests |
+| 23-02 | Flexible selectors with .or() fallbacks | Resilient to UI changes, role/label primary with testid fallback |
+| 23-02 | Install only chromium in CI | Faster CI builds, matches playwright.config.ts single-browser setup |
 
 ### Pending Todos
 
@@ -84,11 +87,11 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-31
-Stopped at: Completed 23-01-PLAN.md (Supabase Scalability Audit)
+Stopped at: Completed 23-02-PLAN.md (E2E Testing Infrastructure)
 Resume file: None
 
-Next action: Execute 23-02-PLAN.md for E2E testing setup
+Next action: v4.0 milestone complete - all 6 phases finished
 
 ---
 *State initialized: 2026-01-24*
-*Last updated: 2026-01-31 - Plan 23-01 complete*
+*Last updated: 2026-01-31 - Phase 23 complete, v4.0 milestone finished*
