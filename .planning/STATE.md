@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-31)
 
 **Core value:** Users can reliably complete their daily workflows with instant feedback and smooth performance.
-**Current focus:** Planning next milestone
+**Current focus:** v5.0 Task Assignment UX — Defining requirements
 
 ## Current Position
 
-Phase: 23 of 23 complete
-Plan: N/A (milestone complete)
-Status: v4.0 shipped
-Last activity: 2026-01-31 — v4.0 Bug Fixes & Polish milestone complete
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-01-31 — Milestone v5.0 started
 
-Progress: [████████████████████] 100% (v4.0 complete)
+Progress: [░░░░░░░░░░░░░░░░░░░░] 0% (v5.0 started)
 
 ## Milestone History
 
@@ -46,11 +46,11 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-31
-Stopped at: v4.0 milestone complete
+Stopped at: v5.0 requirements definition
 Resume file: None
 
-Next action: Run `/gsd:new-milestone` to start v5.0 planning
+Next action: Complete requirements, then roadmap
 
 ---
 *State initialized: 2026-01-24*
-*Last updated: 2026-01-31 — v4.0 milestone shipped*
+*Last updated: 2026-01-31 — v5.0 milestone started*

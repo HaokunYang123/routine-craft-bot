@@ -6,6 +6,18 @@ A coach/student task management system built with React and Supabase. Coaches cr
 
 **v4.0 Bug Fixes & Polish shipped 2026-01-31** — UI fixes, task rollover logic, form simplification, OAuth cleanup, and E2E testing infrastructure.
 
+## Current Milestone: v5.0 Task Assignment UX
+
+**Goal:** Redesign the task assignment modal with global defaults, progressive disclosure, and cleaner information hierarchy so coaches can quickly create tasks without confusion.
+
+**Target features:**
+- Global defaults (due date, schedule) apply to all tasks
+- Per-task overrides via progressive disclosure (advanced)
+- Compact task list with inline title entry
+- Single primary action (Add Task), templates as secondary
+- Details panel/accordion for optional fields
+- Clear button hierarchy and information density
+
 ## Core Value
 
 Users can reliably complete their daily workflows (task assignment, task completion, group management) without encountering errors, crashes, or unexpected behavior — with instant feedback, smooth performance, and accurate timezone handling.
@@ -106,7 +118,13 @@ E2E testing: Playwright with Page Objects, GitHub Actions CI
 
 ### Active
 
-(None — planning next milestone)
+**v5.0 Task Assignment UX:**
+- [ ] Redesign assignment modal with global defaults model
+- [ ] Compact task list with inline title entry
+- [ ] Progressive disclosure for per-task overrides
+- [ ] Single primary action with clear button hierarchy
+- [ ] Template integration as "insert tasks" (not separate mode)
+- [ ] Summary footer with task count and validation
 
 ### Out of Scope
 
@@ -185,4 +203,4 @@ E2E testing: Playwright with Page Objects, GitHub Actions CI
 | Simplified timezone selector | User feedback: too many options | ✓ Good — 6 US timezones |
 
 ---
-*Last updated: 2026-01-31 after v4.0 milestone shipped*
+*Last updated: 2026-01-31 after v5.0 milestone started*
