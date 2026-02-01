@@ -6,7 +6,7 @@
 - [x] **v2.0 Performance** - Phases 9-14 (shipped 2026-01-28)
 - [x] **v3.0 Auth & Realtime** - Phases 15-17 (shipped 2026-01-30)
 - [x] **v4.0 Bug Fixes & Polish** - Phases 18-23 (shipped 2026-01-31)
-- [ ] **v5.0 Task Assignment UX** - Phases 24-26 (in progress)
+- [x] **v5.0 Task Assignment UX** - Phases 24-26 (shipped 2026-02-01)
 
 ## Overview
 
@@ -16,7 +16,7 @@ v5.0 improves the existing AssignerDashboard task assignment experience. Adds cl
 
 - [x] **Phase 24: Custom Task Scheduling** - Add assign/due date separation, time blocks, monthly recurring to AssignerDashboard
 - [x] **Phase 25: Template Scheduling** - Per-task due times, time blocks in templates, template builder updates
-- [ ] **Phase 26: Group Assignment Sync** - Ensure group assignment has same features as custom task flow
+- [x] **Phase 26: Group Assignment Sync** - Ensure group assignment has same features as custom task flow
 
 ## Phase Details
 
@@ -63,7 +63,7 @@ Plans:
   4. Group tasks support monthly recurring
 **Plans**: 1 plan
 Plans:
-- [ ] 26-01-PLAN.md — Add group task assignment UI to GroupDetail with Phase 24 scheduling
+- [x] 26-01-PLAN.md — Add group task assignment UI to GroupDetail with Phase 24 scheduling
 
 ## Progress
 
@@ -74,8 +74,8 @@ Phases execute in numeric order: 24 -> 25 -> 26
 |-------|----------------|--------|-----------|
 | 24. Custom Task Scheduling | 3/3 | ✓ Complete | 2026-01-31 |
 | 25. Template Scheduling | 3/3 | ✓ Complete | 2026-01-31 |
-| 26. Group Assignment Sync | 0/1 | Planned | - |
+| 26. Group Assignment Sync | 1/1 | ✓ Complete | 2026-02-01 |
 
 ---
 *Roadmap created: 2026-01-31*
-*Last updated: 2026-01-31 - Phase 25 complete*
+*Last updated: 2026-02-01 - Phase 26 complete, v5.0 shipped*

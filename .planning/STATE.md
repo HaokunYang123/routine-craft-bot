@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-31)
 
 **Core value:** Coaches can assign tasks with clear scheduling (assign date vs due date), visible time blocks, and proper recurring options.
-**Current focus:** v5.0 Task Assignment UX - Phase 25 complete
+**Current focus:** v5.0 Task Assignment UX - COMPLETE
 
 ## Current Position
 
-Phase: 25 of 26 (Template Scheduling)
-Plan: 3 of 3 in current phase
-Status: Phase complete
-Last activity: 2026-02-01 - Completed 25-03-PLAN.md (Template Assignment with Time Propagation)
+Phase: 26 of 26 (Group Assignment Sync)
+Plan: 1 of 1 in current phase
+Status: Phase complete - v5.0 COMPLETE
+Last activity: 2026-02-01 - Completed 26-01-PLAN.md (Group Task Assignment UI)
 
-Progress: [████████████████████] 100% (3/3 plans in Phase 25)
+Progress: [████████████████████] 100% (1/1 plans in Phase 26)
 
 ## Milestone History
 
@@ -24,6 +24,7 @@ Progress: [████████████████████] 100% (3
 | v2.0 | Performance | 9-14 (17 plans) | 2026-01-28 |
 | v3.0 | Auth & Realtime | 15-17 (14 plans) | 2026-01-30 |
 | v4.0 | Bug Fixes & Polish | 18-23 (12 plans) | 2026-01-31 |
+| v5.0 | Task Assignment UX | 24-26 (7 plans) | 2026-02-01 |
 
 See: .planning/MILESTONES.md for full details
 
@@ -69,6 +70,11 @@ See: .planning/PROJECT.md Key Decisions table
 - Trigger copies start_time/end_time directly from template_tasks to tasks table
 - StudentSchedule already had time block support from Phase 24 - no UI changes needed
 
+**Plan 26-01 Decisions:**
+- Reused useAssignments hook rather than creating group-specific hook
+- Copied validation patterns from AssignerDashboard for consistency
+- Added resetAssignForm helper for clean dialog state after submission
+
 ### Pending Todos
 
 None.
@@ -82,11 +88,11 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-01
-Stopped at: Completed 25-03-PLAN.md (Phase 25 complete)
+Stopped at: Completed 26-01-PLAN.md (v5.0 complete)
 Resume file: None
 
-Next action: Execute Phase 26 (Group Assignment) or ship v5.0
+Next action: Ship v5.0 or start planning v6.0
 
 ---
 *State initialized: 2026-01-24*
-*Last updated: 2026-02-01 - Completed 25-03-PLAN.md (Template Assignment with Time Propagation)*
+*Last updated: 2026-02-01 - Completed 26-01-PLAN.md (v5.0 Task Assignment UX complete)*
