@@ -446,7 +446,24 @@ describe('useGroups', () => {
 
       expect(result.current.groups).toHaveLength(2);
 
-      // Mock delete response
+      // deleteGroup makes multiple calls - mock them all:
+      // 1. Get assignments for group
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: [], error: null }).then(resolve);
+      });
+      // 2. Delete assignments (no task_instances since no assignments)
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: null, error: null }).then(resolve);
+      });
+      // 3. Delete notes
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: null, error: null }).then(resolve);
+      });
+      // 4. Delete group_members
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: null, error: null }).then(resolve);
+      });
+      // 5. Delete group itself
       mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
         return Promise.resolve({ data: null, error: null }).then(resolve);
       });
@@ -490,7 +507,24 @@ describe('useGroups', () => {
       const { result } = renderHook(() => useGroups(), { wrapper: createWrapper() });
       await waitFor(() => expect(result.current.loading).toBe(false));
 
-      // Mock delete error
+      // deleteGroup makes multiple calls - mock them all, with error on final delete:
+      // 1. Get assignments for group
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: [], error: null }).then(resolve);
+      });
+      // 2. Delete assignments
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: null, error: null }).then(resolve);
+      });
+      // 3. Delete notes
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: null, error: null }).then(resolve);
+      });
+      // 4. Delete group_members
+      mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
+        return Promise.resolve({ data: null, error: null }).then(resolve);
+      });
+      // 5. Delete group itself - THIS FAILS
       mock.queryBuilder.then.mockImplementationOnce((resolve: (value: unknown) => unknown) => {
         return Promise.resolve({ data: null, error: { message: 'Cannot delete group' } }).then(resolve);
       });

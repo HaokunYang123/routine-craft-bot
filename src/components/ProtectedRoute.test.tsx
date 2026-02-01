@@ -190,13 +190,15 @@ describe('ProtectedRoute', () => {
     });
 
     it('redirects to login when role is null', async () => {
-      getMockSupabase().setResponse({ data: { role: null }, error: null });
+      // Mock role as null - the component will retry 5 times before giving up
+      getMockSupabase().queryBuilder.single.mockResolvedValue({ data: { role: null }, error: null });
 
       renderWithRoutes('/protected', 'coach');
 
+      // Wait for redirect to login page (need longer timeout due to retry delays)
       await waitFor(() => {
         expect(screen.getByTestId('login-page')).toBeInTheDocument();
-      });
+      }, { timeout: 5000 });
     });
   });
 });
