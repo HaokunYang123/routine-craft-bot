@@ -51,7 +51,7 @@ export function calculateStreak(completedTasks: { completed_at: string | null }[
     // Check if streak is active (completed today or yesterday)
     if (uniqueDates.includes(today)) {
         currentStreak = 1;
-        let checkDate = new Date(Date.now() - 86400000);
+        const checkDate = new Date(Date.now() - 86400000);
         while (uniqueDates.includes(checkDate.toDateString())) {
             currentStreak++;
             checkDate.setDate(checkDate.getDate() - 1);
@@ -59,7 +59,7 @@ export function calculateStreak(completedTasks: { completed_at: string | null }[
     } else if (uniqueDates.includes(yesterday)) {
         // Streak preserved but not incremented for today yet
         // Count backwards from yesterday
-        let checkDate = new Date(Date.now() - 86400000);
+        const checkDate = new Date(Date.now() - 86400000);
         while (uniqueDates.includes(checkDate.toDateString())) {
             currentStreak++;
             checkDate.setDate(checkDate.getDate() - 1);

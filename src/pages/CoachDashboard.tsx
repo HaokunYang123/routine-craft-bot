@@ -130,12 +130,12 @@ export default function CoachDashboard() {
             name: m.name,
             completedToday: m.completedToday,
             totalToday: m.totalToday,
-            overdueCount: (m as any).overdueCount || 0,
+            overdueCount: (m as unknown as { overdueCount?: number }).overdueCount || 0,
           })),
           // Flag members who have overdue tasks (not just low completion today)
           // This prevents "morning panic" where everyone is flagged at 8AM
           flaggedMembers: progress.members.filter(
-            (m) => ((m as any).overdueCount || 0) > 0
+            (m) => ((m as unknown as { overdueCount?: number }).overdueCount || 0) > 0
           ).length,
         };
       });

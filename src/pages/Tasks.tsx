@@ -277,7 +277,7 @@ export default function Tasks() {
     }
   };
 
-  const updateCustomTask = (index: number, field: string, value: any) => {
+  const updateCustomTask = (index: number, field: string, value: string | number | null) => {
     const updated = [...customTasks];
     updated[index] = { ...updated[index], [field]: value };
     setCustomTasks(updated);
@@ -463,10 +463,10 @@ export default function Tasks() {
         title: "Member Removed",
         description: `${memberToRemove.member.display_name || "Student"} has been removed from ${memberToRemove.groupName}.`,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Error",
-        description: error.message || "Failed to remove member",
+        description: error instanceof Error ? error.message : "Failed to remove member",
         variant: "destructive",
       });
     } finally {

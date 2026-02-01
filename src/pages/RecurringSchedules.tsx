@@ -119,14 +119,14 @@ export default function RecurringSchedules() {
       .eq("instructor_id", user.id);
 
     if (connections && connections.length > 0) {
-      const studentIds = connections.map((c: any) => c.student_id);
+      const studentIds = connections.map((c) => c.student_id);
       const { data: profiles } = await supabase
         .from("profiles")
         .select("user_id, display_name")
         .in("user_id", studentIds);
 
       setStudents(
-        (profiles || []).map((p: any) => ({
+        (profiles || []).map((p) => ({
           id: p.user_id,
           name: p.display_name || "Student",
         }))

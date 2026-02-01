@@ -90,10 +90,10 @@ export default function StudentSettings() {
                 title: "Name Updated",
                 description: "Your display name has been changed.",
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast({
                 title: "Error",
-                description: error.message || "Failed to update name",
+                description: error instanceof Error ? error.message : "Failed to update name",
                 variant: "destructive",
             });
         } finally {
@@ -121,10 +121,10 @@ export default function StudentSettings() {
                 title: "Timezone Updated",
                 description: "Your timezone has been saved.",
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast({
                 title: "Error",
-                description: error.message || "Failed to update timezone",
+                description: error instanceof Error ? error.message : "Failed to update timezone",
                 variant: "destructive",
             });
         } finally {

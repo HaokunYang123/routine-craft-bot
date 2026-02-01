@@ -79,8 +79,8 @@ export default function StudentHome() {
   const [yesterdayExpanded, setYesterdayExpanded] = useState(false);
 
   // Task rollover categorization (TASK-01, TASK-02)
-  // Casts local TaskInstance to match hook's expected type
-  const { today, overdue, yesterdayCompleted } = useTaskRollover(tasks as any);
+  // Casts local TaskInstance to match hook's expected type (local type extends hook type with UI fields)
+  const { today, overdue, yesterdayCompleted } = useTaskRollover(tasks as unknown as import("@/hooks/useAssignments").TaskInstance[]);
 
   // Session-scoped dismissal for yesterday's completed section
   const { isDismissed: isYesterdayDismissed, dismiss: dismissYesterday, reset: resetYesterdayDismissal } = useSessionDismissal();
@@ -172,7 +172,7 @@ export default function StudentHome() {
         return;
       }
 
-      const groupIds = memberships.map((m: any) => m.group_id);
+      const groupIds = memberships.map((m) => m.group_id);
 
       // Fetch group details
       const { data: groups } = await supabase
@@ -186,18 +186,18 @@ export default function StudentHome() {
       }
 
       // Fetch coach names
-      const coachIds = [...new Set(groups.map((g: any) => g.coach_id))];
+      const coachIds = [...new Set(groups.map((g) => g.coach_id))] as string[];
       const { data: coaches } = await supabase
         .from("profiles")
         .select("user_id, display_name")
         .in("user_id", coachIds);
 
       const coachMap: Record<string, string> = {};
-      coaches?.forEach((c: any) => {
+      coaches?.forEach((c) => {
         coachMap[c.user_id] = c.display_name || "Coach";
       });
 
-      const connectedGroups: ConnectedGroup[] = groups.map((group: any) => ({
+      const connectedGroups: ConnectedGroup[] = groups.map((group) => ({
         id: group.id,
         group_name: group.name,
         coach_name: coachMap[group.coach_id] || "Your Coach",
@@ -220,9 +220,10 @@ export default function StudentHome() {
         .select("group_id")
         .eq("user_id", user.id);
 
-      const groupIds = memberships?.map((m: any) => m.group_id) || [];
+      const groupIds = memberships?.map((m) => m.group_id) || [];
 
-      let allNotes: any[] = [];
+      type NoteRecord = { id: string; content: string | null; title: string | null; created_at: string; from_user_id: string; group_id: string | null };
+      let allNotes: NoteRecord[] = [];
 
       // 1. Notes targeted directly to this student
       const { data: targetedNotes } = await supabase
@@ -270,15 +271,15 @@ export default function StudentHome() {
       const coachIds = [...new Set(allNotes.map(n => n.from_user_id).filter(Boolean))];
       const noteGroupIds = [...new Set(allNotes.map(n => n.group_id).filter(Boolean))];
 
-      let coachMap: Record<string, string> = {};
-      let groupMap: Record<string, string> = {};
+      const coachMap: Record<string, string> = {};
+      const groupMap: Record<string, string> = {};
 
       if (coachIds.length > 0) {
         const { data: coaches } = await supabase
           .from("profiles")
           .select("user_id, display_name")
           .in("user_id", coachIds);
-        coaches?.forEach((c: any) => {
+        coaches?.forEach((c) => {
           coachMap[c.user_id] = c.display_name || "Coach";
         });
       }
@@ -288,7 +289,7 @@ export default function StudentHome() {
           .from("groups")
           .select("id, name")
           .in("id", noteGroupIds);
-        groups?.forEach((g: any) => {
+        groups?.forEach((g) => {
           groupMap[g.id] = g.name;
         });
       }
@@ -344,10 +345,10 @@ export default function StudentHome() {
           variant: "destructive",
         });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Error",
-        description: err.message || "Something went wrong. Please try again.",
+        description: err instanceof Error ? err.message : "Something went wrong. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -399,11 +400,11 @@ export default function StudentHome() {
 
       // Get coach and group info
       const allTasks = [...(todayData || []), ...(upcomingData || [])];
-      const coachIds = [...new Set(allTasks.map((t: any) => t.assignments?.assigned_by).filter(Boolean))];
-      const groupIds = [...new Set(allTasks.map((t: any) => t.assignments?.group_id).filter(Boolean))];
+      const coachIds = [...new Set(allTasks.map((t) => t.assignments?.assigned_by).filter(Boolean))] as string[];
+      const groupIds = [...new Set(allTasks.map((t) => t.assignments?.group_id).filter(Boolean))] as string[];
 
       // Fetch coach profiles
-      let coachProfiles: Record<string, string> = {};
+      const coachProfiles: Record<string, string> = {};
       if (coachIds.length > 0) {
         const { data: profiles } = await supabase
           .from("profiles")
@@ -415,7 +416,7 @@ export default function StudentHome() {
       }
 
       // Fetch group info
-      let groupInfo: Record<string, { name: string; color: string }> = {};
+      const groupInfo: Record<string, { name: string; color: string }> = {};
       if (groupIds.length > 0) {
         const { data: groups } = await supabase
           .from("groups")
@@ -427,7 +428,7 @@ export default function StudentHome() {
       }
 
       // Enrich tasks with coach and group info
-      const enrichTask = (task: any): TaskInstance => {
+      const enrichTask = (task: NonNullable<typeof todayData>[number]): TaskInstance => {
         const coachId = task.assignments?.assigned_by;
         const groupId = task.assignments?.group_id;
         const group = groupId ? groupInfo[groupId] : null;

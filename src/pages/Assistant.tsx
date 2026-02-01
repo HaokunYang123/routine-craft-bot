@@ -75,7 +75,7 @@ export default function Assistant() {
   // Voice Recognition State
   const [isListening, setIsListening] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(false);
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   useEffect(() => {
     // Check for Speech Recognition support
@@ -93,7 +93,7 @@ export default function Assistant() {
         setIsListening(false);
       };
 
-      recognitionRef.current.onerror = (event: any) => {
+      recognitionRef.current.onerror = (event: SpeechRecognitionErrorEvent) => {
         handleError(new Error(`Speech recognition error: ${event.error}`), {
           component: 'Assistant',
           action: 'speech recognition',

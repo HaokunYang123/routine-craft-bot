@@ -61,7 +61,7 @@ export function ManualTemplateBuilder({ onSave, isSaving }: ManualTemplateBuilde
     }
   };
 
-  const updateTask = (index: number, field: keyof ManualTask, value: any) => {
+  const updateTask = (index: number, field: keyof ManualTask, value: ManualTask[keyof ManualTask]) => {
     setTasks(
       tasks.map((task, i) =>
         i === index ? { ...task, [field]: value } : task

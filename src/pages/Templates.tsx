@@ -129,7 +129,7 @@ export default function Templates() {
     }
   };
 
-  const handleEditTaskChange = (index: number, field: string, value: any) => {
+  const handleEditTaskChange = (index: number, field: string, value: string | number) => {
     setEditTasks((prev) =>
       prev.map((task, i) => (i === index ? { ...task, [field]: value } : task))
     );

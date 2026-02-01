@@ -158,7 +158,7 @@ export default function GroupDetail() {
                 .eq("group_id", groupId);
 
             if (members && members.length > 0) {
-                const memberIds = members.map((m: any) => m.user_id);
+                const memberIds = members.map((m) => m.user_id);
 
                 // Get profiles
                 const { data: profiles } = await supabase
@@ -175,15 +175,15 @@ export default function GroupDetail() {
                     .gte("scheduled_date", sevenDaysAgo);
 
                 // Calculate progress for each member
-                const studentsWithProgress: StudentWithProgress[] = members.map((member: any) => {
-                    const profile = profiles?.find((p: any) => p.user_id === member.user_id);
+                const studentsWithProgress: StudentWithProgress[] = members.map((member) => {
+                    const profile = profiles?.find((p) => p.user_id === member.user_id);
 
                     // Get task instances for this member
                     const memberTasks = (allTaskInstances || []).filter(
-                        (t: any) => t.assignee_id === member.user_id
+                        (t) => t.assignee_id === member.user_id
                     );
                     const total = memberTasks.length;
-                    const completed = memberTasks.filter((t: any) => t.status === "completed").length;
+                    const completed = memberTasks.filter((t) => t.status === "completed").length;
                     const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
 
                     let status: "On Track" | "Behind" | "At Risk" = "On Track";
@@ -279,8 +279,8 @@ export default function GroupDetail() {
             setNewNoteTitle("");
             setNoteTargetStudent("all");
             fetchData();
-        } catch (error: any) {
-            toast({ title: "Error", description: error.message, variant: "destructive" });
+        } catch (error: unknown) {
+            toast({ title: "Error", description: error instanceof Error ? error.message : "An error occurred", variant: "destructive" });
         } finally {
             setSendingNote(false);
         }
@@ -297,8 +297,8 @@ export default function GroupDetail() {
                 throw new Error("Failed to delete group");
             }
             navigate("/dashboard");
-        } catch (error: any) {
-            toast({ title: "Error", description: error.message, variant: "destructive" });
+        } catch (error: unknown) {
+            toast({ title: "Error", description: error instanceof Error ? error.message : "An error occurred", variant: "destructive" });
         } finally {
             setDeleting(false);
         }
@@ -363,8 +363,8 @@ export default function GroupDetail() {
                 title: "Student Removed",
                 description: `${studentToRemove.display_name} has been removed from the group and all related data has been cleared.`
             });
-        } catch (error: any) {
-            toast({ title: "Error", description: error.message, variant: "destructive" });
+        } catch (error: unknown) {
+            toast({ title: "Error", description: error instanceof Error ? error.message : "An error occurred", variant: "destructive" });
         } finally {
             setRemoving(false);
             setStudentToRemove(null);

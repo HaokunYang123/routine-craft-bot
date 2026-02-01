@@ -87,9 +87,9 @@ export default function AssigneeDashboard() {
 
       // Get coach names
       if (instances && instances.length > 0) {
-        const coachIds = [...new Set(instances.map((i: any) => i.assignments?.assigned_by).filter(Boolean))];
+        const coachIds = [...new Set(instances.map((i) => i.assignments?.assigned_by).filter(Boolean))] as string[];
 
-        let coachProfiles: Record<string, string> = {};
+        const coachProfiles: Record<string, string> = {};
         if (coachIds.length > 0) {
           const { data: profiles } = await supabase
             .from("profiles")
@@ -103,7 +103,7 @@ export default function AssigneeDashboard() {
           }
         }
 
-        const enrichedTasks: TaskInstance[] = instances.map((instance: any) => ({
+        const enrichedTasks: TaskInstance[] = instances.map((instance) => ({
           id: instance.id,
           name: instance.name,
           description: instance.description,
@@ -128,7 +128,8 @@ export default function AssigneeDashboard() {
       const groupIds = memberships?.map((m) => m.group_id) || [];
 
       // Fetch coach notes - both targeted to this user AND broadcast to their groups
-      let allNotes: any[] = [];
+      type NoteRecord = { id: string; content: string | null; created_at: string; from_user_id: string };
+      let allNotes: NoteRecord[] = [];
 
       // 1. Notes targeted directly to this student
       const { data: targetedNotes } = await supabase
@@ -218,7 +219,8 @@ export default function AssigneeDashboard() {
           description: `Great job completing "${task.name}"`,
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      console.error("Failed to update task:", error);
       toast({
         title: "Error",
         description: "Failed to update task",

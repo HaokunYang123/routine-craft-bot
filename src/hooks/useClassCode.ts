@@ -35,8 +35,8 @@ export function useClassCode() {
             }
 
             return data[0] as ClassSession;
-        } catch (err: any) {
-            const errorMessage = err.message || "Failed to validate class code";
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : "Failed to validate class code";
             setError(errorMessage);
             return null;
         } finally {
@@ -76,8 +76,8 @@ export function useClassCode() {
             }
 
             return true;
-        } catch (err: any) {
-            setError(err.message || "Failed to join class");
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "Failed to join class");
             return false;
         } finally {
             setLoading(false);

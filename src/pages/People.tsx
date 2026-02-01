@@ -112,14 +112,14 @@ export default function People() {
       let students: Student[] = [];
 
       if (connections && connections.length > 0) {
-        const studentIds = connections.map((c: any) => c.student_id);
+        const studentIds = connections.map((c) => c.student_id);
         const { data: profiles } = await supabase
           .from('profiles')
           .select('user_id, display_name')
           .in('user_id', studentIds);
 
-        students = connections.map((conn: any) => {
-          const profile = profiles?.find((p: any) => p.user_id === conn.student_id);
+        students = connections.map((conn) => {
+          const profile = profiles?.find((p) => p.user_id === conn.student_id);
           return {
             id: conn.id,
             student_id: conn.student_id,
@@ -174,8 +174,8 @@ export default function People() {
       setSelectedTemplateId("");
       setCreateOpen(false);
       queryClient.invalidateQueries({ queryKey: queryKeys.clients.all });
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Error", description: error instanceof Error ? error.message : "An error occurred", variant: "destructive" });
     } finally {
       setCreating(false);
     }

@@ -1,10 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 
 type UserRole = "coach" | "student";
+
+// Retry configuration for role fetch (handles race condition after signup)
+const MAX_ROLE_RETRIES = 5;
+const ROLE_RETRY_DELAY_MS = 400;
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -15,6 +19,8 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
   const { user, loading: authLoading } = useAuth();
   const [role, setRole] = useState<UserRole | null>(null);
   const [roleLoading, setRoleLoading] = useState(true);
+  const [roleNotFound, setRoleNotFound] = useState(false);
+  const retryCountRef = useRef(0);
 
   useEffect(() => {
     async function fetchRole() {
@@ -23,15 +29,33 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
         return;
       }
 
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("user_id", user.id)
-        .single();
+      // Reset retry count on new user
+      retryCountRef.current = 0;
 
-      if (data?.role) {
-        setRole(data.role as UserRole);
+      while (retryCountRef.current < MAX_ROLE_RETRIES) {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("user_id", user.id)
+          .single();
+
+        if (data?.role) {
+          setRole(data.role as UserRole);
+          setRoleLoading(false);
+          return;
+        }
+
+        // Role is NULL - might be race condition after signup
+        retryCountRef.current++;
+        if (retryCountRef.current < MAX_ROLE_RETRIES) {
+          console.log(`ProtectedRoute: Role not set yet, retry ${retryCountRef.current}/${MAX_ROLE_RETRIES}...`);
+          await new Promise(resolve => setTimeout(resolve, ROLE_RETRY_DELAY_MS));
+        }
       }
+
+      // After all retries, role is still NULL
+      console.log("ProtectedRoute: Role not found after retries");
+      setRoleNotFound(true);
       setRoleLoading(false);
     }
 
@@ -58,8 +82,8 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
 
   // Role check if required
   if (requiredRole) {
-    // If role is not loaded yet or doesn't exist, redirect to home
-    if (!role) {
+    // If role is still not found after retries, redirect to home for role selection
+    if (roleNotFound || !role) {
       return <Navigate to="/" replace />;
     }
     // Redirect to appropriate dashboard if role doesn't match

@@ -359,10 +359,10 @@ export default function AssignerDashboard() {
       setNoteDialogOpen(false);
       setNoteContent("");
       setSelectedStudent(null);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Error",
-        description: error.message || "Failed to send note",
+        description: error instanceof Error ? error.message : "Failed to send note",
         variant: "destructive",
       });
     } finally {
