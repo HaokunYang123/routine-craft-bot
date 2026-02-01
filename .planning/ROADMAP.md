@@ -35,11 +35,11 @@ v5.0 redesigns the task assignment modal with a global defaults model, progressi
   3. Coach can add multiple tasks using "Add Task" button, with empty state showing ready-to-type input
   4. Coach can reorder tasks via drag-and-drop
   5. Coach can delete tasks via X button on each row
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 24-01: TBD
-- [ ] 24-02: TBD
+- [ ] 24-01-PLAN.md — Modal shell, task hook, and task row with inline editing
+- [ ] 24-02-PLAN.md — Drag-and-drop reordering with dnd-kit and modal integration
 
 ### Phase 25: Defaults Section
 **Goal**: Coaches can set global due date and recurrence that apply to all tasks
@@ -95,7 +95,7 @@ Phases execute in numeric order: 24 -> 25 -> 26 -> 27
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 24. Modal Foundation + Task List | 0/TBD | Not started | - |
+| 24. Modal Foundation + Task List | 0/2 | Planned | - |
 | 25. Defaults Section | 0/TBD | Not started | - |
 | 26. Progressive Disclosure | 0/TBD | Not started | - |
 | 27. Templates + Footer | 0/TBD | Not started | - |
