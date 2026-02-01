@@ -66,20 +66,20 @@ Improve the existing AssignerDashboard task assignment experience. Fix time bloc
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DATE-01 | 24 | Pending |
-| DATE-02 | 24 | Pending |
-| DATE-03 | 24 | Pending |
-| DATE-04 | 24 | Pending |
-| TIME-01 | 24 | Pending |
-| TIME-02 | 24 | Pending |
-| TIME-03 | 24 | Pending |
-| TIME-04 | 24 | Pending |
+| DATE-01 | 24 | Complete |
+| DATE-02 | 24 | Complete |
+| DATE-03 | 24 | Complete |
+| DATE-04 | 24 | Complete |
+| TIME-01 | 24 | Complete |
+| TIME-02 | 24 | Complete |
+| TIME-03 | 24 | Complete |
+| TIME-04 | 24 | Complete |
 | TIME-05 | 25 | Pending |
-| RECUR-01 | 24 | Pending |
-| RECUR-02 | 24 | Pending |
-| RECUR-03 | 24 | Pending |
-| RECUR-04 | 24 | Pending |
-| RECUR-05 | 24 | Pending |
+| RECUR-01 | 24 | Complete |
+| RECUR-02 | 24 | Complete |
+| RECUR-03 | 24 | Complete |
+| RECUR-04 | 24 | Complete |
+| RECUR-05 | 24 | Complete |
 | TMPL-01 | 25 | Pending |
 | TMPL-02 | 25 | Pending |
 | TMPL-03 | 25 | Pending |
@@ -89,11 +89,11 @@ Improve the existing AssignerDashboard task assignment experience. Fix time bloc
 | GRP-02 | 26 | Pending |
 | GRP-03 | 26 | Pending |
 | GRP-04 | 26 | Pending |
-| DB-01 | 24 | Pending |
-| DB-02 | 24 | Pending |
-| DB-03 | 24 | Pending |
+| DB-01 | 24 | Complete |
+| DB-02 | 24 | Complete |
+| DB-03 | 24 | Complete |
 | DB-04 | 25 | Pending |
-| DB-05 | 24 | Pending |
+| DB-05 | 24 | Complete |
 
 **Coverage:**
 - v5.0 requirements: 28 total
