@@ -35,26 +35,41 @@ export default function AuthCallback() {
   const [selectedRole, setSelectedRole] = useState<'coach' | 'student' | null>(null);
 
   // Function to set role and redirect
-  const handleRoleSelection = async (role: 'coach' | 'student') => {
-    if (!userId) return;
+  const handleRoleSelection = async (role: 'coach' | 'student', userIdOverride?: string) => {
+    const effectiveUserId = userIdOverride || userId;
+    if (!effectiveUserId) {
+      console.error("🔑 Callback: No user ID available for role selection");
+      return;
+    }
 
     setSelectedRole(role);
     setState("setting_role");
     setStatusMessage(`Setting up your ${role} account...`);
 
     try {
-      const { error: updateError } = await supabase
+      console.log("🔑 Callback: Attempting to update profile for user:", effectiveUserId);
+
+      const { data: updateData, error: updateError, count } = await supabase
         .from("profiles")
         .update({
           role: role,
           timezone: detectBrowserTimezone(),
           updated_at: new Date().toISOString(),
         })
-        .eq("user_id", userId);
+        .eq("user_id", effectiveUserId)
+        .select();
+
+      console.log("🔑 Callback: Update result:", { updateData, updateError, count, effectiveUserId });
 
       if (updateError) {
         console.error("🔑 Callback: Role update failed:", updateError);
-        throw new Error(`Could not set account type. Please try again.`);
+        throw new Error(`Could not set account type: ${updateError.message}`);
+      }
+
+      // Check if any rows were actually updated (RLS might block silently)
+      if (!updateData || updateData.length === 0) {
+        console.error("🔑 Callback: No profile updated - RLS may be blocking or profile doesn't exist");
+        throw new Error("Could not update your profile. Please try signing up again.");
       }
 
       console.log("🔑 Callback: Role successfully set to:", role);
@@ -88,9 +103,22 @@ export default function AuthCallback() {
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        console.log("🔑 Callback: Getting session...");
+        console.log("🔑 Callback: === AUTH CALLBACK STARTED ===");
+        console.log("🔑 Callback: Full URL:", window.location.href);
+        console.log("🔑 Callback: Pathname:", window.location.pathname);
+        console.log("🔑 Callback: Search params:", window.location.search);
+        console.log("🔑 Callback: Hash:", window.location.hash);
         console.log("🔑 Callback: Intent:", intent, "Role:", initialRole);
+        console.log("🔑 Callback: localStorage pendingAuthRole:", localStorage.getItem('pendingAuthRole'));
+        console.log("🔑 Callback: localStorage pendingAuthIntent:", localStorage.getItem('pendingAuthIntent'));
         setStatusMessage("Verifying your sign-in...");
+
+        // If there's a hash fragment with tokens, let Supabase handle it first
+        if (window.location.hash && window.location.hash.includes('access_token')) {
+          console.log("🔑 Callback: Detected tokens in hash, letting Supabase process...");
+          // Give Supabase time to process the hash
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
 
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
@@ -136,7 +164,51 @@ export default function AuthCallback() {
         }
 
         if (!profile) {
-          console.error("🔑 Callback: Profile not found after retries");
+          console.log("🔑 Callback: Profile not found, attempting to create one...");
+
+          // Try to create profile if it doesn't exist (trigger might not have run)
+          const { data: newProfile, error: createError } = await supabase
+            .from("profiles")
+            .insert({
+              user_id: session.user.id,
+              role: initialRole || null,
+              timezone: detectBrowserTimezone(),
+            })
+            .select()
+            .single();
+
+          if (createError) {
+            // If it's a duplicate key error, try fetching again
+            if (createError.code === '23505') {
+              console.log("🔑 Callback: Profile already exists, fetching again...");
+              const { data: existingProfile } = await supabase
+                .from("profiles")
+                .select("role, timezone")
+                .eq("user_id", session.user.id)
+                .single();
+              profile = existingProfile;
+            } else {
+              console.error("🔑 Callback: Failed to create profile:", createError);
+              throw new Error("Could not create your profile. Please try again.");
+            }
+          } else {
+            console.log("🔑 Callback: Profile created successfully:", newProfile);
+            // If we created with a role, redirect directly
+            if (initialRole && newProfile?.role) {
+              localStorage.removeItem('pendingAuthRole');
+              localStorage.removeItem('pendingAuthIntent');
+              setState("success");
+              setStatusMessage(`Welcome! Redirecting to your ${initialRole} dashboard...`);
+              await new Promise(resolve => setTimeout(resolve, 300));
+              navigate(initialRole === "coach" ? "/dashboard" : "/app", { replace: true });
+              return;
+            }
+            profile = newProfile;
+          }
+        }
+
+        if (!profile) {
+          console.error("🔑 Callback: Still no profile after create attempt");
           throw new Error("Account setup incomplete. Please try signing in again.");
         }
 
@@ -173,7 +245,7 @@ export default function AuthCallback() {
         // CASE B: Role is NULL - try to set from URL/localStorage params
         if (initialRole) {
           console.log(`🔑 Callback: Setting role from params: ${initialRole}`);
-          await handleRoleSelection(initialRole);
+          await handleRoleSelection(initialRole, session.user.id);
           return;
         }
 
