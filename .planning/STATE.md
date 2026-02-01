@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 ## Current Position
 
 Phase: 24 of 26 (Custom Task Scheduling)
-Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-01-31 - Reverted wrong-scope Phase 24, replanned v5.0
+Plan: 1 of 3 in current phase
+Status: In progress
+Last activity: 2026-01-31 - Completed 24-01-PLAN.md (DB schema for scheduling)
 
-Progress: [░░░░░░░░░░░░░░░░░░░░] 0% (v5.0 restarted)
+Progress: [███░░░░░░░░░░░░░░░░░] 33% (1/3 plans in Phase 24)
 
 ## Milestone History
 
@@ -40,6 +40,11 @@ See: .planning/PROJECT.md Key Decisions table
 - Add Monthly recurring option
 - Templates need per-task due time, one assign date
 
+**Plan 24-01 Decisions:**
+- Added start_time column alongside scheduled_time for explicit time block start
+- RPC function uses p_assign_date/p_due_date naming for clarity
+- Backfilled assign_date from scheduled_date for backward compatibility
+
 ### Pending Todos
 
 None.
@@ -53,11 +58,11 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-31
-Stopped at: Reverted Phase 24, ready to re-plan
-Resume file: None
+Stopped at: Completed 24-01-PLAN.md
+Resume file: .planning/phases/24-custom-task-scheduling/24-02-PLAN.md
 
-Next action: /gsd:plan-phase 24
+Next action: Execute 24-02-PLAN.md (UI integration for assign date/due date/time blocks)
 
 ---
 *State initialized: 2026-01-24*
-*Last updated: 2026-01-31 - Reverted and replanned v5.0 scope*
+*Last updated: 2026-01-31 - Completed Plan 24-01 (DB schema for scheduling)*
