@@ -15,7 +15,7 @@ v5.0 improves the existing AssignerDashboard task assignment experience. Adds cl
 ## Phases
 
 - [x] **Phase 24: Custom Task Scheduling** - Add assign/due date separation, time blocks, monthly recurring to AssignerDashboard
-- [ ] **Phase 25: Template Scheduling** - Per-task due times, time blocks in templates, template builder updates
+- [x] **Phase 25: Template Scheduling** - Per-task due times, time blocks in templates, template builder updates
 - [ ] **Phase 26: Group Assignment Sync** - Ensure group assignment has same features as custom task flow
 
 ## Phase Details
@@ -48,9 +48,9 @@ Plans:
   5. Assigned template tasks display correctly on student schedule
 **Plans**: 3 plans
 Plans:
-- [ ] 25-01-PLAN.md — Database schema: add scheduling columns to template_tasks
-- [ ] 25-02-PLAN.md — Template builder UI: time fields in ManualTemplateBuilder
-- [ ] 25-03-PLAN.md — Template assignment: update trigger and end-to-end verification
+- [x] 25-01-PLAN.md — Database schema: add scheduling columns to template_tasks
+- [x] 25-02-PLAN.md — Template builder UI: time fields in ManualTemplateBuilder
+- [x] 25-03-PLAN.md — Template assignment: update trigger and end-to-end verification
 
 ### Phase 26: Group Assignment Sync
 **Goal**: Group assignment ("green button") has same scheduling features as custom tasks
@@ -73,9 +73,9 @@ Phases execute in numeric order: 24 -> 25 -> 26
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 24. Custom Task Scheduling | 3/3 | ✓ Complete | 2026-01-31 |
-| 25. Template Scheduling | 0/3 | Planned | - |
+| 25. Template Scheduling | 3/3 | ✓ Complete | 2026-01-31 |
 | 26. Group Assignment Sync | 0/1 | Planned | - |
 
 ---
 *Roadmap created: 2026-01-31*
-*Last updated: 2026-01-31 - Phase 25 planned*
+*Last updated: 2026-01-31 - Phase 25 complete*

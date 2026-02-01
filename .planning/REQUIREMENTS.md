@@ -74,17 +74,17 @@ Improve the existing AssignerDashboard task assignment experience. Fix time bloc
 | TIME-02 | 24 | Complete |
 | TIME-03 | 24 | Complete |
 | TIME-04 | 24 | Complete |
-| TIME-05 | 25 | Pending |
+| TIME-05 | 25 | Complete |
 | RECUR-01 | 24 | Complete |
 | RECUR-02 | 24 | Complete |
 | RECUR-03 | 24 | Complete |
 | RECUR-04 | 24 | Complete |
 | RECUR-05 | 24 | Complete |
-| TMPL-01 | 25 | Pending |
-| TMPL-02 | 25 | Pending |
-| TMPL-03 | 25 | Pending |
-| TMPL-04 | 25 | Pending |
-| TMPL-05 | 25 | Pending |
+| TMPL-01 | 25 | Complete |
+| TMPL-02 | 25 | Complete |
+| TMPL-03 | 25 | Complete |
+| TMPL-04 | 25 | Complete |
+| TMPL-05 | 25 | Complete |
 | GRP-01 | 26 | Pending |
 | GRP-02 | 26 | Pending |
 | GRP-03 | 26 | Pending |
@@ -92,7 +92,7 @@ Improve the existing AssignerDashboard task assignment experience. Fix time bloc
 | DB-01 | 24 | Complete |
 | DB-02 | 24 | Complete |
 | DB-03 | 24 | Complete |
-| DB-04 | 25 | Pending |
+| DB-04 | 25 | Complete |
 | DB-05 | 24 | Complete |
 
 **Coverage:**
