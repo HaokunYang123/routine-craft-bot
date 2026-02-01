@@ -5,7 +5,7 @@ import { useAuth } from "./useAuth";
 import { useToast } from "./use-toast";
 import { handleError } from "@/lib/error";
 import { queryKeys } from "@/lib/queries/keys";
-import { addDays, format, eachDayOfInterval, getDay } from "date-fns";
+import { addDays, format, eachDayOfInterval, getDay, addMonths, setDate, getDate, lastDayOfMonth } from "date-fns";
 
 export interface Assignment {
   id: string;
@@ -74,10 +74,12 @@ interface AssignGroupTaskInput {
   groupId: string;
   title: string;
   description?: string;
-  startDate: string;
-  endDate: string;
+  assignDate: string;   // When student sees task
+  dueDate: string;      // When task is due
   startTime?: string;
   endTime?: string;
+  scheduleType?: "once" | "daily" | "weekly" | "monthly" | "custom";
+  scheduleDays?: number[];  // For custom: day of week (0-6), for monthly: day of month (1-31 or -1)
 }
 
 interface ExcuseTaskInput {
@@ -551,8 +553,8 @@ export function useAssignments() {
         p_group_id: input.groupId,
         p_title: input.title,
         p_description: input.description || null,
-        p_assign_date: input.startDate,  // When student sees the task
-        p_due_date: input.endDate,        // When task is due
+        p_assign_date: input.assignDate,  // When student sees the task
+        p_due_date: input.dueDate,         // When task is due
         p_start_time: input.startTime || null,
         p_end_time: input.endTime || null,
       });
@@ -766,6 +768,37 @@ function getScheduledDates(
     return [startDate];
   }
 
+  if (scheduleType === "monthly") {
+    // scheduleDays[0] is the day of month (1-31 or -1 for last)
+    const dayOfMonth = scheduleDays[0] || 1;
+    let current = new Date(startDate);
+
+    while (current <= endDate) {
+      let targetDate: Date;
+
+      if (dayOfMonth === -1) {
+        // "Last day of month" option
+        targetDate = lastDayOfMonth(current);
+      } else {
+        // Specific day of month - handle months with fewer days
+        const lastDay = getDate(lastDayOfMonth(current));
+        const actualDay = Math.min(dayOfMonth, lastDay);
+        targetDate = setDate(current, actualDay);
+      }
+
+      // Only include if within range and on or after start
+      if (targetDate >= startDate && targetDate <= endDate) {
+        dates.push(new Date(targetDate));
+      }
+
+      // Move to next month (from the 1st to avoid edge cases)
+      current = addMonths(setDate(current, 1), 1);
+    }
+
+    return dates;
+  }
+
+  // Existing logic for daily, weekly, custom
   const allDays = eachDayOfInterval({ start: startDate, end: endDate });
 
   for (const day of allDays) {
