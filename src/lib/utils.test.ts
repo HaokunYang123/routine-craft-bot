@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { cn, safeParseISO, safeFormatDate, generateTimeSlots } from './utils';
+import { cn, safeParseISO, safeFormatDate, generateTimeSlots, minutesToTimeString } from './utils';
 
 describe('cn utility', () => {
   it('merges class names', () => {
@@ -230,41 +230,48 @@ describe('safeParseISO edge cases', () => {
 });
 
 describe('generateTimeSlots', () => {
-  it('returns an array of time slots', () => {
+  it('returns an array of time slot objects', () => {
     const slots = generateTimeSlots();
     expect(Array.isArray(slots)).toBe(true);
     expect(slots.length).toBeGreaterThan(0);
+    expect(slots[0]).toHaveProperty('value');
+    expect(slots[0]).toHaveProperty('label');
   });
 
-  it('starts at 5:00 AM', () => {
+  it('starts at 5:00 AM with value 300 (5*60)', () => {
     const slots = generateTimeSlots();
-    expect(slots[0]).toBe('05:00 AM');
+    expect(slots[0].label).toBe('05:00 AM');
+    expect(slots[0].value).toBe(300); // 5 * 60 minutes
   });
 
-  it('ends at 10:00 PM', () => {
+  it('ends at 10:00 PM with value 1320 (22*60)', () => {
     const slots = generateTimeSlots();
-    expect(slots[slots.length - 1]).toBe('10:00 PM');
+    expect(slots[slots.length - 1].label).toBe('10:00 PM');
+    expect(slots[slots.length - 1].value).toBe(1320); // 22 * 60 minutes
   });
 
   it('does not include 10:30 PM', () => {
     const slots = generateTimeSlots();
-    expect(slots).not.toContain('10:30 PM');
+    const labels = slots.map(s => s.label);
+    expect(labels).not.toContain('10:30 PM');
   });
 
   it('has 30-minute increments', () => {
     const slots = generateTimeSlots();
+    const labels = slots.map(s => s.label);
     // Check a few consecutive slots
-    const idx = slots.indexOf('06:00 AM');
-    expect(slots[idx + 1]).toBe('06:30 AM');
-    expect(slots[idx + 2]).toBe('07:00 AM');
+    const idx = labels.indexOf('06:00 AM');
+    expect(labels[idx + 1]).toBe('06:30 AM');
+    expect(labels[idx + 2]).toBe('07:00 AM');
   });
 
   it('correctly handles AM/PM transition at noon', () => {
     const slots = generateTimeSlots();
-    expect(slots).toContain('11:30 AM');
-    expect(slots).toContain('12:00 PM');
-    expect(slots).toContain('12:30 PM');
-    expect(slots).toContain('01:00 PM');
+    const labels = slots.map(s => s.label);
+    expect(labels).toContain('11:30 AM');
+    expect(labels).toContain('12:00 PM');
+    expect(labels).toContain('12:30 PM');
+    expect(labels).toContain('01:00 PM');
   });
 
   it('returns correct number of slots (5AM-10PM = 17 hours * 2 + 1 = 35 slots)', () => {
@@ -278,14 +285,65 @@ describe('generateTimeSlots', () => {
 
   it('formats hours with leading zeros', () => {
     const slots = generateTimeSlots();
-    expect(slots).toContain('05:00 AM');
-    expect(slots).toContain('09:30 AM');
+    const labels = slots.map(s => s.label);
+    expect(labels).toContain('05:00 AM');
+    expect(labels).toContain('09:30 AM');
   });
 
   it('uses 12-hour format', () => {
     const slots = generateTimeSlots();
+    const labels = slots.map(s => s.label);
     // Should not have 13:00, should have 01:00 PM
-    expect(slots.some(s => s.startsWith('13:'))).toBe(false);
-    expect(slots).toContain('01:00 PM');
+    expect(labels.some(s => s.startsWith('13:'))).toBe(false);
+    expect(labels).toContain('01:00 PM');
+  });
+
+  it('has correct value (minutes from midnight) for 9:00 AM', () => {
+    const slots = generateTimeSlots();
+    const nineAm = slots.find(s => s.label === '09:00 AM');
+    expect(nineAm?.value).toBe(540); // 9 * 60
+  });
+
+  it('has correct value (minutes from midnight) for 5:00 PM', () => {
+    const slots = generateTimeSlots();
+    const fivePm = slots.find(s => s.label === '05:00 PM');
+    expect(fivePm?.value).toBe(1020); // 17 * 60
+  });
+});
+
+describe('minutesToTimeString', () => {
+  it('converts midnight (0) to 12:00 AM', () => {
+    expect(minutesToTimeString(0)).toBe('12:00 AM');
+  });
+
+  it('converts 540 minutes (9 AM) correctly', () => {
+    expect(minutesToTimeString(540)).toBe('9:00 AM');
+  });
+
+  it('converts 1020 minutes (5 PM) correctly', () => {
+    expect(minutesToTimeString(1020)).toBe('5:00 PM');
+  });
+
+  it('converts 720 minutes (noon) to 12:00 PM', () => {
+    expect(minutesToTimeString(720)).toBe('12:00 PM');
+  });
+
+  it('handles half-hour correctly', () => {
+    expect(minutesToTimeString(570)).toBe('9:30 AM');
+    expect(minutesToTimeString(810)).toBe('1:30 PM');
+  });
+
+  it('converts 1439 (11:59 PM) correctly', () => {
+    expect(minutesToTimeString(1439)).toBe('11:59 PM');
+  });
+
+  it('handles morning hours (1-11 AM)', () => {
+    expect(minutesToTimeString(60)).toBe('1:00 AM');
+    expect(minutesToTimeString(660)).toBe('11:00 AM');
+  });
+
+  it('handles afternoon hours (1-11 PM)', () => {
+    expect(minutesToTimeString(780)).toBe('1:00 PM');
+    expect(minutesToTimeString(1380)).toBe('11:00 PM');
   });
 });

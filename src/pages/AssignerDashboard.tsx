@@ -836,8 +836,8 @@ export default function AssignerDashboard() {
                   </SelectTrigger>
                   <SelectContent>
                     {TIME_SLOTS.map((slot) => (
-                      <SelectItem key={slot} value={slot}>
-                        {slot}
+                      <SelectItem key={slot.label} value={slot.label}>
+                        {slot.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -851,8 +851,8 @@ export default function AssignerDashboard() {
                   </SelectTrigger>
                   <SelectContent>
                     {TIME_SLOTS.map((slot) => (
-                      <SelectItem key={slot} value={slot}>
-                        {slot}
+                      <SelectItem key={slot.label} value={slot.label}>
+                        {slot.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
