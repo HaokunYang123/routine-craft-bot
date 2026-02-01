@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 ## Current Position
 
 Phase: 25 of 26 (Template Scheduling)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: In progress
-Last activity: 2026-02-01 - Completed 25-01-PLAN.md (template scheduling schema and mutations)
+Last activity: 2026-02-01 - Completed 25-02-PLAN.md (Template Editor UI)
 
-Progress: [██████░░░░░░░░░░░░░░] 33% (1/3 plans in Phase 25)
+Progress: [████████████░░░░░░░░] 67% (2/3 plans in Phase 25)
 
 ## Milestone History
 
@@ -59,6 +59,11 @@ See: .planning/PROJECT.md Key Decisions table
 - Used TEXT for start_time/end_time for 12-hour format consistency with Phase 24
 - Added index on template_id for query optimization
 
+**Plan 25-02 Decisions:**
+- Updated generateTimeSlots to return {value: number, label: string}[] for dual-purpose display/storage
+- End time dropdown disabled until start time selected, auto-clears when start time changes
+- Blue badges for due time, purple badges for time blocks in template preview
+
 ### Pending Todos
 
 None.
@@ -72,11 +77,11 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-01
-Stopped at: Completed 25-01-PLAN.md
+Stopped at: Completed 25-02-PLAN.md
 Resume file: None
 
-Next action: Execute Phase 25-02 (Template Editor UI)
+Next action: Execute Phase 25-03 (Template Assignment with time propagation)
 
 ---
 *State initialized: 2026-01-24*
-*Last updated: 2026-02-01 - Completed 25-01-PLAN.md (Template Scheduling schema)*
+*Last updated: 2026-02-01 - Completed 25-02-PLAN.md (Template Editor UI)*
