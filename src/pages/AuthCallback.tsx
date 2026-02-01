@@ -21,9 +21,13 @@ export default function AuthCallback() {
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
 
-  // Get intent and role from URL params
-  const intent = searchParams.get('intent') as 'signup' | 'login' | null;
-  const role = searchParams.get('role') as 'coach' | 'student' | null;
+  // Get intent and role from URL params, with localStorage fallback
+  // (URL params can be lost during OAuth redirect chain on some browsers/devices)
+  const urlIntent = searchParams.get('intent');
+  const urlRole = searchParams.get('role');
+
+  const intent = (urlIntent || localStorage.getItem('pendingAuthIntent')) as 'signup' | 'login' | null;
+  const role = (urlRole || localStorage.getItem('pendingAuthRole')) as 'coach' | 'student' | null;
 
   const [state, setState] = useState<CallbackState>("processing");
   const [error, setError] = useState<string | null>(null);
@@ -90,6 +94,10 @@ export default function AuthCallback() {
 
         // CASE A: User has a role -> Redirect to appropriate dashboard
         if (profile.role === "coach" || profile.role === "student") {
+          // Clear any pending auth data
+          localStorage.removeItem('pendingAuthRole');
+          localStorage.removeItem('pendingAuthIntent');
+
           // Update timezone if needed
           if (!profile.timezone) {
             await supabase
@@ -140,6 +148,10 @@ export default function AuthCallback() {
 
           console.log("🔑 Callback: Role successfully set to:", role);
 
+          // Clear pending auth data from localStorage
+          localStorage.removeItem('pendingAuthRole');
+          localStorage.removeItem('pendingAuthIntent');
+
           setState("success");
           setStatusMessage(`Welcome! Redirecting to your ${role} dashboard...`);
           await new Promise(resolve => setTimeout(resolve, 300));
@@ -155,6 +167,11 @@ export default function AuthCallback() {
         // B2: Login intent (or no intent) with NULL role -> New user tried to login
         // Redirect to auth page with a toast message
         console.log("🔑 Callback: Login intent but no role - new user needs to sign up");
+
+        // Clear any pending auth data (signup flow failed or user used login)
+        localStorage.removeItem('pendingAuthRole');
+        localStorage.removeItem('pendingAuthIntent');
+
         setState("needs_role");
 
         // Show toast and redirect to auth page
@@ -170,6 +187,9 @@ export default function AuthCallback() {
 
       } catch (err: unknown) {
         console.error("🔑 Callback: Error:", err);
+        // Clear pending auth data on error
+        localStorage.removeItem('pendingAuthRole');
+        localStorage.removeItem('pendingAuthIntent');
         setState("error");
         setError(err instanceof Error ? err.message : "Authentication failed. Please try again.");
       }

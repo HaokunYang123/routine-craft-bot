@@ -16,6 +16,10 @@ export function AuthTabs() {
     setLoading(`signup-${role}`);
 
     try {
+      // Store role in localStorage as backup (URL params can be lost in OAuth redirect)
+      localStorage.setItem('pendingAuthRole', role);
+      localStorage.setItem('pendingAuthIntent', 'signup');
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
@@ -36,6 +40,9 @@ export function AuthTabs() {
       if (error) throw error;
       // OAuth redirects - won't reach here on success
     } catch (err: unknown) {
+      // Clear stored auth data on error
+      localStorage.removeItem('pendingAuthRole');
+      localStorage.removeItem('pendingAuthIntent');
       toast({
         title: "Sign Up Failed",
         description: err instanceof Error ? err.message : "Could not start sign up. Please try again.",
