@@ -34,7 +34,8 @@ interface TaskInstance {
     name: string;
     description: string | null;
     duration_minutes: number | null;
-    scheduled_date: string;
+    scheduled_date: string;         // Due date
+    assign_date?: string | null;    // When student should see the task (Phase 24)
     scheduled_time: string | null;
     start_time: string | null;
     end_time: string | null;
@@ -123,6 +124,7 @@ export default function StudentSchedule() {
                     description,
                     duration_minutes,
                     scheduled_date,
+                    assign_date,
                     scheduled_time,
                     start_time,
                     end_time,
@@ -191,6 +193,7 @@ export default function StudentSchedule() {
                     description: instance.description,
                     duration_minutes: instance.duration_minutes,
                     scheduled_date: instance.scheduled_date,
+                    assign_date: instance.assign_date,
                     scheduled_time: instance.scheduled_time,
                     start_time: instance.start_time,
                     end_time: instance.end_time,
