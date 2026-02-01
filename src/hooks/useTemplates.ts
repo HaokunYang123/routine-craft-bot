@@ -14,6 +14,10 @@ export interface TemplateTask {
   sort_order?: number | null;
   created_at?: string | null;
   template_id?: string;
+  // Scheduling fields (Phase 25)
+  due_time_offset_minutes?: number | null;
+  start_time?: string | null;
+  end_time?: string | null;
 }
 
 export interface Template {
@@ -110,6 +114,10 @@ export function useTemplates() {
           duration_minutes: task.duration_minutes,
           day_offset: task.day_offset,
           sort_order: index,
+          // Scheduling fields (Phase 25)
+          due_time_offset_minutes: task.due_time_offset_minutes,
+          start_time: task.start_time,
+          end_time: task.end_time,
         }));
 
         const { error: tasksError } = await supabase
@@ -168,6 +176,10 @@ export function useTemplates() {
           duration_minutes: task.duration_minutes,
           day_offset: task.day_offset,
           sort_order: index,
+          // Scheduling fields (Phase 25)
+          due_time_offset_minutes: task.due_time_offset_minutes,
+          start_time: task.start_time,
+          end_time: task.end_time,
         }));
 
         const { error: tasksError } = await supabase
