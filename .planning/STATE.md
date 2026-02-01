@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-31)
 
 **Core value:** Coaches can assign tasks with clear scheduling (assign date vs due date), visible time blocks, and proper recurring options.
-**Current focus:** v5.0 Task Assignment UX - Phase 24 ready to plan
+**Current focus:** v5.0 Task Assignment UX - Phase 24 executing
 
 ## Current Position
 
 Phase: 24 of 26 (Custom Task Scheduling)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase (24-02 complete)
 Status: In progress
-Last activity: 2026-01-31 - Completed 24-01-PLAN.md (DB schema for scheduling)
+Last activity: 2026-02-01 - Completed 24-02-PLAN.md (UI for assign/due dates and monthly)
 
-Progress: [███░░░░░░░░░░░░░░░░░] 33% (1/3 plans in Phase 24)
+Progress: [██████░░░░░░░░░░░░░░] 67% (2/3 plans in Phase 24)
 
 ## Milestone History
 
@@ -45,6 +45,11 @@ See: .planning/PROJECT.md Key Decisions table
 - RPC function uses p_assign_date/p_due_date naming for clarity
 - Backfilled assign_date from scheduled_date for backward compatibility
 
+**Plan 24-02 Decisions:**
+- Renamed startDate/endDate to assignDate/dueDate in hook interface for semantic clarity
+- Auto-adjust due date when assign date is moved later than current due date
+- Monthly recurrence handles months with fewer days gracefully (uses last available day)
+
 ### Pending Todos
 
 None.
@@ -57,12 +62,12 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-01-31
-Stopped at: Completed 24-01-PLAN.md
-Resume file: .planning/phases/24-custom-task-scheduling/24-02-PLAN.md
+Last session: 2026-02-01
+Stopped at: Completed 24-02-PLAN.md
+Resume file: .planning/phases/24-custom-task-scheduling/24-03-PLAN.md
 
-Next action: Execute 24-02-PLAN.md (UI integration for assign date/due date/time blocks)
+Next action: Execute 24-03-PLAN.md (template scheduling enhancements)
 
 ---
 *State initialized: 2026-01-24*
-*Last updated: 2026-01-31 - Completed Plan 24-01 (DB schema for scheduling)*
+*Last updated: 2026-02-01 - Completed Plan 24-02 (UI for assign/due dates and monthly)*
