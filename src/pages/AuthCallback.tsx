@@ -168,10 +168,10 @@ export default function AuthCallback() {
         await new Promise(resolve => setTimeout(resolve, 500));
         navigate("/", { replace: true });
 
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("🔑 Callback: Error:", err);
         setState("error");
-        setError(err.message || "Authentication failed. Please try again.");
+        setError(err instanceof Error ? err.message : "Authentication failed. Please try again.");
       }
     };
 

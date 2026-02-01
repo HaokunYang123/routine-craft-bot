@@ -285,7 +285,7 @@ export default function CoachCalendar() {
       // Map task instances with group colors
       // Filter out orphaned tasks (group was deleted but task still exists due to timing)
       const mappedTasks: ScheduledTask[] = (taskInstances || [])
-        .map((task: any) => {
+        .map((task) => {
           const groupId = memberGroupMap[task.assignee_id];
           const group = groupId ? groupMap[groupId] : null;
 

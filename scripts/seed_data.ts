@@ -94,6 +94,7 @@ async function seedDatabase() {
         const { data: users } = await supabase.auth.admin.listUsers();
         const existingCoach = users?.users.find(u => u.email === TEST_DATA.coach.email);
         if (existingCoach) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Reassigning const for script simplicity
           (coachAuth as any) = { user: existingCoach };
         }
       } else {
@@ -249,8 +250,8 @@ async function seedDatabase() {
       console.log(`  ${name}: ${id}`);
     });
 
-  } catch (error: any) {
-    console.error("\nSeed failed:", error.message);
+  } catch (error: unknown) {
+    console.error("\nSeed failed:", error instanceof Error ? error.message : error);
     process.exit(1);
   }
 }

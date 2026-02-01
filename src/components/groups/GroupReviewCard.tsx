@@ -133,7 +133,7 @@ export function GroupReviewCard({
             value={completionRate}
             className="h-2"
             style={{
-              // @ts-ignore - custom CSS variable
+              // @ts-expect-error - custom CSS variable for progress bar color
               "--progress-foreground": group.color
             } as React.CSSProperties}
           />

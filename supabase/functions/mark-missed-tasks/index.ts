@@ -87,14 +87,15 @@ serve(async (req) => {
       }
     );
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     const elapsed = Date.now() - startTime;
-    console.error("[mark-missed-tasks] Error after", elapsed, "ms:", error.message);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("[mark-missed-tasks] Error after", elapsed, "ms:", errorMessage);
 
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message
+        error: errorMessage
       }),
       {
         status: 500,

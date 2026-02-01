@@ -42,13 +42,13 @@ export function InstructorsList({ onSelectInstructor, selectedInstructorId }: In
 
         if (data) {
             // Fetch instructor profiles
-            const instructorIds = data.map((d: any) => d.instructor_id);
+            const instructorIds = data.map((d) => d.instructor_id);
             const { data: profiles } = await supabase
                 .from("profiles")
                 .select("user_id, display_name, avatar_url")
                 .in("user_id", instructorIds);
 
-            const enrichedData = data.map((d: any) => ({
+            const enrichedData = data.map((d) => ({
                 ...d,
                 profile: profiles?.find((p) => p.user_id === d.instructor_id),
             }));

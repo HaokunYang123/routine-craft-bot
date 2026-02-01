@@ -148,11 +148,11 @@ export default function StudentSchedule() {
             }
 
             // Get unique coach IDs and group IDs from assignments
-            const coachIds = [...new Set(instances.map((i: any) => i.assignments?.assigned_by).filter(Boolean))];
-            const groupIds = [...new Set(instances.map((i: any) => i.assignments?.group_id).filter(Boolean))];
+            const coachIds = [...new Set(instances.map((i) => i.assignments?.assigned_by).filter(Boolean))] as string[];
+            const groupIds = [...new Set(instances.map((i) => i.assignments?.group_id).filter(Boolean))] as string[];
 
             // Fetch coach profiles for display names
-            let coachProfiles: Record<string, string> = {};
+            const coachProfiles: Record<string, string> = {};
             if (coachIds.length > 0) {
                 const { data: profiles } = await supabase
                     .from("profiles")
@@ -167,7 +167,7 @@ export default function StudentSchedule() {
             }
 
             // Fetch group info for names and colors
-            let groupInfo: Record<string, { name: string; color: string }> = {};
+            const groupInfo: Record<string, { name: string; color: string }> = {};
             if (groupIds.length > 0) {
                 const { data: groups } = await supabase
                     .from("groups")
@@ -182,7 +182,7 @@ export default function StudentSchedule() {
             }
 
             // Enrich tasks with coach and group info
-            const enrichedTasks: TaskInstance[] = instances.map((instance: any) => {
+            const enrichedTasks: TaskInstance[] = instances.map((instance) => {
                 const coachId = instance.assignments?.assigned_by;
                 const groupId = instance.assignments?.group_id;
                 const group = groupId ? groupInfo[groupId] : null;
@@ -275,7 +275,8 @@ export default function StudentSchedule() {
 
                 timeoutsRef.current.set(taskId, timeout);
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
+            console.error("Error toggling task:", error);
             // Revert on error
             const revertStatus = completed ? "pending" : "completed";
             setTasks(prev => prev.map(t =>

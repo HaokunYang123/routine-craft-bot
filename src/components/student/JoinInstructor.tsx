@@ -52,10 +52,10 @@ export function JoinInstructor({ onSuccess }: { onSuccess?: () => void }) {
                     variant: "destructive",
                 });
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             toast({
                 title: "Error",
-                description: err.message || "Something went wrong. Please try again.",
+                description: err instanceof Error ? err.message : "Something went wrong. Please try again.",
                 variant: "destructive",
             });
         } finally {

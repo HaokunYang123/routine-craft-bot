@@ -592,7 +592,7 @@ export default function Tasks() {
                       value={completionRate}
                       className="h-2"
                       style={{
-                        // @ts-ignore
+                        // @ts-expect-error - custom CSS variable for progress bar color
                         "--progress-foreground": group.color,
                       } as React.CSSProperties}
                     />

@@ -64,7 +64,7 @@ export function AIPlanBuilder({ onSavePlan, context }: AIPlanBuilderProps) {
     setGeneratedTasks((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleEditTask = (index: number, field: keyof GeneratedTask, value: any) => {
+  const handleEditTask = (index: number, field: keyof GeneratedTask, value: GeneratedTask[keyof GeneratedTask]) => {
     setGeneratedTasks((prev) =>
       prev.map((task, i) =>
         i === index ? { ...task, [field]: value } : task
@@ -266,7 +266,7 @@ interface TaskCardProps {
   isPolishing: boolean;
   onEdit: () => void;
   onDelete: () => void;
-  onChange: (field: keyof GeneratedTask, value: any) => void;
+  onChange: (field: keyof GeneratedTask, value: GeneratedTask[keyof GeneratedTask]) => void;
   onPolish: () => void;
 }
 

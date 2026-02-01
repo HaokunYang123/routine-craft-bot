@@ -35,10 +35,10 @@ export function AuthTabs() {
 
       if (error) throw error;
       // OAuth redirects - won't reach here on success
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Sign Up Failed",
-        description: err.message || "Could not start sign up. Please try again.",
+        description: err instanceof Error ? err.message : "Could not start sign up. Please try again.",
         variant: "destructive",
       });
       setLoading(null);
@@ -67,10 +67,10 @@ export function AuthTabs() {
 
       if (error) throw error;
       // OAuth redirects - won't reach here on success
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Login Failed",
-        description: err.message || "Could not start login. Please try again.",
+        description: err instanceof Error ? err.message : "Could not start login. Please try again.",
         variant: "destructive",
       });
       setLoading(null);

@@ -36,7 +36,7 @@ serve(async (req) => {
     }
 
     // Build conversation for Gemini
-    const conversationHistory = messages.map((m: any) => ({
+    const conversationHistory = messages.map((m: { role: string; content: string }) => ({
       role: m.role === "user" ? "user" : "model",
       parts: [{ text: m.content }],
     }));
@@ -71,10 +71,10 @@ serve(async (req) => {
     return new Response(JSON.stringify({ response: generatedText }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in ai-chat function:", error);
     return new Response(
-      JSON.stringify({ error: error.message || "Failed to process request" }),
+      JSON.stringify({ error: error instanceof Error ? error.message : "Failed to process request" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

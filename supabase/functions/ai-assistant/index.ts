@@ -187,19 +187,20 @@ Keep under 100 words. No generic praise - use the actual data.`;
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
 
-    } catch (fetchError: any) {
+    } catch (fetchError: unknown) {
       clearTimeout(timeoutId);
-      if (fetchError.name === "AbortError") {
+      if (fetchError instanceof Error && fetchError.name === "AbortError") {
         console.error("[AI-Assistant] Request timed out after", REQUEST_TIMEOUT, "ms");
         throw new Error("AI request timed out. Please try again with a simpler request.");
       }
       throw fetchError;
     }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     const elapsed = Date.now() - startTime;
-    console.error("[AI-Assistant] Error after", elapsed, "ms:", error.message);
-    return new Response(JSON.stringify({ error: error.message }), {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("[AI-Assistant] Error after", elapsed, "ms:", errorMessage);
+    return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

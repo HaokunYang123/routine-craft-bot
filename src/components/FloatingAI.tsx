@@ -42,7 +42,7 @@ export function FloatingAI({ context = "You are a helpful assistant.", placehold
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
@@ -117,14 +117,15 @@ export function FloatingAI({ context = "You are a helpful assistant.", placehold
         setMessages(prev => [...prev, { role: "assistant", content: data.response || "I'm here to help! Could you try rephrasing that?" }]);
         setIsLoading(false);
         return;
-      } catch (err: any) {
+      } catch (err: unknown) {
         // Check if user cancelled
         if (signal.aborted) {
           setIsLoading(false);
           return; // Don't add error message if user cancelled
         }
 
-        console.error(`AI Chat error (attempt ${attempt + 1}/${MAX_RETRIES}):`, err);
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        console.error(`AI Chat error (attempt ${attempt + 1}/${MAX_RETRIES}):`, errorMessage);
 
         // Check if error is retryable
         const errorMsg = err.message || '';

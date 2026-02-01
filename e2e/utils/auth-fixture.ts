@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks -- This is a Playwright fixture file, not React */
 import { test as base, BrowserContext } from '@playwright/test';
 
 /**
