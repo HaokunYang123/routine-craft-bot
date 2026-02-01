@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { GripVertical, ChevronRight, X } from 'lucide-react';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -14,8 +16,6 @@ interface TaskRowProps {
   onDelete: () => void;
   /** Whether delete is allowed (false when only one task remains, but deletion still works per decisions) */
   canDelete: boolean;
-  /** Drag handle props from dnd-kit (Plan 02 - spread onto grip handle) */
-  dragHandleProps?: Record<string, unknown>;
 }
 
 /**
@@ -37,8 +37,23 @@ export function TaskRow({
   onUpdate,
   onDelete,
   canDelete,
-  dragHandleProps,
 }: TaskRowProps) {
+  // dnd-kit sortable hook - id must be string
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: task.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
   // Start in editing mode if title is empty (new task)
   const [isEditing, setIsEditing] = useState(!task.title);
   const [inputValue, setInputValue] = useState(task.title);
@@ -84,7 +99,14 @@ export function TaskRow({
   };
 
   return (
-    <div className="flex items-center gap-2 p-3 rounded-lg border border-border bg-card/50 hover:bg-card transition-colors">
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "flex items-center gap-2 p-3 rounded-lg border border-border bg-card/50 hover:bg-card transition-colors",
+        isDragging && "z-50"
+      )}
+    >
       {/* Drag handle - listeners only on handle per RESEARCH.md */}
       <button
         type="button"
@@ -93,7 +115,8 @@ export function TaskRow({
           'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded'
         )}
         aria-label="Drag to reorder"
-        {...dragHandleProps}
+        {...attributes}
+        {...listeners}
       >
         <GripVertical className="w-5 h-5" />
       </button>
