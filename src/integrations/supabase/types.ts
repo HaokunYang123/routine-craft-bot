@@ -1,3 +1,4 @@
+Initialising login role...
 export type Json =
   | string
   | number
@@ -391,6 +392,7 @@ export type Database = {
           email: string | null
           id: string
           role: string | null
+          timezone: string | null
           updated_at: string
           user_id: string
         }
@@ -401,6 +403,7 @@ export type Database = {
           email?: string | null
           id?: string
           role?: string | null
+          timezone?: string | null
           updated_at?: string
           user_id: string
         }
@@ -411,6 +414,7 @@ export type Database = {
           email?: string | null
           id?: string
           role?: string | null
+          timezone?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -579,54 +583,66 @@ export type Database = {
       }
       task_instances: {
         Row: {
+          assign_date: string | null
           assignee_id: string
           assignment_id: string | null
+          coach_id: string | null
           coach_note: string | null
           completed_at: string | null
           created_at: string | null
           description: string | null
           duration_minutes: number | null
+          end_time: string | null
           id: string
           is_customized: boolean
           name: string
           scheduled_date: string
           scheduled_time: string | null
+          start_time: string | null
           status: string
           student_note: string | null
           updated_at: string | null
           updated_by: string | null
         }
         Insert: {
+          assign_date?: string | null
           assignee_id: string
           assignment_id?: string | null
+          coach_id?: string | null
           coach_note?: string | null
           completed_at?: string | null
           created_at?: string | null
           description?: string | null
           duration_minutes?: number | null
+          end_time?: string | null
           id?: string
           is_customized?: boolean
           name: string
           scheduled_date: string
           scheduled_time?: string | null
+          start_time?: string | null
           status?: string
           student_note?: string | null
           updated_at?: string | null
           updated_by?: string | null
         }
         Update: {
+          assign_date?: string | null
           assignee_id?: string
           assignment_id?: string | null
+          coach_id?: string | null
           coach_note?: string | null
           completed_at?: string | null
           created_at?: string | null
           description?: string | null
           duration_minutes?: number | null
+          end_time?: string | null
           id?: string
           is_customized?: boolean
           name?: string
           scheduled_date?: string
           scheduled_time?: string | null
+          start_time?: string | null
           status?: string
           student_note?: string | null
           updated_at?: string | null
@@ -736,8 +752,10 @@ export type Database = {
           day_offset: number
           description: string | null
           duration_minutes: number | null
+          end_time: string | null
           id: string
           sort_order: number | null
+          start_time: string | null
           template_id: string
           title: string
         }
@@ -746,8 +764,10 @@ export type Database = {
           day_offset?: number
           description?: string | null
           duration_minutes?: number | null
+          end_time?: string | null
           id?: string
           sort_order?: number | null
+          start_time?: string | null
           template_id: string
           title: string
         }
@@ -756,8 +776,10 @@ export type Database = {
           day_offset?: number
           description?: string | null
           duration_minutes?: number | null
+          end_time?: string | null
           id?: string
           sort_order?: number | null
+          start_time?: string | null
           template_id?: string
           title?: string
         }
@@ -861,6 +883,32 @@ export type Database = {
     }
     Functions: {
       accept_invite: { Args: { p_join_code: string }; Returns: Json }
+      assign_task_to_group:
+        | {
+            Args: {
+              p_assign_date?: string
+              p_description?: string
+              p_due_date?: string
+              p_end_time?: string
+              p_group_id: string
+              p_start_time?: string
+              p_title: string
+            }
+            Returns: number
+          }
+        | {
+            Args: {
+              p_coach_id?: string
+              p_description: string
+              p_end_date: string
+              p_end_time?: string
+              p_group_id: string
+              p_start_date: string
+              p_start_time?: string
+              p_title: string
+            }
+            Returns: undefined
+          }
       assign_template_to_student: {
         Args: {
           p_start_date?: string

@@ -551,8 +551,8 @@ export function useAssignments() {
         p_group_id: input.groupId,
         p_title: input.title,
         p_description: input.description || null,
-        p_start_date: input.startDate,
-        p_end_date: input.endDate,
+        p_assign_date: input.startDate,  // When student sees the task
+        p_due_date: input.endDate,        // When task is due
         p_start_time: input.startTime || null,
         p_end_time: input.endTime || null,
       });
