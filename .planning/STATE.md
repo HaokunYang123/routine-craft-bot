@@ -4,17 +4,17 @@
 
 See: .planning/PROJECT.md (updated 2026-01-31)
 
-**Core value:** Coaches can quickly create task assignments without confusion about dates, scheduling, or where to click.
+**Core value:** Coaches can assign tasks with clear scheduling (assign date vs due date), visible time blocks, and proper recurring options.
 **Current focus:** v5.0 Task Assignment UX - Phase 24 ready to plan
 
 ## Current Position
 
-Phase: 24 of 27 (Modal Foundation + Task List)
+Phase: 24 of 26 (Custom Task Scheduling)
 Plan: 0 of TBD in current phase
 Status: Ready to plan
-Last activity: 2026-01-31 - Roadmap created for v5.0
+Last activity: 2026-01-31 - Reverted wrong-scope Phase 24, replanned v5.0
 
-Progress: [░░░░░░░░░░░░░░░░░░░░] 0% (v5.0 started)
+Progress: [░░░░░░░░░░░░░░░░░░░░] 0% (v5.0 restarted)
 
 ## Milestone History
 
@@ -33,6 +33,13 @@ See: .planning/MILESTONES.md for full details
 
 See: .planning/PROJECT.md Key Decisions table
 
+**v5.0 Decisions (revised):**
+- Work in existing AssignerDashboard, not new modal
+- Separate Assign Date (when student sees task) from Due Date (when due)
+- Time blocks must show start AND end time (add end_time to DB)
+- Add Monthly recurring option
+- Templates need per-task due time, one assign date
+
 ### Pending Todos
 
 None.
@@ -46,11 +53,11 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-31
-Stopped at: v5.0 roadmap created
+Stopped at: Reverted Phase 24, ready to re-plan
 Resume file: None
 
 Next action: /gsd:plan-phase 24
 
 ---
 *State initialized: 2026-01-24*
-*Last updated: 2026-01-31 - v5.0 roadmap created*
+*Last updated: 2026-01-31 - Reverted and replanned v5.0 scope*

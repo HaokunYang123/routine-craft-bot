@@ -1,111 +1,105 @@
 # Requirements: TeachCoachConnect v5.0
 
-**Defined:** 2026-01-31
-**Core Value:** Coaches can quickly create task assignments without confusion about dates, scheduling, or where to click.
+**Defined:** 2026-01-31 (revised)
+**Core Value:** Coaches can assign tasks with clear scheduling (assign date vs due date), visible time blocks, and proper recurring options.
 
 ## v5.0 Requirements
 
-Requirements for the Task Assignment UX milestone. Redesigns the assignment modal with global defaults, progressive disclosure, and cleaner information hierarchy.
+Improve the existing AssignerDashboard task assignment experience. Fix time blocks, add assign/due date separation, and enhance template scheduling.
 
-### Modal Structure
+### Date & Scheduling (Custom Tasks)
 
-- [ ] **MODL-01**: Modal header shows assignment target (student/group name) with subtext "Create 1+ tasks. Defaults apply to all tasks unless overridden."
-- [ ] **MODL-02**: Modal has three-section layout: Tasks section, Defaults section, Details accordion
-- [ ] **MODL-03**: Modal has single primary button ("Assign") with secondary "Cancel"
-- [ ] **MODL-04**: Primary "Assign" button is disabled until at least one task has a title and due date is set
+- [ ] **DATE-01**: Assign Date field - when students see the task (required)
+- [ ] **DATE-02**: Due Date field - when task is due (required, must be >= assign date)
+- [ ] **DATE-03**: Clear labels distinguishing "Assign Date" from "Due Date"
+- [ ] **DATE-04**: Both dates visible in the task creation UI
 
-### Task List
+### Time Blocks
 
-- [ ] **TASK-01**: Task list displays compact rows with inline title input
-- [ ] **TASK-02**: Each task row shows: Title (required), Estimated time (optional), Expand icon
-- [ ] **TASK-03**: "Add Task" is the single primary action in the Tasks section
-- [ ] **TASK-04**: Empty state shows single input row ready for typing (no empty list message)
-- [ ] **TASK-05**: Tasks can be reordered via drag-and-drop
-- [ ] **TASK-06**: Tasks can be deleted via row action (X button or swipe)
+- [ ] **TIME-01**: Time block UI shows start time AND end time (e.g., "12:00 PM - 1:00 PM")
+- [ ] **TIME-02**: Time block is optional but visible when set
+- [ ] **TIME-03**: End time stored in database (add `end_time` column to task_instances)
+- [ ] **TIME-04**: Time blocks display correctly on student schedule view
+- [ ] **TIME-05**: Time blocks work for both custom tasks and templates
 
-### Defaults Section
+### Recurring Tasks
 
-- [ ] **DFLT-01**: Defaults section is visually distinct card below task list
-- [ ] **DFLT-02**: Due Date picker is required and applies to all tasks by default
-- [ ] **DFLT-03**: Schedule dropdown shows "One-time" (default) and "Repeats"
-- [ ] **DFLT-04**: When "Repeats" selected, recurrence options appear: Daily / Weekly / Custom days
-- [ ] **DFLT-05**: Weekly recurrence shows day picker (Mon-Sun)
-- [ ] **DFLT-06**: Custom days shows multi-select for days of week
+- [ ] **RECUR-01**: Recurring options: One-time, Daily, Weekly, Monthly
+- [ ] **RECUR-02**: Monthly option added to schedule type dropdown
+- [ ] **RECUR-03**: Weekly shows day picker (Mon-Sun)
+- [ ] **RECUR-04**: Monthly shows day-of-month picker (1-31 or "last day")
+- [ ] **RECUR-05**: Recurring tasks respect both assign date and due date pattern
 
-### Progressive Disclosure
+### Template Scheduling
 
-- [ ] **DISC-01**: Clicking task row expands accordion below the row with details
-- [ ] **DISC-02**: Accordion shows Description field (optional, multiline)
-- [ ] **DISC-03**: Accordion shows "Override due date" toggle (off by default)
-- [ ] **DISC-04**: When override enabled, shows date picker for this task's due date
-- [ ] **DISC-05**: Accordion shows "Override schedule" toggle (off by default)
-- [ ] **DISC-06**: When schedule override enabled, shows recurrence options for this task
-- [ ] **DISC-07**: Accordion shows "Enhance with AI" as secondary action
-- [ ] **DISC-08**: Only one accordion can be expanded at a time
+- [ ] **TMPL-01**: Template has one Assign Date (when all tasks become visible)
+- [ ] **TMPL-02**: Each task in template has its own Due Time/Date offset
+- [ ] **TMPL-03**: Template tasks support time blocks
+- [ ] **TMPL-04**: Template builder UI shows due time per task
+- [ ] **TMPL-05**: Template assignment shows assign date + calculates due dates
 
-### Template Integration
+### Group Assignment (Green Button)
 
-- [ ] **TMPL-01**: "Use Template" is secondary button next to "Add Task"
-- [ ] **TMPL-02**: Clicking "Use Template" opens template picker (modal or dropdown)
-- [ ] **TMPL-03**: Selecting template inserts its tasks into the existing task list
-- [ ] **TMPL-04**: Inserted template tasks can be edited/removed like manually added tasks
+- [ ] **GRP-01**: "Assign Task" button on Groups/Classes uses same improved UI
+- [ ] **GRP-02**: Group assignment supports assign date + due date
+- [ ] **GRP-03**: Group assignment supports time blocks
+- [ ] **GRP-04**: Group assignment supports all recurring options
 
-### Footer
+### Backend Support
 
-- [ ] **FOOT-01**: Footer shows summary: "X task(s) will be assigned" with due date and schedule
-- [ ] **FOOT-02**: Footer is sticky at bottom of modal
-- [ ] **FOOT-03**: Assign button shows count: "Assign (X)"
+- [ ] **DB-01**: Add `end_time` column to task_instances table
+- [ ] **DB-02**: Add `assign_date` column to task_instances (separate from scheduled_date)
+- [ ] **DB-03**: Update RPC functions to handle new date/time fields
+- [ ] **DB-04**: Template_tasks table supports due time offset
+- [ ] **DB-05**: Recurring schedules support monthly option
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Attachments/links per task | Defer to future milestone, focus on core UX |
-| Recurrence end conditions | Keep simple: Daily/Weekly/Custom days without "end after N" |
-| Side panel for details | Using accordion (inline) for simpler implementation |
-| Drag from templates | Templates insert, not drag-drop |
+| New modal on GroupDetail page | Use existing AssignerDashboard flow |
+| Drag-and-drop task reordering | Not requested, focus on scheduling |
+| AI task enhancement | Defer to future milestone |
+| Attachments/links | Defer to future milestone |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| MODL-01 | 24 | Pending |
-| MODL-02 | 24 | Pending |
-| MODL-03 | 24 | Pending |
-| MODL-04 | 24 | Pending |
-| TASK-01 | 24 | Pending |
-| TASK-02 | 24 | Pending |
-| TASK-03 | 24 | Pending |
-| TASK-04 | 24 | Pending |
-| TASK-05 | 24 | Pending |
-| TASK-06 | 24 | Pending |
-| DFLT-01 | 25 | Pending |
-| DFLT-02 | 25 | Pending |
-| DFLT-03 | 25 | Pending |
-| DFLT-04 | 25 | Pending |
-| DFLT-05 | 25 | Pending |
-| DFLT-06 | 25 | Pending |
-| DISC-01 | 26 | Pending |
-| DISC-02 | 26 | Pending |
-| DISC-03 | 26 | Pending |
-| DISC-04 | 26 | Pending |
-| DISC-05 | 26 | Pending |
-| DISC-06 | 26 | Pending |
-| DISC-07 | 26 | Pending |
-| DISC-08 | 26 | Pending |
-| TMPL-01 | 27 | Pending |
-| TMPL-02 | 27 | Pending |
-| TMPL-03 | 27 | Pending |
-| TMPL-04 | 27 | Pending |
-| FOOT-01 | 27 | Pending |
-| FOOT-02 | 27 | Pending |
-| FOOT-03 | 27 | Pending |
+| DATE-01 | 24 | Pending |
+| DATE-02 | 24 | Pending |
+| DATE-03 | 24 | Pending |
+| DATE-04 | 24 | Pending |
+| TIME-01 | 24 | Pending |
+| TIME-02 | 24 | Pending |
+| TIME-03 | 24 | Pending |
+| TIME-04 | 24 | Pending |
+| TIME-05 | 25 | Pending |
+| RECUR-01 | 24 | Pending |
+| RECUR-02 | 24 | Pending |
+| RECUR-03 | 24 | Pending |
+| RECUR-04 | 24 | Pending |
+| RECUR-05 | 24 | Pending |
+| TMPL-01 | 25 | Pending |
+| TMPL-02 | 25 | Pending |
+| TMPL-03 | 25 | Pending |
+| TMPL-04 | 25 | Pending |
+| TMPL-05 | 25 | Pending |
+| GRP-01 | 26 | Pending |
+| GRP-02 | 26 | Pending |
+| GRP-03 | 26 | Pending |
+| GRP-04 | 26 | Pending |
+| DB-01 | 24 | Pending |
+| DB-02 | 24 | Pending |
+| DB-03 | 24 | Pending |
+| DB-04 | 25 | Pending |
+| DB-05 | 24 | Pending |
 
 **Coverage:**
-- v5.0 requirements: 31 total
-- Mapped to phases: 31
+- v5.0 requirements: 28 total
+- Mapped to phases: 28
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-01-31*
-*Last updated: 2026-01-31 - Traceability completed after roadmap creation*
+*Last updated: 2026-01-31 - Revised based on user feedback (AssignerDashboard focus)*
