@@ -69,43 +69,43 @@ Requirements for the Task Assignment UX milestone. Redesigns the assignment moda
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| MODL-01 | TBD | Pending |
-| MODL-02 | TBD | Pending |
-| MODL-03 | TBD | Pending |
-| MODL-04 | TBD | Pending |
-| TASK-01 | TBD | Pending |
-| TASK-02 | TBD | Pending |
-| TASK-03 | TBD | Pending |
-| TASK-04 | TBD | Pending |
-| TASK-05 | TBD | Pending |
-| TASK-06 | TBD | Pending |
-| DFLT-01 | TBD | Pending |
-| DFLT-02 | TBD | Pending |
-| DFLT-03 | TBD | Pending |
-| DFLT-04 | TBD | Pending |
-| DFLT-05 | TBD | Pending |
-| DFLT-06 | TBD | Pending |
-| DISC-01 | TBD | Pending |
-| DISC-02 | TBD | Pending |
-| DISC-03 | TBD | Pending |
-| DISC-04 | TBD | Pending |
-| DISC-05 | TBD | Pending |
-| DISC-06 | TBD | Pending |
-| DISC-07 | TBD | Pending |
-| DISC-08 | TBD | Pending |
-| TMPL-01 | TBD | Pending |
-| TMPL-02 | TBD | Pending |
-| TMPL-03 | TBD | Pending |
-| TMPL-04 | TBD | Pending |
-| FOOT-01 | TBD | Pending |
-| FOOT-02 | TBD | Pending |
-| FOOT-03 | TBD | Pending |
+| MODL-01 | 24 | Pending |
+| MODL-02 | 24 | Pending |
+| MODL-03 | 24 | Pending |
+| MODL-04 | 24 | Pending |
+| TASK-01 | 24 | Pending |
+| TASK-02 | 24 | Pending |
+| TASK-03 | 24 | Pending |
+| TASK-04 | 24 | Pending |
+| TASK-05 | 24 | Pending |
+| TASK-06 | 24 | Pending |
+| DFLT-01 | 25 | Pending |
+| DFLT-02 | 25 | Pending |
+| DFLT-03 | 25 | Pending |
+| DFLT-04 | 25 | Pending |
+| DFLT-05 | 25 | Pending |
+| DFLT-06 | 25 | Pending |
+| DISC-01 | 26 | Pending |
+| DISC-02 | 26 | Pending |
+| DISC-03 | 26 | Pending |
+| DISC-04 | 26 | Pending |
+| DISC-05 | 26 | Pending |
+| DISC-06 | 26 | Pending |
+| DISC-07 | 26 | Pending |
+| DISC-08 | 26 | Pending |
+| TMPL-01 | 27 | Pending |
+| TMPL-02 | 27 | Pending |
+| TMPL-03 | 27 | Pending |
+| TMPL-04 | 27 | Pending |
+| FOOT-01 | 27 | Pending |
+| FOOT-02 | 27 | Pending |
+| FOOT-03 | 27 | Pending |
 
 **Coverage:**
 - v5.0 requirements: 31 total
-- Mapped to phases: 0
-- Unmapped: 31
+- Mapped to phases: 31
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-01-31*
-*Last updated: 2026-01-31 after initial definition*
+*Last updated: 2026-01-31 - Traceability completed after roadmap creation*
