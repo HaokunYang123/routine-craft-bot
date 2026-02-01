@@ -46,7 +46,11 @@ Plans:
   3. Each template task due date calculated from assign date + offset
   4. Template tasks support time blocks
   5. Assigned template tasks display correctly on student schedule
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 25-01-PLAN.md — Database schema: add scheduling columns to template_tasks
+- [ ] 25-02-PLAN.md — Template builder UI: time fields in ManualTemplateBuilder
+- [ ] 25-03-PLAN.md — Template assignment: update trigger and end-to-end verification
 
 ### Phase 26: Group Assignment Sync
 **Goal**: Group assignment ("green button") has same scheduling features as custom tasks
@@ -69,9 +73,9 @@ Phases execute in numeric order: 24 -> 25 -> 26
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 24. Custom Task Scheduling | 3/3 | ✓ Complete | 2026-01-31 |
-| 25. Template Scheduling | 0/TBD | Not started | - |
+| 25. Template Scheduling | 0/3 | Planned | - |
 | 26. Group Assignment Sync | 0/1 | Planned | - |
 
 ---
 *Roadmap created: 2026-01-31*
-*Last updated: 2026-01-31 - Phase 26 planned*
+*Last updated: 2026-01-31 - Phase 25 planned*
