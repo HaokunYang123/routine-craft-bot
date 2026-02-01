@@ -81,6 +81,7 @@ const SCHEDULE_TYPES = [
   { value: "once", label: "One Time" },
   { value: "daily", label: "Daily" },
   { value: "weekly", label: "Weekly" },
+  { value: "monthly", label: "Monthly" },
   { value: "custom", label: "Custom Days" },
 ];
 
@@ -119,8 +120,9 @@ export default function Tasks() {
     description: string;
     duration_minutes: number | null;
     scheduled_date: string | null;
-    scheduled_time: string | null;
-  }>>([{ name: "", description: "", duration_minutes: null, scheduled_date: null, scheduled_time: null }]);
+    start_time: string | null;
+    end_time: string | null;
+  }>>([{ name: "", description: "", duration_minutes: null, scheduled_date: null, start_time: null, end_time: null }]);
 
   // Generate time slots in 30-minute intervals with AM/PM
   const TIME_SLOTS = (() => {
@@ -138,11 +140,12 @@ export default function Tasks() {
   })();
 
   // Schedule State
-  const [scheduleType, setScheduleType] = useState<"once" | "daily" | "weekly" | "custom">("once");
+  const [scheduleType, setScheduleType] = useState<"once" | "daily" | "weekly" | "monthly" | "custom">("once");
   const [scheduleDays, setScheduleDays] = useState<number[]>([]);
-  const [startDate, setStartDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [assignDate, setAssignDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [dueDate, setDueDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [endDate, setEndDate] = useState(format(addDays(new Date(), 30), "yyyy-MM-dd"));
+  const [monthlyDay, setMonthlyDay] = useState<number>(1);
 
   // AI Enhancement State
   const [enhancingIndex, setEnhancingIndex] = useState<number | null>(null);
@@ -223,7 +226,7 @@ export default function Tasks() {
     setAssignmentType("template");
     setSelectedTemplateId("");
     setTemplateTasks([]);
-    setCustomTasks([{ name: "", description: "", duration_minutes: null, scheduled_date: null, scheduled_time: null }]);
+    setCustomTasks([{ name: "", description: "", duration_minutes: null, scheduled_date: null, start_time: null, end_time: null }]);
     setScheduleType("once");
     setScheduleDays([]);
     setStartDate(format(new Date(), "yyyy-MM-dd"));
@@ -268,7 +271,7 @@ export default function Tasks() {
   };
 
   const addCustomTask = () => {
-    setCustomTasks([...customTasks, { name: "", description: "", duration_minutes: null, scheduled_date: null, scheduled_time: null }]);
+    setCustomTasks([...customTasks, { name: "", description: "", duration_minutes: null, scheduled_date: null, start_time: null, end_time: null }]);
   };
 
   const removeCustomTask = (index: number) => {
@@ -389,7 +392,8 @@ export default function Tasks() {
         description: (t.description || "").trim() || undefined,
         duration_minutes: t.duration_minutes || undefined,
         scheduled_date: t.scheduled_date || undefined,
-        scheduled_time: t.scheduled_time || undefined,
+        start_time: t.start_time || undefined,
+        end_time: t.end_time || undefined,
         day_offset: 0,
       }));
 
@@ -407,11 +411,15 @@ export default function Tasks() {
         group_id: !selectedMember ? selectedGroup.id : undefined,
         assignee_id: selectedMember?.user_id,
         schedule_type: effectiveScheduleType,
-        schedule_days: effectiveScheduleType === "custom" ? scheduleDays : undefined,
-        // Templates: use startDate (day_offset handles task scheduling)
+        schedule_days: effectiveScheduleType === "custom"
+          ? scheduleDays
+          : effectiveScheduleType === "monthly"
+            ? [monthlyDay]
+            : undefined,
+        // Templates: use assignDate (day_offset handles task scheduling)
         // Custom "once": use dueDate as the scheduled date
-        // Custom recurring: use startDate
-        start_date: isTemplate ? startDate : (scheduleType === "once" ? dueDate : startDate),
+        // Custom recurring: use assignDate
+        start_date: isTemplate ? assignDate : (scheduleType === "once" ? dueDate : assignDate),
         end_date: !isTemplate && scheduleType !== "once" ? endDate : undefined,
         tasks: !isTemplate ? customTasksToSend : undefined,
       };
@@ -825,7 +833,7 @@ export default function Tasks() {
                         />
                       </div>
 
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                         <div>
                           <Label className="text-xs text-muted-foreground mb-1 block">
                             Duration (min)
@@ -858,18 +866,39 @@ export default function Tasks() {
                         </div>
                         <div>
                           <Label className="text-xs text-muted-foreground mb-1 block">
-                            Time
+                            Start Time
                           </Label>
                           <Select
-                            value={task.scheduled_time || ""}
-                            onValueChange={(v) => updateCustomTask(index, "scheduled_time", v || null)}
+                            value={task.start_time || ""}
+                            onValueChange={(v) => updateCustomTask(index, "start_time", v || null)}
                           >
                             <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Select time" />
+                              <SelectValue placeholder="Start" />
                             </SelectTrigger>
                             <SelectContent className="max-h-60">
                               {TIME_SLOTS.map((slot) => (
-                                <SelectItem key={slot.value} value={slot.value}>
+                                <SelectItem key={slot.value} value={slot.label}>
+                                  {slot.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground mb-1 block">
+                            End Time
+                          </Label>
+                          <Select
+                            value={task.end_time || ""}
+                            onValueChange={(v) => updateCustomTask(index, "end_time", v || null)}
+                            disabled={!task.start_time}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="End" />
+                            </SelectTrigger>
+                            <SelectContent className="max-h-60">
+                              {TIME_SLOTS.filter((slot) => !task.start_time || slot.label > task.start_time).map((slot) => (
+                                <SelectItem key={slot.value} value={slot.label}>
                                   {slot.label}
                                 </SelectItem>
                               ))}
@@ -889,7 +918,7 @@ export default function Tasks() {
                 <Label>Schedule</Label>
                 <Select
                   value={scheduleType}
-                  onValueChange={(v) => setScheduleType(v as "once" | "daily" | "weekly" | "custom")}
+                  onValueChange={(v) => setScheduleType(v as "once" | "daily" | "weekly" | "monthly" | "custom")}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -923,20 +952,47 @@ export default function Tasks() {
                     ))}
                   </div>
                 )}
+
+                {/* Monthly Day Picker */}
+                {scheduleType === "monthly" && (
+                  <div className="space-y-2 mt-2">
+                    <Label>Day of Month</Label>
+                    <Select
+                      value={String(monthlyDay)}
+                      onValueChange={(v) => setMonthlyDay(Number(v))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-60">
+                        {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                          <SelectItem key={day} value={String(day)}>
+                            {day}
+                          </SelectItem>
+                        ))}
+                        <SelectItem value="-1">Last day of month</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Task will repeat on this day each month
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 
             {/* Date Range */}
             {assignmentType === "template" ? (
-              /* Template: Start Date only + calculated End Date display */
+              /* Template: Assign Date only + calculated End Date display */
               <div className="space-y-3">
                 <div className="space-y-2">
-                  <Label>Start Date</Label>
+                  <Label>Assign Date</Label>
                   <Input
                     type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
+                    value={assignDate}
+                    onChange={(e) => setAssignDate(e.target.value)}
                   />
+                  <p className="text-xs text-muted-foreground">When students will see these tasks</p>
                 </div>
                 {templateDurationDays > 0 && (
                   <div className="p-3 bg-muted/30 rounded-lg border border-border/50">
@@ -951,15 +1007,22 @@ export default function Tasks() {
                 )}
               </div>
             ) : (
-              /* Custom Tasks: Start/Due Date or Start/End Date based on schedule */
+              /* Custom Tasks: Assign/Due Date or Assign/End Date based on schedule */
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Start Date</Label>
+                  <Label>Assign Date</Label>
                   <Input
                     type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
+                    value={assignDate}
+                    onChange={(e) => {
+                      setAssignDate(e.target.value);
+                      // Auto-adjust due date if now before assign date
+                      if (dueDate < e.target.value) {
+                        setDueDate(e.target.value);
+                      }
+                    }}
                   />
+                  <p className="text-xs text-muted-foreground">When students will see this task</p>
                 </div>
                 <div className="space-y-2">
                   <Label>{scheduleType === "once" ? "Due Date" : "End Date"}</Label>
@@ -970,7 +1033,11 @@ export default function Tasks() {
                       ? setDueDate(e.target.value)
                       : setEndDate(e.target.value)
                     }
+                    min={assignDate}
                   />
+                  <p className="text-xs text-muted-foreground">
+                    {scheduleType === "once" ? "When this task is due" : "When recurring schedule ends"}
+                  </p>
                 </div>
               </div>
             )}
