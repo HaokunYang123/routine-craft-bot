@@ -30,6 +30,7 @@ import { ManualTemplateBuilder, ManualTask } from "@/components/templates/Manual
 import { GeneratedTask, useAIAssistant } from "@/hooks/useAIAssistant";
 import { useTemplates, Template } from "@/hooks/useTemplates";
 import { useToast } from "@/hooks/use-toast";
+import { minutesToTimeString } from "@/lib/utils";
 
 export default function Templates() {
   const { templates, loading, createTemplate, updateTemplate, deleteTemplate } = useTemplates();
@@ -405,6 +406,21 @@ export default function Templates() {
                         {task.description}
                       </p>
                     )}
+                    {/* Time scheduling display */}
+                    <div className="flex items-center gap-2 mt-2 flex-wrap">
+                      {task.due_time_offset_minutes !== null && task.due_time_offset_minutes !== undefined && (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded text-xs">
+                          <Clock className="w-3 h-3" />
+                          Due: {minutesToTimeString(task.due_time_offset_minutes)}
+                        </span>
+                      )}
+                      {task.start_time && task.end_time && (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded text-xs">
+                          <Clock className="w-3 h-3" />
+                          {task.start_time} - {task.end_time}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground shrink-0 ml-4">
                     <span className="bg-secondary px-2 py-1 rounded">
