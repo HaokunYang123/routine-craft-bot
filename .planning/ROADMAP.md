@@ -30,7 +30,11 @@ v5.0 improves the existing AssignerDashboard task assignment experience. Adds cl
   3. Schedule dropdown includes Monthly option alongside Daily/Weekly
   4. Database stores end_time and assign_date correctly
   5. Student schedule view shows time blocks properly
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 24-01-PLAN.md - Database schema: add start_time, end_time, assign_date columns + RPC update
+- [ ] 24-02-PLAN.md - AssignerDashboard UI: separate assign/due dates, monthly option
+- [ ] 24-03-PLAN.md - StudentSchedule: verify time block display, end-to-end verification
 
 ### Phase 25: Template Scheduling
 **Goal**: Templates support assign date, per-task due times, and time blocks
@@ -62,10 +66,10 @@ Phases execute in numeric order: 24 -> 25 -> 26
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 24. Custom Task Scheduling | 0/TBD | Ready to plan | - |
+| 24. Custom Task Scheduling | 0/3 | Planned | - |
 | 25. Template Scheduling | 0/TBD | Not started | - |
 | 26. Group Assignment Sync | 0/TBD | Not started | - |
 
 ---
 *Roadmap created: 2026-01-31*
-*Last updated: 2026-01-31 - Revised based on user feedback*
+*Last updated: 2026-01-31 - Phase 24 planned with 3 plans*
