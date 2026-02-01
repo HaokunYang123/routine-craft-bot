@@ -1,5 +1,34 @@
 # Project Milestones: TeachCoachConnect
 
+## v4.0 Bug Fixes & Polish (Shipped: 2026-01-31)
+
+**Delivered:** Comprehensive UI bug fixes, task rollover logic for day-to-day transitions, simplified task assignment form, OAuth migration cleanup, and E2E testing infrastructure with scalability validation.
+
+**Phases completed:** 18-23 (12 plans total)
+
+**Key accomplishments:**
+- Fixed Coach Dashboard UI bugs (color picker double-dot, empty state CTA verification)
+- Redesigned Student Dashboard with responsive 3-column grid and color-coded cards
+- Implemented task rollover logic with day boundary detection, task categorization, and cross-tab session sync
+- Added coach overdue badges with color escalation (yellow/orange/red) and excuse functionality
+- Simplified task assignment form with single Due Date and collapsible options
+- Removed 6 dead auth files from OAuth migration (StudentPrivacy, MultiAuthLogin, etc.)
+- Established Playwright E2E testing with Page Objects and GitHub Actions CI
+- Validated Supabase scalability for 100+ concurrent users
+
+**Stats:**
+- 65 commits during milestone
+- 41 files modified (+3,495 / -1,561 lines net)
+- 35,814 lines of TypeScript
+- 6 phases, 12 plans
+- 1 day from start to ship (2026-01-31)
+
+**Git range:** `fix(18-01)` → `docs(23)`
+
+**What's next:** User testing, then v5.0 for additional features
+
+---
+
 ## v3.0 Auth & Realtime (Shipped: 2026-01-30)
 
 **Delivered:** Rebuilt authentication with Google OAuth only, atomic profile creation, realtime sync between coach and student views, and timezone-aware date handling.

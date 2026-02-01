@@ -4,7 +4,7 @@
 
 A coach/student task management system built with React and Supabase. Coaches create task assignments with flexible scheduling, students complete tasks and track progress. Features Google OAuth authentication, realtime sync between coach and student views, and timezone-aware task scheduling.
 
-**v3.0 Auth & Realtime shipped 2026-01-30** — Google OAuth only, atomic profile creation, realtime subscriptions, and timezone handling for seamless user experience.
+**v4.0 Bug Fixes & Polish shipped 2026-01-31** — UI fixes, task rollover logic, form simplification, OAuth cleanup, and E2E testing infrastructure.
 
 ## Core Value
 
@@ -12,20 +12,22 @@ Users can reliably complete their daily workflows (task assignment, task complet
 
 ## Current State
 
-**Shipped: v3.0 Auth & Realtime (2026-01-30)**
+**Shipped: v4.0 Bug Fixes & Polish (2026-01-31)**
 
 Tech stack: React 18 + Vite + TypeScript + Tailwind + Supabase + React Query
-Test coverage: 240 tests passing (hooks + components)
+Test coverage: 285 tests passing (hooks + components + E2E infrastructure)
 Type safety: TypeScript strict mode, 0 `as any` casts in src/
 Data layer: React Query with 5-min caching, optimistic updates, infinite scroll
 Auth: Google OAuth only with role selection landing page
 Realtime: Supabase Realtime with React Query cache invalidation
-Timezone: User-selectable timezone with UTC storage and local display
+Timezone: User-selectable timezone with UTC storage, day boundary detection
+Task rollover: Today/overdue/yesterday sections with cross-tab session sync
+E2E testing: Playwright with Page Objects, GitHub Actions CI
 
 **Codebase:**
-- 35,682 lines of TypeScript
-- 17 phases completed (54 plans total)
-- 3 milestones shipped (v1, v2.0, v3.0)
+- 35,814 lines of TypeScript
+- 23 phases completed (66 plans total)
+- 4 milestones shipped (v1, v2.0, v3.0, v4.0)
 
 ## Requirements
 
@@ -87,22 +89,24 @@ Timezone: User-selectable timezone with UTC storage and local display
 - ✓ User-selectable timezone in settings — v3.0
 - ✓ Emergency logout buttons on error pages — v3.0
 
+**v4.0 Bug Fixes & Polish (2026-01-31):**
+- ✓ Fix color picker double-dot in Create Group modal — v4.0
+- ✓ Remove empty state "No group yet" button — v4.0
+- ✓ Remove Delete Account from student settings — v4.0
+- ✓ Consistent three-box layout (My Group, Tasks to Do, Coach's Notes) — v4.0
+- ✓ Color-coded dashboard boxes — v4.0
+- ✓ Task rollover: completed tasks gone next day — v4.0
+- ✓ Task rollover: daily tasks show correct state — v4.0
+- ✓ Remove duplicate start/due date in task assignment — v4.0
+- ✓ Remove Change Password UI/backend — v4.0
+- ✓ Remove 2FA UI/backend — v4.0
+- ✓ Remove Download Data UI/backend — v4.0
+- ✓ Supabase scalability audit (100+ users) — v4.0
+- ✓ E2E tests with Playwright — v4.0
+
 ### Active
 
-**v4.0 Bug Fixes & Polish (2026-01-31):**
-- [ ] Fix color picker double-dot in Create Group modal — v4.0
-- [ ] Remove empty state "No group yet" button — v4.0
-- [ ] Remove Delete Account from student settings — v4.0
-- [ ] Consistent three-box layout (My Group, Tasks to Do, Coach's Notes) — v4.0
-- [ ] Color-coded dashboard boxes — v4.0
-- [ ] Task rollover: completed tasks gone next day — v4.0
-- [ ] Task rollover: daily tasks show correct state — v4.0
-- [ ] Remove duplicate start/due date in task assignment — v4.0
-- [ ] Remove Change Password UI/backend — v4.0
-- [ ] Remove 2FA UI/backend — v4.0
-- [ ] Remove Download Data UI/backend — v4.0
-- [ ] Supabase scalability audit (100+ users) — v4.0
-- [ ] E2E tests with Playwright — v4.0
+(None — planning next milestone)
 
 ### Out of Scope
 
@@ -144,8 +148,8 @@ Timezone: User-selectable timezone with UTC storage and local display
 **Tech Debt (accumulated):**
 - CheckInModal not wired into application (tests exist)
 - Pre-existing test failure in useProfile.test.tsx (role assertion)
-- MultiAuthLogin.tsx unused (email/password auth removed)
-- useGoogleAuth partially duplicated by AuthTabs inline OAuth
+- 2 test failures in useGroups.test.tsx (deleteGroup cache invalidation)
+- Custom domain DNS pending (teachcoachconnect.com needs GoDaddy A record)
 - Student pages use inline subscriptions instead of useRealtimeSubscription hook
 
 ## Constraints
@@ -181,4 +185,4 @@ Timezone: User-selectable timezone with UTC storage and local display
 | Simplified timezone selector | User feedback: too many options | ✓ Good — 6 US timezones |
 
 ---
-*Last updated: 2026-01-31 after v4.0 milestone planning*
+*Last updated: 2026-01-31 after v4.0 milestone shipped*
