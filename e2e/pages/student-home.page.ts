@@ -34,7 +34,8 @@ export class StudentHomePage {
    */
   async goto() {
     await this.page.goto('/app');
-    await this.page.waitForLoadState('networkidle');
+    // Use domcontentloaded instead of networkidle for better compatibility with mocked environments
+    await this.page.waitForLoadState('domcontentloaded');
   }
 
   /**

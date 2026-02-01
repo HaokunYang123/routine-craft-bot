@@ -39,7 +39,8 @@ export class CoachDashboardPage {
    */
   async goto() {
     await this.page.goto('/dashboard');
-    await this.page.waitForLoadState('networkidle');
+    // Use domcontentloaded instead of networkidle for better compatibility with mocked environments
+    await this.page.waitForLoadState('domcontentloaded');
   }
 
   /**
