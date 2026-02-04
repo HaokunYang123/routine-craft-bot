@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { detectBrowserTimezone } from "@/lib/timezone";
 import { Button } from "@/components/ui/button";
 import { Loader2, AlertCircle, GraduationCap, School, RefreshCw } from "lucide-react";
+import { persistRoleToAuthMetadata } from "@/lib/auth/persistRoleMetadata";
 
 type AuthRole = "coach" | "student";
 
@@ -32,24 +33,6 @@ export default function Onboarding() {
 
   const redirectForRole = (role: AuthRole) => {
     navigate(role === "coach" ? "/dashboard" : "/app", { replace: true });
-  };
-
-  const persistRoleToAuthMetadata = async (role: AuthRole) => {
-    if (role !== "coach" && role !== "student") {
-      return;
-    }
-
-    try {
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-
-      if (!authUser) {
-        return;
-      }
-
-      await supabase.auth.updateUser({ data: { role } });
-    } catch (err) {
-      console.warn("Onboarding: auth metadata update failed", err);
-    }
   };
 
   useEffect(() => {
@@ -165,7 +148,7 @@ export default function Onboarding() {
       return;
     }
 
-    await persistRoleToAuthMetadata(confirmedRole);
+    await persistRoleToAuthMetadata({ role: confirmedRole, source: "onboarding" });
 
     redirectForRole(confirmedRole);
   };

@@ -5,6 +5,7 @@ import { Loader2, AlertCircle, RefreshCw, School, GraduationCap } from "lucide-r
 import { detectBrowserTimezone } from "@/lib/timezone";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { persistRoleToAuthMetadata } from "@/lib/auth/persistRoleMetadata";
 import { decideNextStep, deriveIntendedRole, type AuthRole } from "./authCallbackHelpers";
 
 type CallbackState =
@@ -51,24 +52,6 @@ export default function AuthCallback() {
   const clearPendingAuth = () => {
     localStorage.removeItem("pendingAuthRole");
     localStorage.removeItem("pendingAuthIntent");
-  };
-
-  const persistRoleToAuthMetadata = async (role: AuthRole) => {
-    if (role !== "coach" && role !== "student") {
-      return;
-    }
-
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        return;
-      }
-
-      await supabase.auth.updateUser({ data: { role } });
-    } catch (err) {
-      console.warn(LOG_PREFIX, "auth metadata update failed", err);
-    }
   };
 
   const fetchProfileWithRetries = async (uid: string) => {
@@ -125,7 +108,7 @@ export default function AuthCallback() {
 
     const createdRole = normalizeRole(data?.role ?? null);
     if (createdRole) {
-      await persistRoleToAuthMetadata(createdRole);
+      await persistRoleToAuthMetadata({ role: createdRole, source: "auth-callback" });
     }
 
     return { profile: data, error: null };
@@ -184,7 +167,7 @@ export default function AuthCallback() {
       return;
     }
 
-    await persistRoleToAuthMetadata(confirmedRole);
+    await persistRoleToAuthMetadata({ role: confirmedRole, source: "auth-callback" });
 
     toast({
       title: "Account Ready!",
@@ -328,6 +311,7 @@ export default function AuthCallback() {
       });
 
       if (decision === "redirect" && currentRole) {
+        await persistRoleToAuthMetadata({ role: currentRole, source: "auth-callback" });
         await redirectToRole(currentRole);
         return;
       }
