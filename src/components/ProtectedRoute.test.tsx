@@ -41,6 +41,7 @@ function renderWithRoutes(initialRoute: string, requiredRole?: UserRole) {
     <MemoryRouter initialEntries={[initialRoute]}>
       <Routes>
         <Route path="/" element={<div data-testid="login-page">Login Page</div>} />
+        <Route path="/onboarding" element={<div data-testid="onboarding-page">Onboarding Page</div>} />
         <Route path="/app" element={<div data-testid="student-dashboard">Student Dashboard</div>} />
         <Route path="/dashboard" element={<div data-testid="coach-dashboard">Coach Dashboard</div>} />
         <Route
@@ -189,15 +190,15 @@ describe('ProtectedRoute', () => {
       });
     });
 
-    it('redirects to login when role is null', async () => {
+    it('redirects to onboarding when role is null', async () => {
       // Mock role as null - the component will retry 5 times before giving up
       getMockSupabase().queryBuilder.single.mockResolvedValue({ data: { role: null }, error: null });
 
       renderWithRoutes('/protected', 'coach');
 
-      // Wait for redirect to login page (need longer timeout due to retry delays)
+      // Wait for redirect to onboarding page (need longer timeout due to retry delays)
       await waitFor(() => {
-        expect(screen.getByTestId('login-page')).toBeInTheDocument();
+        expect(screen.getByTestId('onboarding-page')).toBeInTheDocument();
       }, { timeout: 5000 });
     });
   });

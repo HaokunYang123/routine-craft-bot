@@ -1,276 +1,379 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, AlertCircle, RefreshCw, School, GraduationCap } from "lucide-react";
 import { detectBrowserTimezone } from "@/lib/timezone";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { decideNextStep, deriveIntendedRole, type AuthRole } from "./authCallbackHelpers";
 
 type CallbackState =
-  | "processing"        // Initial state - exchanging code, fetching profile
-  | "select_role"       // User needs to select a role
-  | "setting_role"      // Updating profile with role
-  | "success"           // Role confirmed, redirecting
-  | "error";            // Something went wrong
+  | "processing"
+  | "role_picker"
+  | "setting_role"
+  | "success"
+  | "session_error";
 
+const LOG_PREFIX = "[auth-callback]";
 const MAX_PROFILE_RETRIES = 5;
 const PROFILE_RETRY_DELAY_MS = 500;
+const CODE_STORAGE_KEY = "authCallbackCode";
+
+function normalizeRole(value: string | null | undefined): AuthRole | null {
+  if (value === "coach" || value === "student") {
+    return value;
+  }
+  return null;
+}
 
 export default function AuthCallback() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
 
-  // Get intent and role from URL params, with localStorage fallback
-  const urlIntent = searchParams.get('intent');
-  const urlRole = searchParams.get('role');
-
-  const intent = (urlIntent || localStorage.getItem('pendingAuthIntent')) as 'signup' | 'login' | null;
-  const initialRole = (urlRole || localStorage.getItem('pendingAuthRole')) as 'coach' | 'student' | null;
+  const urlIntent = searchParams.get("intent");
+  const urlRole = searchParams.get("role");
+  const urlCode = searchParams.get("code");
 
   const [state, setState] = useState<CallbackState>("processing");
   const [error, setError] = useState<string | null>(null);
+  const [errorDetail, setErrorDetail] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState("Verifying your sign-in...");
   const [userId, setUserId] = useState<string | null>(null);
-  const [selectedRole, setSelectedRole] = useState<'coach' | 'student' | null>(null);
+  const [selectedRole, setSelectedRole] = useState<AuthRole | null>(null);
+  const [retryNonce, setRetryNonce] = useState(0);
 
-  // Function to set role and redirect
-  const handleRoleSelection = async (role: 'coach' | 'student', userIdOverride?: string) => {
-    const effectiveUserId = userIdOverride || userId;
-    if (!effectiveUserId) {
-      console.error("🔑 Callback: No user ID available for role selection");
+  const exchangeAttemptedRef = useRef<string | null>(null);
+
+  const log = (...args: unknown[]) => console.log(LOG_PREFIX, ...args);
+  const logError = (...args: unknown[]) => console.error(LOG_PREFIX, ...args);
+
+  const clearPendingAuth = () => {
+    localStorage.removeItem("pendingAuthRole");
+    localStorage.removeItem("pendingAuthIntent");
+  };
+
+  const persistRoleToAuthMetadata = async (role: AuthRole) => {
+    if (role !== "coach" && role !== "student") {
       return;
     }
 
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        return;
+      }
+
+      await supabase.auth.updateUser({ data: { role } });
+    } catch (err) {
+      console.warn(LOG_PREFIX, "auth metadata update failed", err);
+    }
+  };
+
+  const fetchProfileWithRetries = async (uid: string) => {
+    let profile: { role: string | null; timezone: string | null } | null = null;
+    let lastError: unknown = null;
+
+    for (let attempt = 1; attempt <= MAX_PROFILE_RETRIES; attempt += 1) {
+      const { data, error: profileError } = await supabase
+        .from("profiles")
+        .select("role, timezone")
+        .eq("user_id", uid)
+        .maybeSingle();
+
+      if (profileError) {
+        lastError = profileError;
+        log("profile fetch error", { attempt, profileError });
+      }
+
+      if (data) {
+        profile = data;
+        break;
+      }
+
+      if (attempt < MAX_PROFILE_RETRIES) {
+        log("profile not ready, retrying", { attempt, max: MAX_PROFILE_RETRIES });
+        await new Promise((resolve) => setTimeout(resolve, PROFILE_RETRY_DELAY_MS));
+      }
+    }
+
+    return { profile, error: lastError };
+  };
+
+  const createProfileIfMissing = async (uid: string, role: AuthRole | null) => {
+    log("profile missing, attempting create", { uid, role });
+
+    const { data, error: createError } = await supabase
+      .from("profiles")
+      .insert({
+        user_id: uid,
+        role: role ?? null,
+        timezone: detectBrowserTimezone(),
+      })
+      .select("role, timezone")
+      .single();
+
+    if (createError) {
+      if (createError.code === "23505") {
+        log("profile already exists, will re-fetch", { uid });
+        return { profile: null, error: null };
+      }
+
+      return { profile: null, error: createError };
+    }
+
+    const createdRole = normalizeRole(data?.role ?? null);
+    if (createdRole) {
+      await persistRoleToAuthMetadata(createdRole);
+    }
+
+    return { profile: data, error: null };
+  };
+
+  const redirectToRole = async (role: AuthRole) => {
+    clearPendingAuth();
+    setState("success");
+    setStatusMessage(`Welcome! Redirecting to your ${role} dashboard...`);
+
+    await new Promise((resolve) => setTimeout(resolve, 400));
+
+    navigate(role === "coach" ? "/dashboard" : "/app", { replace: true });
+  };
+
+  const attemptRoleUpdate = async (role: AuthRole, uid: string) => {
     setSelectedRole(role);
     setState("setting_role");
     setStatusMessage(`Setting up your ${role} account...`);
 
-    try {
-      console.log("🔑 Callback: Attempting to update profile for user:", effectiveUserId);
+    log("attempting role update", { role, uid });
 
-      const { data: updateData, error: updateError, count } = await supabase
-        .from("profiles")
-        .update({
-          role: role,
-          timezone: detectBrowserTimezone(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("user_id", effectiveUserId)
-        .select();
+    const { data: updatedProfile, error: updateError } = await supabase
+      .from("profiles")
+      .update({
+        role,
+        timezone: detectBrowserTimezone(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("user_id", uid)
+      .select("role, timezone")
+      .maybeSingle();
 
-      console.log("🔑 Callback: Update result:", { updateData, updateError, count, effectiveUserId });
-
-      if (updateError) {
-        console.error("🔑 Callback: Role update failed:", updateError);
-        throw new Error(`Could not set account type: ${updateError.message}`);
-      }
-
-      // Check if any rows were actually updated (RLS might block silently)
-      if (!updateData || updateData.length === 0) {
-        console.error("🔑 Callback: No profile updated - RLS may be blocking or profile doesn't exist");
-        throw new Error("Could not update your profile. Please try signing up again.");
-      }
-
-      console.log("🔑 Callback: Role successfully set to:", role);
-
-      // Clear pending auth data
-      localStorage.removeItem('pendingAuthRole');
-      localStorage.removeItem('pendingAuthIntent');
-
-      setState("success");
-      setStatusMessage(`Welcome! Redirecting to your ${role} dashboard...`);
-
-      toast({
-        title: "Account Ready!",
-        description: `Your ${role} account has been set up.`,
-      });
-
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      if (role === "coach") {
-        navigate("/dashboard", { replace: true });
-      } else {
-        navigate("/app", { replace: true });
-      }
-    } catch (err: unknown) {
-      console.error("🔑 Callback: Error setting role:", err);
-      setState("error");
-      setError(err instanceof Error ? err.message : "Failed to set role. Please try again.");
+    if (updateError) {
+      logError("role update failed", updateError);
+      setError("Could not set your role. Please try again.");
+      setErrorDetail(updateError.message ?? "Unknown role update error");
+      setState("role_picker");
+      return;
     }
+
+    let confirmedRole = normalizeRole(updatedProfile?.role ?? null);
+
+    if (!confirmedRole) {
+      log("role update did not confirm, re-fetching profile", { uid });
+      const { profile: refreshedProfile } = await fetchProfileWithRetries(uid);
+      confirmedRole = normalizeRole(refreshedProfile?.role ?? null);
+    }
+
+    log("role after update", { confirmedRole });
+
+    if (!confirmedRole) {
+      setError("We couldn’t confirm your role. Please select again.");
+      setErrorDetail("Role update did not persist.");
+      setState("role_picker");
+      return;
+    }
+
+    await persistRoleToAuthMetadata(confirmedRole);
+
+    toast({
+      title: "Account Ready!",
+      description: `Your ${confirmedRole} account has been set up.`,
+    });
+
+    await redirectToRole(confirmedRole);
   };
 
   useEffect(() => {
-    const handleCallback = async () => {
-      try {
-        console.log("🔑 Callback: === AUTH CALLBACK STARTED ===");
-        console.log("🔑 Callback: Full URL:", window.location.href);
-        console.log("🔑 Callback: Pathname:", window.location.pathname);
-        console.log("🔑 Callback: Search params:", window.location.search);
-        console.log("🔑 Callback: Hash:", window.location.hash);
-        console.log("🔑 Callback: Intent:", intent, "Role:", initialRole);
-        console.log("🔑 Callback: localStorage pendingAuthRole:", localStorage.getItem('pendingAuthRole'));
-        console.log("🔑 Callback: localStorage pendingAuthIntent:", localStorage.getItem('pendingAuthIntent'));
-        setStatusMessage("Verifying your sign-in...");
+    const runCallback = async () => {
+      setError(null);
+      setErrorDetail(null);
+      setSelectedRole(null);
+      setState("processing");
+      setStatusMessage("Verifying your sign-in...");
 
-        // If there's a hash fragment with tokens, let Supabase handle it first
-        if (window.location.hash && window.location.hash.includes('access_token')) {
-          console.log("🔑 Callback: Detected tokens in hash, letting Supabase process...");
-          // Give Supabase time to process the hash
-          await new Promise(resolve => setTimeout(resolve, 500));
-        }
+      const storageRole = localStorage.getItem("pendingAuthRole");
+      const storageIntent = localStorage.getItem("pendingAuthIntent");
 
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-        if (sessionError) {
-          console.error("🔑 Callback: Session error:", sessionError);
-          throw new Error("Sign-in verification failed. Please try again.");
-        }
-
-        if (!session) {
-          console.error("🔑 Callback: No session found");
-          throw new Error("No session found. Please sign in again.");
-        }
-
-        console.log("🔑 Callback: Session verified for:", session.user.email);
-        setUserId(session.user.id);
-
-        // Wait for profile to exist
-        setStatusMessage("Loading your profile...");
-        let profile = null;
-        let profileRetries = 0;
-
-        while (!profile && profileRetries < MAX_PROFILE_RETRIES) {
-          const { data, error: profileError } = await supabase
-            .from("profiles")
-            .select("role, timezone")
-            .eq("user_id", session.user.id)
-            .maybeSingle();
-
-          if (profileError) {
-            console.warn(`🔑 Callback: Profile fetch attempt ${profileRetries + 1} error:`, profileError);
-          }
-
-          if (data) {
-            profile = data;
-            break;
-          }
-
-          profileRetries++;
-          if (profileRetries < MAX_PROFILE_RETRIES) {
-            console.log(`🔑 Callback: Profile not ready, retry ${profileRetries}/${MAX_PROFILE_RETRIES}...`);
-            await new Promise(resolve => setTimeout(resolve, PROFILE_RETRY_DELAY_MS));
-          }
-        }
-
-        if (!profile) {
-          console.log("🔑 Callback: Profile not found, attempting to create one...");
-
-          // Try to create profile if it doesn't exist (trigger might not have run)
-          const { data: newProfile, error: createError } = await supabase
-            .from("profiles")
-            .insert({
-              user_id: session.user.id,
-              role: initialRole || null,
-              timezone: detectBrowserTimezone(),
-            })
-            .select()
-            .single();
-
-          if (createError) {
-            // If it's a duplicate key error, try fetching again
-            if (createError.code === '23505') {
-              console.log("🔑 Callback: Profile already exists, fetching again...");
-              const { data: existingProfile } = await supabase
-                .from("profiles")
-                .select("role, timezone")
-                .eq("user_id", session.user.id)
-                .single();
-              profile = existingProfile;
-            } else {
-              console.error("🔑 Callback: Failed to create profile:", createError);
-              throw new Error("Could not create your profile. Please try again.");
-            }
-          } else {
-            console.log("🔑 Callback: Profile created successfully:", newProfile);
-            // If we created with a role, redirect directly
-            if (initialRole && newProfile?.role) {
-              localStorage.removeItem('pendingAuthRole');
-              localStorage.removeItem('pendingAuthIntent');
-              setState("success");
-              setStatusMessage(`Welcome! Redirecting to your ${initialRole} dashboard...`);
-              await new Promise(resolve => setTimeout(resolve, 300));
-              navigate(initialRole === "coach" ? "/dashboard" : "/app", { replace: true });
-              return;
-            }
-            profile = newProfile;
-          }
-        }
-
-        if (!profile) {
-          console.error("🔑 Callback: Still no profile after create attempt");
-          throw new Error("Account setup incomplete. Please try signing in again.");
-        }
-
-        console.log("🔑 Callback: Profile found, current role:", profile.role);
-
-        // CASE A: User already has a role -> Redirect to dashboard
-        if (profile.role === "coach" || profile.role === "student") {
-          localStorage.removeItem('pendingAuthRole');
-          localStorage.removeItem('pendingAuthIntent');
-
-          if (!profile.timezone) {
-            await supabase
-              .from("profiles")
-              .update({
-                timezone: detectBrowserTimezone(),
-                updated_at: new Date().toISOString()
-              })
-              .eq("user_id", session.user.id);
-          }
-
-          setState("success");
-          setStatusMessage(`Welcome back! Redirecting...`);
-
-          await new Promise(resolve => setTimeout(resolve, 300));
-
-          if (profile.role === "coach") {
-            navigate("/dashboard", { replace: true });
-          } else {
-            navigate("/app", { replace: true });
-          }
-          return;
-        }
-
-        // CASE B: Role is NULL - try to set from URL/localStorage params
-        if (initialRole) {
-          console.log(`🔑 Callback: Setting role from params: ${initialRole}`);
-          await handleRoleSelection(initialRole, session.user.id);
-          return;
-        }
-
-        // CASE C: No role and no params - show role selection UI
-        console.log("🔑 Callback: No role found, showing role selection");
-        setState("select_role");
-
-      } catch (err: unknown) {
-        console.error("🔑 Callback: Error:", err);
-        localStorage.removeItem('pendingAuthRole');
-        localStorage.removeItem('pendingAuthIntent');
-        setState("error");
-        setError(err instanceof Error ? err.message : "Authentication failed. Please try again.");
+      if (urlCode) {
+        localStorage.setItem(CODE_STORAGE_KEY, urlCode);
       }
+
+      const storedCode = localStorage.getItem(CODE_STORAGE_KEY);
+      const codeForExchange = urlCode ?? storedCode;
+      const codeSource = urlCode ? "url" : storedCode ? "storage" : "none";
+
+      log("callback start", {
+        url: window.location.href,
+        intent: urlIntent,
+        roleParam: urlRole,
+        storageRole,
+        storageIntent,
+        hasCode: Boolean(urlCode),
+      });
+
+      log("code source", { codeSource });
+
+      if (codeForExchange && exchangeAttemptedRef.current !== codeForExchange) {
+        exchangeAttemptedRef.current = codeForExchange;
+        log("exchange attempt", { codeSource });
+
+        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(codeForExchange);
+
+        if (exchangeError) {
+          logError("exchange failed", exchangeError);
+          setError("Setup failed: no session");
+          setErrorDetail(exchangeError.message ?? "Could not exchange code for session");
+          setState("session_error");
+          return;
+        }
+
+        log("exchange succeeded");
+        localStorage.removeItem(CODE_STORAGE_KEY);
+
+        if (urlCode) {
+          const cleanedUrl = new URL(window.location.href);
+          cleanedUrl.searchParams.delete("code");
+          window.history.replaceState({}, "", `${cleanedUrl.pathname}${cleanedUrl.search}${cleanedUrl.hash}`);
+        }
+      } else {
+        log("exchange skipped", { reason: codeForExchange ? "already_exchanged" : "no_code" });
+      }
+
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+      if (sessionError) {
+        logError("getSession error", sessionError);
+        setError("Setup failed: no session");
+        setErrorDetail(sessionError.message ?? "Could not load session");
+        setState("session_error");
+        return;
+      }
+
+      log("session present", { hasSession: Boolean(session) });
+
+      if (!session) {
+        setError("Setup failed: no session");
+        setErrorDetail("No session found after OAuth callback.");
+        setState("session_error");
+        return;
+      }
+
+      setUserId(session.user.id);
+
+      setStatusMessage("Loading your profile...");
+      const { profile: fetchedProfile, error: profileError } = await fetchProfileWithRetries(session.user.id);
+
+      if (profileError) {
+        logError("profile fetch error", profileError);
+      }
+
+      let profile = fetchedProfile;
+
+      if (!profile) {
+        const intendedForCreate = deriveIntendedRole({
+          urlRole,
+          storageRole,
+          profileRole: null,
+        });
+
+        const { profile: createdProfile, error: createError } = await createProfileIfMissing(
+          session.user.id,
+          intendedForCreate
+        );
+
+        if (createError) {
+          logError("profile create failed", createError);
+          setError("We couldn’t create your profile.");
+          setErrorDetail(createError.message ?? "Profile create failed");
+          setState("role_picker");
+          return;
+        }
+
+        if (createdProfile) {
+          profile = createdProfile;
+        } else {
+          const { profile: refreshedProfile } = await fetchProfileWithRetries(session.user.id);
+          profile = refreshedProfile;
+        }
+      }
+
+      const currentRole = normalizeRole(profile?.role ?? null);
+      const intendedRole = deriveIntendedRole({
+        urlRole,
+        storageRole,
+        profileRole: currentRole,
+      });
+
+      log("profile resolved", {
+        profileFound: Boolean(profile),
+        currentRole,
+        intendedRole,
+      });
+
+      const decision = decideNextStep({
+        hasSession: true,
+        currentRole,
+        intendedRole,
+      });
+
+      if (decision === "redirect" && currentRole) {
+        await redirectToRole(currentRole);
+        return;
+      }
+
+      if (decision === "attempt_role_update" && intendedRole) {
+        await attemptRoleUpdate(intendedRole, session.user.id);
+        return;
+      }
+
+      if (decision === "role_picker") {
+        if (!currentRole) {
+          setError(profileError ? "We couldn’t read your role." : null);
+          setErrorDetail(profileError ? "Profile role is missing or unreadable." : null);
+        }
+        setState("role_picker");
+        return;
+      }
+
+      setError("Setup failed: no session");
+      setErrorDetail("Unable to determine next step.");
+      setState("session_error");
     };
 
-    handleCallback();
-  }, [navigate, intent, initialRole, toast]);
+    void runCallback();
+  }, [navigate, retryNonce, urlCode, urlIntent, urlRole]);
 
   const handleRetry = () => {
+    setRetryNonce((prev) => prev + 1);
+  };
+
+  const handleBackToLogin = () => {
     navigate("/", { replace: true });
   };
 
-  // Error state
-  if (state === "error") {
+  const handleRoleSelection = async (role: AuthRole) => {
+    if (!userId) {
+      setError("No session found. Please try again.");
+      setErrorDetail("Missing user id during role selection.");
+      setState("session_error");
+      return;
+    }
+
+    await attemptRoleUpdate(role, userId);
+  };
+
+  if (state === "session_error") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <div className="w-full max-w-md">
@@ -280,13 +383,24 @@ export default function AuthCallback() {
                 <AlertCircle className="w-8 h-8 text-destructive" />
               </div>
               <div>
-                <h2 className="text-xl font-semibold text-foreground">Setup Failed</h2>
-                <p className="text-sm text-muted-foreground mt-2">{error}</p>
+                <h2 className="text-xl font-semibold text-foreground">Setup failed: no session</h2>
+                <p className="text-sm text-muted-foreground mt-2">
+                  {error ?? "We couldn’t establish a session after OAuth."}
+                </p>
               </div>
-              <div className="pt-4">
+              {errorDetail && (
+                <details className="text-left text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">
+                  <summary className="cursor-pointer font-medium text-foreground">Error details</summary>
+                  <p className="mt-2 break-words">{errorDetail}</p>
+                </details>
+              )}
+              <div className="pt-2 space-y-3">
                 <Button onClick={handleRetry} className="w-full gap-2">
                   <RefreshCw className="w-4 h-4" />
-                  Try Again
+                  Retry
+                </Button>
+                <Button variant="outline" onClick={handleBackToLogin} className="w-full">
+                  Back to login
                 </Button>
               </div>
             </div>
@@ -296,18 +410,20 @@ export default function AuthCallback() {
     );
   }
 
-  // Role selection state - show buttons directly
-  if (state === "select_role") {
+  if (state === "role_picker") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <div className="w-full max-w-md">
           <div className="bg-card rounded-2xl shadow-elevated border border-border p-8">
             <div className="text-center space-y-6">
               <div>
-                <h2 className="text-2xl font-semibold text-foreground">One More Step!</h2>
+                <h2 className="text-2xl font-semibold text-foreground">Finish setup</h2>
                 <p className="text-sm text-muted-foreground mt-2">
-                  Select your role to complete setup
+                  Select your role to complete your account setup.
                 </p>
+                {error && (
+                  <p className="text-sm text-destructive mt-3">{error}</p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -320,7 +436,7 @@ export default function AuthCallback() {
                     <School className="w-6 h-6" />
                   </div>
                   <div className="text-center">
-                    <span className="font-medium text-foreground block">Coach</span>
+                    <span className="font-medium text-foreground block">I'm a Coach</span>
                     <span className="text-xs text-muted-foreground">Manage students</span>
                   </div>
                 </Button>
@@ -334,7 +450,7 @@ export default function AuthCallback() {
                     <GraduationCap className="w-6 h-6" />
                   </div>
                   <div className="text-center">
-                    <span className="font-medium text-foreground block">Student</span>
+                    <span className="font-medium text-foreground block">I'm a Student</span>
                     <span className="text-xs text-muted-foreground">Complete tasks</span>
                   </div>
                 </Button>
@@ -346,7 +462,6 @@ export default function AuthCallback() {
     );
   }
 
-  // Processing/Setting role state
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
@@ -360,11 +475,13 @@ export default function AuthCallback() {
               <p className="text-sm text-muted-foreground mt-2">{statusMessage}</p>
             </div>
             {selectedRole && state === "setting_role" && (
-              <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm ${
-                selectedRole === "coach"
-                  ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
-                  : "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-              }`}>
+              <div
+                className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm ${
+                  selectedRole === "coach"
+                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+                    : "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                }`}
+              >
                 {selectedRole === "coach" ? "Coach Account" : "Student Account"}
               </div>
             )}

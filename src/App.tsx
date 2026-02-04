@@ -29,6 +29,7 @@ import StudentHelp from "./pages/student/StudentHelp";
 import AssigneeDashboard from "./pages/AssigneeDashboard";
 import PolygonShowcase from "./pages/PolygonShowcase";
 import AuthCallback from "./pages/AuthCallback";
+import Onboarding from "./pages/Onboarding";
 
 const queryClient = new QueryClient({
   queryCache: new QueryCache({
@@ -116,6 +117,7 @@ const App = () => (
             <Route path="/login/student" element={<Index />} />
             {/* OAuth Callback */}
             <Route path="/auth/callback" element={<AuthCallback />} />
+            <Route path="/onboarding" element={<Onboarding />} />
             {/* Teacher/Coach Dashboard */}
             <Route
               path="/dashboard"

@@ -82,9 +82,9 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
 
   // Role check if required
   if (requiredRole) {
-    // If role is still not found after retries, redirect to home for role selection
-    if (roleNotFound || !role) {
-      return <Navigate to="/" replace />;
+    // If role is still not found after retries, send to onboarding
+    if (roleNotFound || role == null) {
+      return <Navigate to="/onboarding" replace />;
     }
     // Redirect to appropriate dashboard if role doesn't match
     if (role !== requiredRole) {
@@ -98,4 +98,3 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
 
   return <>{children}</>;
 }
-
