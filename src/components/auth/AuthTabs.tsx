@@ -20,25 +20,27 @@ export function AuthTabs() {
       localStorage.setItem('pendingAuthRole', role);
       localStorage.setItem('pendingAuthIntent', 'signup');
 
-      const { error } = await supabase.auth.signInWithOAuth({
+      const redirectTo = `${window.location.origin}/auth/callback?intent=signup&role=coach`;
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          // Pass role AND intent so the database trigger knows this is a signup
-          data: {
-            role: role,
-            intent: "signup" as AuthIntent,
-          },
-          scopes: "profile email",
-          redirectTo: `${window.location.origin}/auth/callback?intent=signup&role=${role}`,
-          queryParams: {
-            access_type: "offline",
-            prompt: "consent",
-          },
+          redirectTo,
+          skipBrowserRedirect: true,
         },
       });
 
+      console.log("oauth error:", error);
+      console.log("oauth url:", data?.url);
+      console.log(
+        "storage keys after signIn:",
+        Object.keys(localStorage).filter(
+          (k) => k.includes("sb-") || k.includes("verifier") || k.includes("pkce")
+        )
+      );
+
+      if (data?.url) window.location.assign(data.url);
       if (error) throw error;
-      // OAuth redirects - won't reach here on success
     } catch (err: unknown) {
       // Clear stored auth data on error
       localStorage.removeItem('pendingAuthRole');
@@ -56,6 +58,7 @@ export function AuthTabs() {
     setLoading("login");
 
     try {
+      const redirectTo = `${window.location.origin}/auth/callback`;
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
@@ -64,7 +67,7 @@ export function AuthTabs() {
             intent: "login" as AuthIntent,
           },
           scopes: "profile email",
-          redirectTo: `${window.location.origin}/auth/callback?intent=login`,
+          redirectTo,
           queryParams: {
             access_type: "offline",
             prompt: "select_account", // Let them pick account without forcing consent
