@@ -2,6 +2,10 @@
 
 ## Completed
 
+### Documentation: Tasks Nav/Route Removal (2026-02-05)
+- App.tsx: removed Tasks import and /dashboard/tasks route
+- AppSidebar/CoachSidebar: removed Tasks nav items
+
 ### Student Dashboard Fixes (2026-02-05)
 - Fixed overdue task card styling on student dashboard (improved contrast and readability)
 - Fixed "New" badge on coach notes to disappear after student views the note
