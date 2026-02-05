@@ -3,6 +3,9 @@
 ## Completed
 
 ### Group Detail Realtime Stability (2026-02-05)
+- Fixed realtime subscription thrashing (separated subscription from data-fetch effect, used ref pattern for stable callback)
+
+### Group Detail Realtime Stability (2026-02-05)
 - Fixed realtime subscription thrashing in GroupDetail.tsx (stabilized useEffect dependencies with useCallback and serialized member IDs)
 
 ### Group Detail Crash Fix (2026-02-05)

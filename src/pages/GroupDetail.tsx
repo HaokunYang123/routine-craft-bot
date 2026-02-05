@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -309,6 +309,11 @@ export default function GroupDetail() {
         }
     }, [groupId]);
 
+    const fetchDataRef = useRef(fetchData);
+    useEffect(() => {
+        fetchDataRef.current = fetchData;
+    }, [fetchData]);
+
     useEffect(() => {
         if (!user || !groupId) return;
         fetchData();
@@ -318,22 +323,25 @@ export default function GroupDetail() {
         () => students.map((student) => student.student_id),
         [students]
     );
-    const memberIdsKey = useMemo(
-        () => [...new Set(memberIds)].sort().join(","),
-        [memberIds]
-    );
+    const memberIdsRef = useRef<string[]>([]);
+    useEffect(() => {
+        memberIdsRef.current = memberIds;
+    }, [memberIds]);
 
     useEffect(() => {
-        if (!groupId || !memberIdsKey) return;
-
-        const filter = `assignee_id=in.(${memberIdsKey})`;
+        if (!groupId) return;
         const channel = supabase
             .channel(`group-detail-tasks-${groupId}`)
             .on(
                 "postgres_changes",
-                { event: "UPDATE", schema: "public", table: "task_instances", filter },
-                () => {
-                    fetchData();
+                { event: "UPDATE", schema: "public", table: "task_instances" },
+                (payload) => {
+                    const assigneeId = payload?.new?.assignee_id as string | undefined;
+                    const currentMemberIds = memberIdsRef.current;
+                    if (currentMemberIds.length > 0 && assigneeId && !currentMemberIds.includes(assigneeId)) {
+                        return;
+                    }
+                    fetchDataRef.current();
                 }
             )
             .subscribe();
@@ -341,7 +349,7 @@ export default function GroupDetail() {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [groupId, memberIdsKey, fetchData]);
+    }, [groupId]);
 
     const handleSendNote = async () => {
         if (!newNote.trim() || !user || !groupId) return;
