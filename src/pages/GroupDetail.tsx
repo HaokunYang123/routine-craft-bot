@@ -60,6 +60,7 @@ import {
     Check,
     Plus,
     Settings,
+    MoreVertical,
     ChevronDown,
     ChevronUp,
 } from "lucide-react";
@@ -792,6 +793,7 @@ export default function GroupDetail() {
                                                 <TableHead className="cursor-pointer" onClick={() => handleSort("status")}>
                                                     Status {sortField === "status" && <ArrowUpDown className="inline w-3 h-3 ml-1" />}
                                                 </TableHead>
+                                                <TableHead className="w-[40px]" />
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
@@ -824,11 +826,29 @@ export default function GroupDetail() {
                                                             {student.status}
                                                         </Badge>
                                                     </TableCell>
+                                                    <TableCell className="text-right">
+                                                        <DropdownMenu>
+                                                            <DropdownMenuTrigger asChild>
+                                                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                                    <MoreVertical className="h-4 w-4" />
+                                                                </Button>
+                                                            </DropdownMenuTrigger>
+                                                            <DropdownMenuContent align="end">
+                                                                <DropdownMenuItem
+                                                                    className="text-destructive focus:text-destructive"
+                                                                    onClick={() => setStudentToRemove(student)}
+                                                                >
+                                                                    <Trash2 className="mr-2 h-4 w-4" />
+                                                                    Remove Student
+                                                                </DropdownMenuItem>
+                                                            </DropdownMenuContent>
+                                                        </DropdownMenu>
+                                                    </TableCell>
                                                 </TableRow>
                                             ))}
                                             {sortedStudents.length === 0 && (
                                                 <TableRow>
-                                                    <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                                                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                                                         {students.length === 0
                                                             ? "No students have joined this group yet. Share the join code above!"
                                                             : "No students found matching filters."}

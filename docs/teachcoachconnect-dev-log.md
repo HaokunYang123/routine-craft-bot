@@ -2,6 +2,13 @@
 
 ## Completed
 
+### Delete Account Feature (2026-02-05)
+- Delete Account: added Supabase Edge Function (`delete-account`) that verifies caller JWT and deletes the authenticated user via `supabase.auth.admin.deleteUser`.
+- Added reusable Delete Account section in settings with warning card + type-to-confirm dialog (`DELETE`) for both coach and student settings pages.
+- On successful deletion, client signs out and redirects to login; errors show destructive toast feedback.
+- All data cleanup is handled by existing CASCADE / SET NULL foreign-key behavior after auth user deletion.
+- Edge Function fix: replaced esm.sh import with jsdelivr CDN for supabase-js in delete-account function to fix bundle timeout on deploy
+
 ### Excuse Status Constraint + Template Dialog Theme Fixes (2026-02-05)
 - Excuse fix: added migration `20260205000001_add_excused_status.sql` to include `excused` in `task_instances` status CHECK constraint with defensive dynamic constraint discovery/drop + enum support.
 - Verified `excuseTask` mutation payload in `useAssignments` sets `status: "excused"` and keeps `updated_at`/`updated_by`; `updated_by` exists in generated Supabase types for `task_instances`.

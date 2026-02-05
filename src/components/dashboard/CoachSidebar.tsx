@@ -38,11 +38,17 @@ export function CoachSidebar() {
   const location = useLocation();
   const { user, signOut } = useAuth();
   const { displayName, avatarDisplay, loading: profileLoading } = useProfile();
-  const { state, toggleSidebar } = useSidebar();
+  const { state, toggleSidebar, isMobile, setOpenMobile } = useSidebar();
   const collapsed = state === "collapsed";
 
   // Get user email for fallback
   const userEmail = user?.email || "";
+
+  const handleNavClick = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
 
   return (
     <Sidebar
@@ -99,6 +105,7 @@ export function CoachSidebar() {
                       <NavLink
                         to={item.url}
                         className="flex items-center gap-3 px-3 py-2"
+                        onClick={handleNavClick}
                       >
                         <item.icon className="w-5 h-5 shrink-0" />
                         {!collapsed && (
@@ -122,6 +129,7 @@ export function CoachSidebar() {
             "flex items-center gap-3 p-2 rounded-lg bg-sidebar-accent/50 hover:bg-sidebar-accent transition-colors",
             collapsed && "justify-center"
           )}
+          onClick={handleNavClick}
         >
           {profileLoading ? (
             <>
@@ -167,6 +175,7 @@ export function CoachSidebar() {
           <NavLink
             to="/dashboard/settings"
             className="flex items-center gap-3 px-3 py-2"
+            onClick={handleNavClick}
           >
             <Settings className="w-5 h-5 shrink-0" />
             {!collapsed && <span className="font-medium">Settings</span>}

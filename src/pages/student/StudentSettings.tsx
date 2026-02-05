@@ -22,6 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { handleError } from "@/lib/error";
 import { useTimezone } from "@/hooks/useTimezone";
 import { TimezoneSelect } from "@/components/TimezoneSelect";
+import { DeleteAccountSection } from "@/components/settings/DeleteAccountSection";
 
 interface Profile {
     display_name: string | null;
@@ -290,6 +291,8 @@ export default function StudentSettings() {
                     </button>
                 </CardContent>
             </Card>
+
+            <DeleteAccountSection />
 
             {/* Account Actions */}
             <div className="space-y-3">
