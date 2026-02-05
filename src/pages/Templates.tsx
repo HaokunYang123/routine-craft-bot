@@ -386,7 +386,7 @@ export default function Templates() {
 
       {/* Preview Template Dialog */}
       <Dialog open={!!previewTemplate} onOpenChange={() => setPreviewTemplate(null)}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="coach-theme dark max-w-2xl max-h-[80vh] overflow-y-auto text-foreground">
           <DialogHeader>
             <DialogTitle>{previewTemplate?.name}</DialogTitle>
             {previewTemplate?.description && (
@@ -440,7 +440,7 @@ export default function Templates() {
 
       {/* Edit Template Dialog */}
       <Dialog open={!!editTemplate} onOpenChange={() => setEditTemplate(null)}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="coach-theme dark max-w-2xl max-h-[85vh] overflow-y-auto text-foreground">
           <DialogHeader>
             <DialogTitle>Edit Template</DialogTitle>
           </DialogHeader>
@@ -478,7 +478,7 @@ export default function Templates() {
               </div>
 
               {editTasks.map((task, index) => (
-                <div key={index} className="p-3 border rounded-lg space-y-2">
+                <div key={index} className="p-3 border rounded-lg bg-secondary/30 space-y-2">
                   <div className="flex items-center gap-2">
                     <Input
                       value={task.title}

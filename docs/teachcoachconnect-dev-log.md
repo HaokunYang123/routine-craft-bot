@@ -2,6 +2,12 @@
 
 ## Completed
 
+### Excuse Status Constraint + Template Dialog Theme Fixes (2026-02-05)
+- Excuse fix: added migration `20260205000001_add_excused_status.sql` to include `excused` in `task_instances` status CHECK constraint with defensive dynamic constraint discovery/drop + enum support.
+- Verified `excuseTask` mutation payload in `useAssignments` sets `status: "excused"` and keeps `updated_at`/`updated_by`; `updated_by` exists in generated Supabase types for `task_instances`.
+- Template dialog dark theme fix: added `coach-theme dark` class to preview and edit `DialogContent` in `Templates.tsx` so portal-rendered dialogs use coach dark tokens.
+- Added `bg-secondary/30` to edit dialog task row cards for readability against dark dialog background.
+
 ### Manual Template Builder Redesign + Radix Sentinel Fix (2026-02-05)
 - Manual Template Builder fix: replaced empty-string Select.Item values with sentinel strings to fix Radix crash, also fixed same pattern in RecurringSchedules.tsx. Redesigned task entry UI to card/blob layout with Add Task button. Removed due_time_offset_minutes from form. Priority stored in UI only (DB migration TODO).
 
