@@ -1,6 +1,6 @@
 import { useEffect, useState, Profiler } from "react";
 import { onRenderCallback } from "@/lib/profiling";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -51,6 +51,7 @@ export default function CoachDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   const { groups, loading: groupsLoading, createGroup, fetchGroups } = useGroups();
   const { getGroupProgress } = useAssignments();
   const { todayDateString, formatDate } = useTimezone();
@@ -64,7 +65,7 @@ export default function CoachDashboard() {
     filter: `coach_id=eq.${user?.id}`,
     event: '*',
     queryKeysToInvalidate: assignmentQueryKeys,
-    enabled: !!user && groups.length > 0,
+    enabled: !!user && groups.length > 0 && location.pathname === '/dashboard',
   });
 
   // Refetch on tab visibility change (handles backgrounded tabs)

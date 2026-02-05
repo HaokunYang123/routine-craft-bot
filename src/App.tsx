@@ -123,7 +123,7 @@ const App = () => (
               path="/dashboard"
               element={
                 <RouteErrorBoundary>
-                  <DashboardLayout />
+                  <DashboardLayout key="dashboard" />
                 </RouteErrorBoundary>
               }
             >
@@ -141,7 +141,7 @@ const App = () => (
               path="/groups"
               element={
                 <RouteErrorBoundary>
-                  <DashboardLayout />
+                  <DashboardLayout key="groups" />
                 </RouteErrorBoundary>
               }
             >
@@ -152,7 +152,7 @@ const App = () => (
               path="/assigner-dashboard"
               element={
                 <RouteErrorBoundary>
-                  <DashboardLayout />
+                  <DashboardLayout key="assigner-dashboard" />
                 </RouteErrorBoundary>
               }
             >

@@ -2,6 +2,11 @@
 
 ## Completed
 
+### Coach Dashboard Realtime Routing Fix (2026-02-05)
+- Diagnosed route structure causing CoachDashboard to persist on /groups/:groupId
+- Fixed routing so CoachDashboard unmounts on group detail navigation
+- Added pathname guard to coach-tasks subscription enabled flag
+
 ### Realtime Hook Stabilization (2026-02-05)
 - Fixed useRealtimeSubscription hook: stabilized queryKeysToInvalidate dependency to prevent subscription thrashing
 - Documented all callers of useRealtimeSubscription (CoachDashboard, CoachCalendar)
