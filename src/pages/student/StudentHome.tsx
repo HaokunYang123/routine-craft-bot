@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useAssignments } from "@/hooks/useAssignments";
@@ -113,6 +113,19 @@ export default function StudentHome() {
     fetchConnectedGroups();
     fetchCoachNotes();
   }, [user]);
+
+  const markNotesSeen = useCallback(() => {
+    if (!user || typeof window === "undefined") return;
+    const now = new Date();
+    window.localStorage.setItem(`notes-last-seen-${user.id}`, now.toISOString());
+    setCoachNotes((prev) => prev.map((note) => ({ ...note, is_new: false })));
+  }, [user]);
+
+  useEffect(() => {
+    if (!user || !showNotes) return;
+    if (!coachNotes.some((note) => note.is_new)) return;
+    markNotesSeen();
+  }, [coachNotes, showNotes, user, markNotesSeen]);
 
   // Realtime subscription - refetch on any task_instances changes for this user (REAL-02, REAL-06)
   useEffect(() => {
@@ -294,8 +307,14 @@ export default function StudentHome() {
         });
       }
 
-      // Consider notes from last 24 hours as "new"
       const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const lastSeenRaw =
+        typeof window === "undefined" || !user
+          ? null
+          : window.localStorage.getItem(`notes-last-seen-${user.id}`);
+      const lastSeenParsed = lastSeenRaw ? new Date(lastSeenRaw) : null;
+      const lastSeen =
+        lastSeenParsed && !Number.isNaN(lastSeenParsed.getTime()) ? lastSeenParsed : oneDayAgo;
 
       const enrichedNotes: CoachNote[] = allNotes.map(note => ({
         id: note.id,
@@ -304,7 +323,7 @@ export default function StudentHome() {
         created_at: note.created_at,
         coach_name: coachMap[note.from_user_id] || "Coach",
         group_name: note.group_id ? groupMap[note.group_id] || null : null,
-        is_new: new Date(note.created_at) > oneDayAgo,
+        is_new: new Date(note.created_at) > lastSeen,
       }));
 
       setCoachNotes(enrichedNotes);
@@ -856,11 +875,11 @@ export default function StudentHome() {
               {/* Overdue Section - Per CONTEXT.md: Section order is Today -> Overdue -> Yesterday */}
               {overdue.length > 0 && (
                 <div className="border-t pt-4 mt-4">
-                  <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                  <div className="bg-red-50/80 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg p-4">
                   <div className="flex items-center gap-2 mb-3">
-                    <AlertTriangle className="w-4 h-4 text-red-500" />
-                    <h3 className="font-semibold text-sm text-red-600">Overdue</h3>
-                    <Badge variant="destructive" className="text-xs">
+                    <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-300" />
+                    <h3 className="font-semibold text-sm text-red-700 dark:text-red-200">Overdue</h3>
+                    <Badge className="text-xs bg-red-600 text-white border-red-600">
                       {overdue.length}
                     </Badge>
                   </div>
@@ -873,7 +892,7 @@ export default function StudentHome() {
                       return (
                         <div
                           key={task.id}
-                          className="p-4 rounded-lg border bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-800"
+                          className="p-4 rounded-lg border bg-white/70 dark:bg-red-950/30 border-red-200 dark:border-red-800 shadow-sm"
                           style={{
                             borderLeftWidth: "4px",
                             borderLeftColor: "#ef4444",
@@ -888,8 +907,8 @@ export default function StudentHome() {
                               className="mt-0.5"
                             />
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium text-foreground">{task.name}</p>
-                              <p className="text-xs text-muted-foreground mt-1">
+                              <p className="font-medium text-red-900 dark:text-red-100">{task.name}</p>
+                              <p className="text-xs text-red-800/70 dark:text-red-200/80 mt-1">
                                 Assigned by {task.coach_name || "Coach"}
                                 {task.group_name && (
                                   <span className="ml-1">
@@ -899,7 +918,7 @@ export default function StudentHome() {
                               </p>
                               <div className="flex items-center gap-2 mt-2">
                                 {/* Show original due date per CONTEXT.md */}
-                                <Badge variant="outline" className="text-xs text-red-600 border-red-300">
+                                <Badge variant="outline" className="text-xs bg-red-600 text-white border-red-600">
                                   Due: {formatDate(task.scheduled_date, "MMM d")}
                                 </Badge>
                                 {task.duration_minutes && (
@@ -914,7 +933,7 @@ export default function StudentHome() {
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      className="mt-2 h-7 px-2 text-xs text-primary hover:text-primary"
+                                      className="mt-2 h-7 px-2 text-xs text-red-700 dark:text-red-200 hover:text-red-800 dark:hover:text-red-100"
                                     >
                                       {isExpanded ? (
                                         <>
@@ -930,7 +949,7 @@ export default function StudentHome() {
                                     </Button>
                                   </CollapsibleTrigger>
                                   <CollapsibleContent>
-                                    <div className="text-sm text-muted-foreground mt-2 p-3 bg-muted/30 rounded-lg whitespace-pre-wrap">
+                                    <div className="text-sm text-red-900/80 dark:text-red-100/80 mt-2 p-3 bg-white/60 dark:bg-red-950/40 border border-red-200/60 dark:border-red-800/60 rounded-lg whitespace-pre-wrap">
                                       {task.description}
                                     </div>
                                   </CollapsibleContent>
@@ -948,7 +967,7 @@ export default function StudentHome() {
                         <CollapsibleTrigger asChild>
                           <Button
                             variant="ghost"
-                            className="w-full text-sm text-red-600 hover:text-red-700 hover:bg-red-50"
+                            className="w-full text-sm text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-200 dark:hover:text-red-100 dark:hover:bg-red-950/40"
                           >
                             <ChevronDown className={cn("w-4 h-4 mr-1 transition-transform", overdueExpanded && "rotate-180")} />
                             {overdueExpanded ? "Show less" : `and ${overdue.length - 5} more overdue...`}
@@ -962,7 +981,7 @@ export default function StudentHome() {
                             return (
                               <div
                                 key={task.id}
-                                className="p-4 rounded-lg border bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-800"
+                                className="p-4 rounded-lg border bg-white/70 dark:bg-red-950/30 border-red-200 dark:border-red-800 shadow-sm"
                                 style={{
                                   borderLeftWidth: "4px",
                                   borderLeftColor: "#ef4444",
@@ -977,8 +996,8 @@ export default function StudentHome() {
                                     className="mt-0.5"
                                   />
                                   <div className="flex-1 min-w-0">
-                                    <p className="font-medium text-foreground">{task.name}</p>
-                                    <p className="text-xs text-muted-foreground mt-1">
+                                    <p className="font-medium text-red-900 dark:text-red-100">{task.name}</p>
+                                    <p className="text-xs text-red-800/70 dark:text-red-200/80 mt-1">
                                       Assigned by {task.coach_name || "Coach"}
                                       {task.group_name && (
                                         <span className="ml-1">
@@ -987,7 +1006,7 @@ export default function StudentHome() {
                                       )}
                                     </p>
                                     <div className="flex items-center gap-2 mt-2">
-                                      <Badge variant="outline" className="text-xs text-red-600 border-red-300">
+                                      <Badge variant="outline" className="text-xs bg-red-600 text-white border-red-600">
                                         Due: {formatDate(task.scheduled_date, "MMM d")}
                                       </Badge>
                                       {task.duration_minutes && (
@@ -997,33 +1016,33 @@ export default function StudentHome() {
                                       )}
                                     </div>
                                     {hasDescription && (
-                                      <Collapsible open={isExpanded} onOpenChange={() => toggleTaskExpanded(task.id)}>
-                                        <CollapsibleTrigger asChild>
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="mt-2 h-7 px-2 text-xs text-primary hover:text-primary"
-                                          >
-                                            {isExpanded ? (
-                                              <>
-                                                <ChevronUp className="w-3 h-3 mr-1" />
-                                                Hide details
-                                              </>
-                                            ) : (
+                                    <Collapsible open={isExpanded} onOpenChange={() => toggleTaskExpanded(task.id)}>
+                                      <CollapsibleTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="mt-2 h-7 px-2 text-xs text-red-700 dark:text-red-200 hover:text-red-800 dark:hover:text-red-100"
+                                        >
+                                          {isExpanded ? (
+                                            <>
+                                              <ChevronUp className="w-3 h-3 mr-1" />
+                                              Hide details
+                                            </>
+                                          ) : (
                                               <>
                                                 <ChevronDown className="w-3 h-3 mr-1" />
                                                 Show details
                                               </>
-                                            )}
-                                          </Button>
-                                        </CollapsibleTrigger>
-                                        <CollapsibleContent>
-                                          <div className="text-sm text-muted-foreground mt-2 p-3 bg-muted/30 rounded-lg whitespace-pre-wrap">
-                                            {task.description}
-                                          </div>
-                                        </CollapsibleContent>
-                                      </Collapsible>
-                                    )}
+                                          )}
+                                        </Button>
+                                      </CollapsibleTrigger>
+                                      <CollapsibleContent>
+                                        <div className="text-sm text-red-900/80 dark:text-red-100/80 mt-2 p-3 bg-white/60 dark:bg-red-950/40 border border-red-200/60 dark:border-red-800/60 rounded-lg whitespace-pre-wrap">
+                                          {task.description}
+                                        </div>
+                                      </CollapsibleContent>
+                                    </Collapsible>
+                                  )}
                                   </div>
                                 </div>
                               </div>

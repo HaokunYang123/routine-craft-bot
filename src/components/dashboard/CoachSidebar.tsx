@@ -1,7 +1,6 @@
 import {
   LayoutDashboard,
   Calendar,
-  ClipboardList,
   Library,
   LogOut,
   Menu,
@@ -32,7 +31,6 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Calendar", url: "/dashboard/calendar", icon: Calendar },
-  { title: "Tasks", url: "/dashboard/tasks", icon: ClipboardList },
   { title: "Templates", url: "/dashboard/templates", icon: Library },
 ];
 

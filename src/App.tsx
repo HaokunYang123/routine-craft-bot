@@ -12,7 +12,6 @@ import NotFound from "./pages/NotFound";
 import DashboardLayout from "./pages/DashboardLayout";
 import CoachDashboard from "./pages/CoachDashboard";
 import People from "./pages/People";
-import Tasks from "./pages/Tasks";
 import Assistant from "./pages/Assistant";
 import Progress from "./pages/Progress";
 import GroupDetail from "./pages/GroupDetail";
@@ -133,7 +132,6 @@ const App = () => (
               <Route path="templates" element={<Templates />} />
               <Route path="recurring" element={<RecurringSchedules />} />
               <Route path="settings" element={<CoachSettings />} />
-              <Route path="tasks" element={<Tasks />} />
               <Route path="assistant" element={<Assistant />} />
               <Route path="progress" element={<Progress />} />
             </Route>

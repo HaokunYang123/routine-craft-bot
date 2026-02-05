@@ -2,6 +2,19 @@
 
 ## Completed
 
+### Student Dashboard Fixes (2026-02-05)
+- Fixed overdue task card styling on student dashboard (improved contrast and readability)
+- Fixed "New" badge on coach notes to disappear after student views the note
+
+### Codex Context Handover Saved (2026-02-05)
+- Added docs/codex-context.md with latest handover content
+- Updated AGENTS.md required reads list
+
+### Tasks Page Disconnected (2026-02-05)
+- Removed Tasks nav item from CoachSidebar
+- Removed /dashboard/tasks route from App.tsx
+- Tasks.tsx file retained but disconnected
+
 ### Coach Dashboard Realtime Routing Fix (2026-02-05)
 - Diagnosed route structure causing CoachDashboard to persist on /groups/:groupId
 - Fixed routing so CoachDashboard unmounts on group detail navigation

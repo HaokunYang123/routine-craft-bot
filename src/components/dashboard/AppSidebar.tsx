@@ -1,7 +1,6 @@
 import {
   LayoutDashboard,
   Users,
-  CheckSquare,
   Sparkles,
   BarChart,
   Settings,
@@ -29,7 +28,6 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "People", url: "/dashboard/people", icon: Users },
-  { title: "Tasks", url: "/dashboard/tasks", icon: CheckSquare },
   { title: "AI Assistant", url: "/dashboard/assistant", icon: Sparkles },
   { title: "Progress", url: "/dashboard/progress", icon: BarChart },
 ];

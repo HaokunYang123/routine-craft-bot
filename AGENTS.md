@@ -1,4 +1,8 @@
 ## Current Architecture Decision
+- Required reads:
+  - docs/codex-context.md
+  - docs/group-detail-restructure-plan.md
+  - docs/teachcoachconnect-dev-log.md
 - All task assignment functionality lives inside GroupDetail.tsx Tasks tab
 - Top-level Tasks page is being deprecated
 - GroupDetail has three tabs: Overview | Tasks | Notes
