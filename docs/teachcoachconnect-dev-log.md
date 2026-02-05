@@ -2,6 +2,20 @@
 
 ## Completed
 
+### Coach Calendar Group Filter + Date Panel Fix (2026-02-05)
+- Coach Calendar fix: added task_instances fetch filtered by selected group's members via group_members table, green dot indicators on dates with tasks, right panel groups tasks by name with student list underneath, removed redundant date-click modal on desktop (kept for mobile responsive view)
+
+### Coach Calendar Task Date Rendering Fix (2026-02-05)
+- Fixed coach calendar task loading bug where tasks were filtered out as orphaned due to stale `groupMap` state timing
+- Replaced async `groupMap` state/effect with memoized derived map from `groups`
+- Stabilized `fetchTasks` with `useCallback` and updated effect dependencies so calendar refetches with the correct group context
+
+### Mobile Sidebar Auto-Close (2026-02-05)
+- Fixed mobile sidebar: now closes automatically when a nav item is tapped
+
+### Overview Roster Actions Restored (2026-02-05)
+- Re-added "Remove Student" action to Overview tab student roster via row-level dropdown menu
+
 ### Documentation: Tasks Nav/Route Removal (2026-02-05)
 - App.tsx: removed Tasks import and /dashboard/tasks route
 - AppSidebar/CoachSidebar: removed Tasks nav items

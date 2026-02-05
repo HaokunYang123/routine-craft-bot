@@ -99,6 +99,8 @@ interface ScheduledTask {
   groupColor: string;
   scheduledDate: string;
   scheduledTime: string | null;
+  startTime: string | null;
+  endTime: string | null;
   status: "pending" | "completed" | "missed";
   durationMinutes: number | null;
 }
@@ -116,7 +118,6 @@ interface DayCellProps {
   date: Date | null;
   isToday: boolean;
   isSelected: boolean;
-  groupColors: string[];
   hasEvents: boolean;
   onDateClick: (date: Date) => void;
 }
@@ -126,7 +127,6 @@ const DayCell = React.memo(function DayCell({
   date,
   isToday: isTodayProp,
   isSelected,
-  groupColors,
   hasEvents: hasEventsProp,
   onDateClick,
 }: DayCellProps) {
@@ -146,18 +146,80 @@ const DayCell = React.memo(function DayCell({
       )}
     >
       {date.getDate()}
-      {hasEventsProp && !isSelected && (
-        <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex gap-0.5">
-          {groupColors.map((color, idx) => (
-            <span
-              key={idx}
-              className="w-1.5 h-1.5 rounded-full"
-              style={{ backgroundColor: color }}
-            />
-          ))}
+      {hasEventsProp && (
+        <div className="absolute bottom-1 left-1/2 -translate-x-1/2">
+          <span className="block w-1.5 h-1.5 rounded-full bg-green-500" />
         </div>
       )}
     </button>
+  );
+});
+
+const STATUS_STYLES: Record<ScheduledTask["status"], string> = {
+  pending: "bg-amber-500/15 text-amber-700 dark:text-amber-300",
+  completed: "bg-green-500/15 text-green-700 dark:text-green-300",
+  missed: "bg-red-500/15 text-red-700 dark:text-red-300",
+};
+
+const formatTaskTimeRange = (startTime: string | null, endTime: string | null) => {
+  if (startTime && endTime) return `${startTime} - ${endTime}`;
+  if (startTime) return startTime;
+  if (endTime) return endTime;
+  return "Any time";
+};
+
+const GroupedTasksByName = React.memo(function GroupedTasksByName({ tasks }: { tasks: ScheduledTask[] }) {
+  if (tasks.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <CalendarIcon className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+        <h3 className="text-lg font-medium mb-2">No tasks scheduled</h3>
+        <p className="text-muted-foreground">
+          No tasks are scheduled for this day.
+        </p>
+      </div>
+    );
+  }
+
+  const tasksByName = tasks.reduce((acc, task) => {
+    const taskName = task.name || "Untitled Task";
+    if (!acc[taskName]) {
+      acc[taskName] = [];
+    }
+    acc[taskName].push(task);
+    return acc;
+  }, {} as Record<string, ScheduledTask[]>);
+
+  return (
+    <div className="space-y-4">
+      {Object.entries(tasksByName).map(([taskName, groupedTasks]) => (
+        <div key={taskName} className="rounded-lg border border-border p-3">
+          <h3 className="font-semibold text-foreground">
+            {taskName}
+          </h3>
+          <div className="mt-3 space-y-2">
+            {groupedTasks.map((task) => (
+              <div
+                key={task.id}
+                className="flex items-center justify-between gap-3 rounded-md bg-muted/30 px-3 py-2"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-foreground">{task.assigneeName}</p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-xs text-muted-foreground">
+                    {formatTaskTimeRange(task.startTime, task.endTime)}
+                  </span>
+                  <Badge className={STATUS_STYLES[task.status]}>
+                    {task.status}
+                  </Badge>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
   );
 });
 
@@ -184,20 +246,24 @@ export default function CoachCalendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>("month");
+  const [selectedGroupId, setSelectedGroupId] = useState<string>("all");
   const [tasks, setTasks] = useState<ScheduledTask[]>([]);
   const [loading, setLoading] = useState(true);
-  const [groupMap, setGroupMap] = useState<Record<string, GroupInfo>>({});
   const [sheetOpen, setSheetOpen] = useState(false);
   const { refineTask, loading: aiLoading } = useAIAssistant();
   const [polishingDescription, setPolishingDescription] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.innerWidth < 768;
+  });
 
-  useEffect(() => {
-    // Build group map for quick lookup
+  const groupMap = useMemo(() => {
+    // Build group map synchronously from groups to avoid stale fetch/mapping
     const map: Record<string, GroupInfo> = {};
     groups.forEach((g) => {
       map[g.id] = { id: g.id, name: g.name, color: g.color };
     });
-    setGroupMap(map);
+    return map;
   }, [groups]);
 
   // Refetch groups when window gains focus (handles deletions from other tabs/pages)
@@ -212,36 +278,53 @@ export default function CoachCalendar() {
   }, [user, fetchGroups]);
 
   useEffect(() => {
-    if (user) {
-      fetchTasks();
+    if (selectedGroupId === "all") return;
+    const groupStillExists = groups.some((group) => group.id === selectedGroupId);
+    if (!groupStillExists) {
+      setSelectedGroupId("all");
     }
-  }, [user, currentDate, viewMode, groups]);
+  }, [groups, selectedGroupId]);
 
-  const fetchTasks = async () => {
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mediaQuery = window.matchMedia("(max-width: 767px)");
+    const handleChange = (event: MediaQueryListEvent) => {
+      setIsMobile(event.matches);
+      if (!event.matches) {
+        setSheetOpen(false);
+      }
+    };
+
+    setIsMobile(mediaQuery.matches);
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, []);
+
+  const fetchTasks = useCallback(async () => {
     if (!user || groups.length === 0) {
+      setTasks([]);
       setLoading(false);
       return;
     }
     setLoading(true);
 
     try {
-      // Calculate date range based on view mode
-      let startDate: Date;
-      let endDate: Date;
+      // Always fetch for the currently visible month range.
+      const monthStart = format(startOfMonth(currentDate), "yyyy-MM-dd");
+      const monthEnd = format(endOfMonth(currentDate), "yyyy-MM-dd");
 
-      if (viewMode === "month") {
-        startDate = startOfMonth(currentDate);
-        endDate = endOfMonth(currentDate);
-      } else if (viewMode === "week") {
-        startDate = startOfWeek(currentDate);
-        endDate = endOfWeek(currentDate);
-      } else {
-        startDate = currentDate;
-        endDate = currentDate;
+      // Resolve groups to load: selected group or all coach groups.
+      const groupIds = selectedGroupId === "all"
+        ? groups.map((group) => group.id)
+        : [selectedGroupId];
+
+      if (groupIds.length === 0) {
+        setTasks([]);
+        setLoading(false);
+        return;
       }
 
-      // Get all group member user IDs for the coach's groups
-      const groupIds = groups.map((g) => g.id);
+      // Get student user IDs from group membership for selected group scope.
       const { data: members } = await supabase
         .from("group_members")
         .select("user_id, group_id")
@@ -253,63 +336,63 @@ export default function CoachCalendar() {
         return;
       }
 
-      const memberUserIds = members.map((m) => m.user_id);
+      const memberUserIds = [...new Set(members.map((member) => member.user_id))];
       const memberGroupMap: Record<string, string> = {};
       members.forEach((m) => {
-        memberGroupMap[m.user_id] = m.group_id;
+        if (!memberGroupMap[m.user_id]) {
+          memberGroupMap[m.user_id] = m.group_id;
+        }
       });
 
-      // Fetch task instances for these members in the date range
+      // Fetch task instances for coach + selected group's students in month range.
       const { data: taskInstances, error } = await supabase
         .from("task_instances")
-        .select("*")
+        .select("id, name, scheduled_date, start_time, end_time, status, assignee_id")
+        .eq("coach_id", user.id)
         .in("assignee_id", memberUserIds)
-        .gte("scheduled_date", format(startDate, "yyyy-MM-dd"))
-        .lte("scheduled_date", format(endDate, "yyyy-MM-dd"))
+        .gte("scheduled_date", monthStart)
+        .lte("scheduled_date", monthEnd)
         .order("scheduled_date", { ascending: true })
-        .order("scheduled_time", { ascending: true });
+        .order("start_time", { ascending: true });
 
       if (error) throw error;
 
       // Get profiles for display names
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("user_id, display_name")
+        .select("user_id, display_name, email")
         .in("user_id", memberUserIds);
 
       const profileMap: Record<string, string> = {};
       profiles?.forEach((p) => {
-        profileMap[p.user_id] = p.display_name || "Student";
+        const emailPrefix = p.email ? p.email.split("@")[0] : null;
+        profileMap[p.user_id] = p.display_name || emailPrefix || "Student";
       });
 
-      // Map task instances with group colors
-      // Filter out orphaned tasks (group was deleted but task still exists due to timing)
+      // Map task instances for calendar rendering.
       const mappedTasks: ScheduledTask[] = (taskInstances || [])
         .map((task) => {
           const groupId = memberGroupMap[task.assignee_id];
           const group = groupId ? groupMap[groupId] : null;
 
-          // Skip tasks where the group no longer exists (orphaned data)
-          if (groupId && !group) {
-            return null;
-          }
-
           return {
             id: task.id,
             name: task.name,
-            description: task.description,
+            description: null,
             assigneeName: profileMap[task.assignee_id] || "Student",
             assigneeId: task.assignee_id,
             groupId: groupId || null,
             groupName: group?.name || null,
             groupColor: group?.color || "#6B7280",
             scheduledDate: task.scheduled_date,
-            scheduledTime: task.scheduled_time,
-            status: task.status,
-            durationMinutes: task.duration_minutes,
+            scheduledTime: task.start_time,
+            startTime: task.start_time,
+            endTime: task.end_time,
+            status: task.status === "completed" || task.status === "missed" ? task.status : "pending",
+            durationMinutes: null,
           };
         })
-        .filter((task): task is ScheduledTask => task !== null);
+        .filter((task): task is ScheduledTask => Boolean(task.scheduledDate));
 
       setTasks(mappedTasks);
     } catch (error) {
@@ -317,7 +400,13 @@ export default function CoachCalendar() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentDate, groupMap, groups, selectedGroupId, user]);
+
+  useEffect(() => {
+    if (user) {
+      fetchTasks();
+    }
+  }, [user, fetchTasks]);
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -378,24 +467,15 @@ export default function CoachCalendar() {
 
   const handleDateClick = useCallback((date: Date) => {
     setSelectedDate(date);
-    setSheetOpen(true);
-  }, []);
+    if (isMobile) {
+      setSheetOpen(true);
+    } else {
+      setSheetOpen(false);
+    }
+  }, [isMobile]);
 
   const hasEvents = useCallback((date: Date) => {
     return getTasksForDate(date).length > 0;
-  }, [getTasksForDate]);
-
-  const getCompletionStats = useCallback((date: Date) => {
-    const dateTasks = getTasksForDate(date);
-    const completed = dateTasks.filter((t) => t.status === "completed").length;
-    const total = dateTasks.length;
-    return { completed, total };
-  }, [getTasksForDate]);
-
-  const getGroupColorsForDate = useCallback((date: Date) => {
-    const dateTasks = getTasksForDate(date);
-    const uniqueColors = [...new Set(dateTasks.map((t) => t.groupColor))];
-    return uniqueColors.slice(0, 3); // Show max 3 colors
   }, [getTasksForDate]);
 
   const days = viewMode === "month" ? getDaysInMonth(currentDate) : getWeekDays(currentDate);
@@ -450,13 +530,22 @@ export default function CoachCalendar() {
         </Tabs>
       </div>
 
-      {/* Group Legend */}
+      {/* Group Filter Chips */}
       {groups.length > 0 && (
         <div className="flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            variant={selectedGroupId === "all" ? "default" : "outline"}
+            onClick={() => setSelectedGroupId("all")}
+          >
+            All groups
+          </Button>
           {groups.map((group) => (
-            <Badge
+            <Button
               key={group.id}
-              variant="outline"
+              size="sm"
+              variant={selectedGroupId === group.id ? "default" : "outline"}
+              onClick={() => setSelectedGroupId(group.id)}
               className="flex items-center gap-1.5"
               style={{ borderColor: group.color }}
             >
@@ -465,14 +554,14 @@ export default function CoachCalendar() {
                 style={{ backgroundColor: group.color }}
               />
               {group.name}
-            </Badge>
+            </Button>
           ))}
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Calendar Grid */}
-        <Card className={cn("border-border", viewMode === "day" ? "lg:col-span-3" : "lg:col-span-2")}>
+        <Card className={cn("border-border", viewMode === "day" ? "md:col-span-3" : "md:col-span-2")}>
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-xl text-foreground">
@@ -540,7 +629,6 @@ export default function CoachCalendar() {
                   {(days as (Date | null)[]).map((date, i) => {
                     const todayCheck = date ? isToday(date) : false;
                     const selectedCheck = date ? isSameDay(date, selectedDate) : false;
-                    const colors = date ? getGroupColorsForDate(date) : [];
                     const hasEventsCheck = date ? hasEvents(date) : false;
 
                     return (
@@ -549,7 +637,6 @@ export default function CoachCalendar() {
                         date={date}
                         isToday={todayCheck}
                         isSelected={selectedCheck}
-                        groupColors={colors}
                         hasEvents={hasEventsCheck}
                         onDateClick={handleDateClick}
                       />
@@ -563,7 +650,7 @@ export default function CoachCalendar() {
 
         {/* Selected Day Tasks - Only show in month/week view */}
         {viewMode !== "day" && (
-          <Card className="border-border hidden lg:block">
+          <Card className="border-border hidden md:block">
             <CardHeader className="pb-2">
               <CardTitle className="text-lg text-foreground flex items-center gap-2">
                 <CalendarIcon className="w-5 h-5 text-cta-primary" />
@@ -571,13 +658,14 @@ export default function CoachCalendar() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <TaskList tasks={selectedTasks} onRefresh={fetchTasks} userId={user?.id || ""} polishingDescription={polishingDescription} setPolishingDescription={setPolishingDescription} refineTask={refineTask} />
+              <GroupedTasksByName tasks={selectedTasks} />
             </CardContent>
           </Card>
         )}
       </div>
 
       {/* Day Sheet - Slides out when clicking a date */}
+      {isMobile && (
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
           <SheetHeader className="pb-4 border-b">
@@ -585,45 +673,14 @@ export default function CoachCalendar() {
               <CalendarIcon className="w-5 h-5 text-cta-primary" />
               {formatDate(selectedDate, "EEEE, MMMM d, yyyy")}
             </SheetTitle>
-            {selectedTasks.length > 0 && (
-              <div className="flex items-center gap-2 mt-2">
-                <Progress
-                  value={Math.round((selectedTasks.filter(t => t.status === "completed").length / selectedTasks.length) * 100)}
-                  className="h-2 flex-1"
-                />
-                <span className="text-sm text-muted-foreground">
-                  {selectedTasks.filter(t => t.status === "completed").length}/{selectedTasks.length}
-                </span>
-              </div>
-            )}
           </SheetHeader>
 
           <div className="mt-6 space-y-4">
-            {selectedTasks.length === 0 ? (
-              <div className="text-center py-12">
-                <CalendarIcon className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">No tasks scheduled</h3>
-                <p className="text-muted-foreground">
-                  No tasks are scheduled for this day.
-                </p>
-              </div>
-            ) : (
-              <DaySheetContent
-                tasks={selectedTasks}
-                groups={groups}
-                groupMap={groupMap}
-                userId={user?.id || ""}
-                onRefresh={() => {
-                  fetchTasks();
-                }}
-                polishingDescription={polishingDescription}
-                setPolishingDescription={setPolishingDescription}
-                refineTask={refineTask}
-              />
-            )}
+            <GroupedTasksByName tasks={selectedTasks} />
           </div>
         </SheetContent>
       </Sheet>
+      )}
     </div>
     </Profiler>
   );
