@@ -8,6 +8,7 @@
 - Trimmed callback logging to user_id-only context to avoid logging PII or sensitive params.
 - Added explicit onboarding fallback when a session exists but no role or intended role can be resolved.
 - Added unit tests for code-source recovery and session short-circuit behavior.
+- Added implicit-flow fragment token handling by setting the Supabase session from URL hash tokens.
 
 ## Technical Details
 - `src/pages/AuthCallback.tsx`
@@ -18,6 +19,7 @@
 - Logging trimmed to `log(message, userId)` / `logError(message, userId)` with no URL or parameter logging.
 - Intent mismatch onboarding path triggers role picker when session exists but no role or intended role can be resolved.
 - New tests in `src/pages/AuthCallback.test.tsx` cover stored code recovery and session short-circuit behavior.
+- Implicit-flow support now detects `#access_token`/`#refresh_token`, calls `supabase.auth.setSession`, and clears the URL fragment.
 
 ## Testing Checklist (Manual)
 1. URL error param detection
@@ -43,6 +45,10 @@ Expected: role picker or error UI after timeout.
 6. Intent mismatch onboarding
 Login flow with session but no role or intended role.
 Expected: role picker shown with onboarding copy.
+
+7. Implicit flow fragment tokens
+Simulate `/auth/callback#access_token=...&refresh_token=...`.
+Expected: session is set from fragment and flow proceeds to profile/role resolution.
 
 ## Known Limitations
 - Build still emits large chunk warnings (pre-existing).

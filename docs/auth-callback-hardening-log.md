@@ -65,3 +65,11 @@
   - `npm run build` -> timed out after 200s, but output showed build completed with chunk size warnings.
 - Files modified:
   - `src/pages/AuthCallback.tsx`
+
+## 2026-02-04 18:49:28 -0800
+- Fix: Reset auth form loading state on mount/unmount, added a pageshow reset, and added a timeout fallback for OAuth initiation.
+- Tests:
+  - `npm run lint` -> warnings only (pre-existing hook deps + fast refresh warnings).
+  - `npm run build` -> timed out after 200s, but output showed build completed with chunk size warnings.
+- Files modified:
+  - `src/components/auth/AuthTabs.tsx`

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,13 +7,53 @@ import { Loader2, School, GraduationCap, LogIn } from "lucide-react";
 
 type AuthIntent = "signup" | "login";
 type Role = "coach" | "student";
+const OAUTH_LOADING_TIMEOUT_MS = 20000;
 
 export function AuthTabs() {
   const { toast } = useToast();
   const [loading, setLoading] = useState<string | null>(null); // Track which button is loading
+  const loadingTimeoutRef = useRef<number | null>(null);
+
+  const clearLoadingTimeout = () => {
+    if (loadingTimeoutRef.current !== null) {
+      window.clearTimeout(loadingTimeoutRef.current);
+      loadingTimeoutRef.current = null;
+    }
+  };
+
+  const startLoadingTimeout = () => {
+    clearLoadingTimeout();
+    loadingTimeoutRef.current = window.setTimeout(() => {
+      setLoading(null);
+      toast({
+        title: "Sign-in timed out",
+        description: "If you closed the Google sign-in window, please try again.",
+        variant: "destructive",
+      });
+    }, OAUTH_LOADING_TIMEOUT_MS);
+  };
+
+  useEffect(() => {
+    setLoading(null);
+    clearLoadingTimeout();
+
+    const handlePageShow = () => {
+      setLoading(null);
+      clearLoadingTimeout();
+    };
+
+    window.addEventListener("pageshow", handlePageShow);
+
+    return () => {
+      window.removeEventListener("pageshow", handlePageShow);
+      clearLoadingTimeout();
+      setLoading(null);
+    };
+  }, []);
 
   const handleSignUp = async (role: Role) => {
     setLoading(`signup-${role}`);
+    startLoadingTimeout();
 
     try {
       // Store role in localStorage as backup (URL params can be lost in OAuth redirect)
@@ -42,6 +82,7 @@ export function AuthTabs() {
       if (data?.url) window.location.assign(data.url);
       if (error) throw error;
     } catch (err: unknown) {
+      clearLoadingTimeout();
       // Clear stored auth data on error
       localStorage.removeItem('pendingAuthRole');
       localStorage.removeItem('pendingAuthIntent');
@@ -56,6 +97,7 @@ export function AuthTabs() {
 
   const handleLogin = async () => {
     setLoading("login");
+    startLoadingTimeout();
 
     try {
       const redirectTo = `${window.location.origin}/auth/callback`;
@@ -78,6 +120,7 @@ export function AuthTabs() {
       if (error) throw error;
       // OAuth redirects - won't reach here on success
     } catch (err: unknown) {
+      clearLoadingTimeout();
       toast({
         title: "Login Failed",
         description: err instanceof Error ? err.message : "Could not start login. Please try again.",
