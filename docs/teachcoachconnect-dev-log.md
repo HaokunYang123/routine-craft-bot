@@ -2,6 +2,10 @@
 
 ## Completed
 
+### Realtime Hook Stabilization (2026-02-05)
+- Fixed useRealtimeSubscription hook: stabilized queryKeysToInvalidate dependency to prevent subscription thrashing
+- Documented all callers of useRealtimeSubscription (CoachDashboard, CoachCalendar)
+
 ### Group Detail Realtime Stability (2026-02-05)
 - Fixed realtime subscription thrashing (separated subscription from data-fetch effect, used ref pattern for stable callback)
 

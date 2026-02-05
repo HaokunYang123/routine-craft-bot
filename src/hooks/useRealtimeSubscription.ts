@@ -46,6 +46,10 @@ export function useRealtimeSubscription({
 }: UseRealtimeSubscriptionOptions) {
   const queryClient = useQueryClient();
   const channelRef = useRef<RealtimeChannel | null>(null);
+  const queryKeysRef = useRef(queryKeysToInvalidate);
+  const queryKeysKey = JSON.stringify(queryKeysToInvalidate);
+
+  queryKeysRef.current = queryKeysToInvalidate;
 
   useEffect(() => {
     if (!enabled) return;
@@ -64,7 +68,7 @@ export function useRealtimeSubscription({
           console.log(`[Realtime] ${channelName}:`, payload.eventType, 'new:', payload.new);
 
           // Invalidate all specified query keys (updates flow through React Query cache)
-          queryKeysToInvalidate.forEach((queryKey) => {
+          queryKeysRef.current.forEach((queryKey) => {
             queryClient.invalidateQueries({ queryKey: queryKey as unknown[] });
           });
         }
@@ -88,7 +92,7 @@ export function useRealtimeSubscription({
         channelRef.current = null;
       }
     };
-  }, [channelName, table, filter, event, enabled, queryClient, queryKeysToInvalidate]);
+  }, [channelName, table, filter, event, enabled, queryClient, queryKeysKey]);
 
   return { channel: channelRef.current };
 }
