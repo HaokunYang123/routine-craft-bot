@@ -75,12 +75,14 @@ const DAYS_OF_WEEK = [
   { value: 6, label: "Sat" },
 ];
 
-function timeToMinutes(timeStr: string): number {
-  if (!timeStr) return -1;
-  const match = timeStr.match(/^(\\d{2}):(\\d{2})\\s*(AM|PM)$/i);
-  if (!match) return -1;
+function timeToMinutes(timeStr: string): number | null {
+  if (!timeStr) return null;
+  const match = timeStr.trim().match(/^(\\d{1,2}):(\\d{2})\\s*(AM|PM)$/i);
+  if (!match) return null;
   let hours = parseInt(match[1], 10);
   const minutes = parseInt(match[2], 10);
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
+  if (hours < 1 || hours > 12) return null;
   const period = match[3].toUpperCase();
   if (period === "PM" && hours !== 12) hours += 12;
   if (period === "AM" && hours === 12) hours = 0;
@@ -89,7 +91,10 @@ function timeToMinutes(timeStr: string): number {
 
 function isTimeRangeValid(startTime: string, endTime: string): boolean {
   if (!startTime || !endTime) return true;
-  return timeToMinutes(endTime) > timeToMinutes(startTime);
+  const startMinutes = timeToMinutes(startTime);
+  const endMinutes = timeToMinutes(endTime);
+  if (startMinutes === null || endMinutes === null) return true;
+  return endMinutes > startMinutes;
 }
 
 function getScheduledDates(
@@ -185,6 +190,7 @@ export function AssignTaskModal({
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [isAssigningIndividual, setIsAssigningIndividual] = useState(false);
+  const [timeError, setTimeError] = useState<string | null>(null);
   const activeTemplateId = selectedTemplateId === "none" ? null : selectedTemplateId;
 
   useEffect(() => {
@@ -198,6 +204,14 @@ export function AssignTaskModal({
       setMonthlyDay(1);
     }
   }, [scheduleType]);
+
+  useEffect(() => {
+    if (!startTime || !endTime) {
+      setTimeError(null);
+      return;
+    }
+    setTimeError(isTimeRangeValid(startTime, endTime) ? null : "End time must be after start time");
+  }, [startTime, endTime]);
 
   useEffect(() => {
     if (!open || !user || templatesLoaded || templatesLoading) return;
@@ -371,10 +385,10 @@ export function AssignTaskModal({
       return;
     }
 
-    if (!isTimeRangeValid(startTime, endTime)) {
+    if (timeError) {
       toast({
         title: "Invalid Time Range",
-        description: "End time must be after start time",
+        description: timeError,
         variant: "destructive",
       });
       return;
@@ -758,9 +772,7 @@ export function AssignTaskModal({
           </div>
 
           {/* Time validation warning */}
-          {startTime && endTime && !isTimeRangeValid(startTime, endTime) && (
-            <p className="text-sm text-destructive">End time must be after start time</p>
-          )}
+          {timeError && <p className="text-sm text-destructive">{timeError}</p>}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
@@ -773,7 +785,7 @@ export function AssignTaskModal({
               !assignDate ||
               !dueDate ||
               isSubmitting ||
-              (startTime && endTime && !isTimeRangeValid(startTime, endTime)) ||
+              !!timeError ||
               (scheduleType === "custom" && scheduleDays.length === 0)
             }
             className="bg-cta-primary hover:bg-cta-hover text-white"

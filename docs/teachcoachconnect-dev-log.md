@@ -22,6 +22,8 @@
 - Tasks tab built: assign to group, assign to student, task instance list with status grouping
 - Restructured GroupDetail: page-level assign button, gear menu for delete, Overview made read-only, actions consolidated to Tasks tab
 - Tasks tab redesigned: grouped accordion view by task name, status filter, visual fixes for dark theme
+- Fixed time validation in AssignTaskModal (comparison logic + re-validation on change)
+- Added real-time subscription for task_instances on GroupDetail (coach sees student updates live)
 
 ## Planned
 - Tasks tab build (assign modal integration, task list display)

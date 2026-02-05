@@ -5,7 +5,7 @@
 - Tasks tab exists at top level
 - Tabbed Group Detail page built with ?tab= routing (Overview, Tasks, Notes)
 - Overview tab: read-only student list + join code + group stats
-- Tasks tab: task instance list + per-student assignment
+- Tasks tab: grouped task view with status filter + per-student assignment
 - Notes tab: migrated existing content
 
 ## Target Architecture

@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -176,9 +176,34 @@ export default function GroupDetail() {
     useEffect(() => {
         if (!user || !groupId) return;
         fetchData();
-    }, [user, groupId]);
+    }, [user, groupId, fetchData]);
 
-    const fetchData = async () => {
+    const memberIds = useMemo(
+        () => students.map((student) => student.student_id),
+        [students]
+    );
+
+    useEffect(() => {
+        if (!groupId || memberIds.length === 0) return;
+
+        const filter = `assignee_id=in.(${memberIds.join(",")})`;
+        const channel = supabase
+            .channel(`group-detail-tasks-${groupId}`)
+            .on(
+                "postgres_changes",
+                { event: "UPDATE", schema: "public", table: "task_instances", filter },
+                () => {
+                    fetchData();
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [groupId, memberIds, fetchData]);
+
+    const fetchData = useCallback(async () => {
         if (!groupId) return;
         try {
             // 1. Fetch group info
@@ -312,7 +337,7 @@ export default function GroupDetail() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [groupId]);
 
     const handleSendNote = async () => {
         if (!newNote.trim() || !user || !groupId) return;
