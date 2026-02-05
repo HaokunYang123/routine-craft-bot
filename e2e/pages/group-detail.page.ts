@@ -1,7 +1,7 @@
 import { type Locator, type Page } from '@playwright/test';
 
 /**
- * Page Object for the Group Detail page (/dashboard/groups/:id)
+ * Page Object for the Group Detail page (/groups/:id)
  *
  * Encapsulates group management interactions:
  * - Viewing group members
@@ -43,7 +43,7 @@ export class GroupDetailPage {
    * Navigate to a specific group detail page
    */
   async goto(groupId: string) {
-    await this.page.goto(`/dashboard/groups/${groupId}`);
+    await this.page.goto(`/groups/${groupId}`);
     await this.page.waitForLoadState('networkidle');
   }
 

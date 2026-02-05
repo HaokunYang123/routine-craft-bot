@@ -17,7 +17,8 @@
 - Overview tab: student list, join code, delete group
 - Tasks tab: placeholder
 - Notes tab: migrated existing content
-- Old /dashboard/group/:groupId route removed
+- Old group detail route removed (use /groups/${groupId})
+- Fixed Dashboard and Tasks page navigation links to use /groups/${groupId}
 
 ## Planned
 - Tasks tab build (assign modal integration, task list display)

@@ -25,7 +25,7 @@ The primary risk in the current flow is that role assignment depends on the call
   - `/dashboard/tasks` → `src/pages/Tasks.tsx`
   - `/dashboard/assistant` → `src/pages/Assistant.tsx`
   - `/dashboard/progress` → `src/pages/Progress.tsx`
-  - `/dashboard/group/:groupId` → `src/pages/GroupDetail.tsx`
+  - `/groups/${groupId}` → `src/pages/GroupDetail.tsx`
 - `/assigner-dashboard` → `src/pages/DashboardLayout.tsx` → `ProtectedRoute(requiredRole="coach")` → `src/pages/AssignerDashboard.tsx`.
 - `/app` → `src/pages/student/StudentLayout.tsx` → `ProtectedRoute(requiredRole="student")`.
   - `/app` index → `src/pages/student/StudentHome.tsx`
