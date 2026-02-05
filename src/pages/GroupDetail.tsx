@@ -173,36 +173,6 @@ export default function GroupDetail() {
         setSearchParams(nextParams, { replace: true });
     };
 
-    useEffect(() => {
-        if (!user || !groupId) return;
-        fetchData();
-    }, [user, groupId, fetchData]);
-
-    const memberIds = useMemo(
-        () => students.map((student) => student.student_id),
-        [students]
-    );
-
-    useEffect(() => {
-        if (!groupId || memberIds.length === 0) return;
-
-        const filter = `assignee_id=in.(${memberIds.join(",")})`;
-        const channel = supabase
-            .channel(`group-detail-tasks-${groupId}`)
-            .on(
-                "postgres_changes",
-                { event: "UPDATE", schema: "public", table: "task_instances", filter },
-                () => {
-                    fetchData();
-                }
-            )
-            .subscribe();
-
-        return () => {
-            supabase.removeChannel(channel);
-        };
-    }, [groupId, memberIds, fetchData]);
-
     const fetchData = useCallback(async () => {
         if (!groupId) return;
         try {
@@ -338,6 +308,36 @@ export default function GroupDetail() {
             setLoading(false);
         }
     }, [groupId]);
+
+    useEffect(() => {
+        if (!user || !groupId) return;
+        fetchData();
+    }, [user, groupId, fetchData]);
+
+    const memberIds = useMemo(
+        () => students.map((student) => student.student_id),
+        [students]
+    );
+
+    useEffect(() => {
+        if (!groupId || memberIds.length === 0) return;
+
+        const filter = `assignee_id=in.(${memberIds.join(",")})`;
+        const channel = supabase
+            .channel(`group-detail-tasks-${groupId}`)
+            .on(
+                "postgres_changes",
+                { event: "UPDATE", schema: "public", table: "task_instances", filter },
+                () => {
+                    fetchData();
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [groupId, memberIds, fetchData]);
 
     const handleSendNote = async () => {
         if (!newNote.trim() || !user || !groupId) return;

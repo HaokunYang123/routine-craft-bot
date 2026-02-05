@@ -2,6 +2,9 @@
 
 ## Completed
 
+### Group Detail Crash Fix (2026-02-05)
+- Fixed circular dependency crash in GroupDetail.tsx (ReferenceError: Cannot access before initialization)
+
 ### Auth Callback Hardening (2026-02-04)
 - Full auth callback hardening shipped (see docs/auth-callback-hardening-summary.md)
 - Metadata drift fixed for all users except one (self-heals on next login)
