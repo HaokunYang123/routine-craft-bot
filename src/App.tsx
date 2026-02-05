@@ -136,7 +136,16 @@ const App = () => (
               <Route path="tasks" element={<Tasks />} />
               <Route path="assistant" element={<Assistant />} />
               <Route path="progress" element={<Progress />} />
-              <Route path="group/:groupId" element={<GroupDetail />} />
+            </Route>
+            <Route
+              path="/groups"
+              element={
+                <RouteErrorBoundary>
+                  <DashboardLayout />
+                </RouteErrorBoundary>
+              }
+            >
+              <Route path=":groupId" element={<GroupDetail />} />
             </Route>
             {/* Assigner Dashboard Route */}
             <Route

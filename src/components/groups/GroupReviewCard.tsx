@@ -64,7 +64,7 @@ export function GroupReviewCard({
 
   const handleViewDetails = (e: React.MouseEvent) => {
     e.stopPropagation();
-    navigate(`/dashboard/group/${group.id}`);
+    navigate(`/groups/${group.id}`);
   };
 
   return (

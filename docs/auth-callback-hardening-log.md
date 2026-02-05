@@ -82,3 +82,12 @@
 - Files modified:
   - `src/components/assignments/AssignTaskModal.tsx`
   - `src/pages/GroupDetail.tsx`
+
+## 2026-02-04 21:35:27 -0800
+- Fix: Use a non-empty sentinel (`"none"`) for template selection to avoid Radix Select empty-value crashes; reset template fields when `"none"` is selected and avoid empty template items.
+- Tests:
+  - `npm run lint` -> warnings only (pre-existing hook deps + fast refresh warnings).
+  - `npm run build` -> timed out after 200s, but output showed build completed with chunk size warnings.
+- Files modified:
+  - `src/components/assignments/AssignTaskModal.tsx`
+  - `docs/auth-hardening-state.md`

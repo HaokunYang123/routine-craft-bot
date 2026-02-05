@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -140,6 +140,15 @@ export default function GroupDetail() {
     const [assignDialogOpen, setAssignDialogOpen] = useState(false);
     const [assignMode, setAssignMode] = useState<"group" | "individual">("group");
     const [assignStudent, setAssignStudent] = useState<StudentWithProgress | null>(null);
+    const [searchParams, setSearchParams] = useSearchParams();
+    const tabParam = (searchParams.get("tab") || "").toLowerCase();
+    const activeTab = ["overview", "tasks", "notes"].includes(tabParam) ? tabParam : "overview";
+
+    const handleTabChange = (value: string) => {
+        const nextParams = new URLSearchParams(searchParams);
+        nextParams.set("tab", value);
+        setSearchParams(nextParams, { replace: true });
+    };
 
     useEffect(() => {
         if (!user || !groupId) return;
@@ -470,232 +479,252 @@ export default function GroupDetail() {
                         <Plus className="w-4 h-4 mr-2" />
                         Assign Task
                     </Button>
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button variant="destructive" size="sm">
-                                <Trash2 className="w-4 h-4 mr-2" />
-                                Delete Group
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Delete "{group.name}"?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    This will permanently delete this group. All students will be disconnected.
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={handleDeleteGroup} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                    {deleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                                    Yes, Delete
-                                </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
                 </div>
             </div>
 
-            {/* Join Code & QR Code Card */}
-            <Card className="border-cta-primary/30 bg-cta-primary/5">
-                <CardContent className="p-4">
-                    <div className="flex flex-col sm:flex-row items-center gap-4">
-                        <div className="flex-1 text-center sm:text-left">
-                            <p className="text-sm text-muted-foreground mb-1">Share this code with students to join</p>
-                            <div className="flex items-center justify-center sm:justify-start gap-3">
-                                <span className="text-3xl font-bold font-mono tracking-[0.3em] text-foreground">
-                                    {group.join_code}
-                                </span>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={copyCode}
-                                    className="shrink-0"
-                                >
-                                    {copied ? (
-                                        <Check className="w-4 h-4 text-green-500" />
-                                    ) : (
-                                        <Copy className="w-4 h-4" />
-                                    )}
-                                    <span className="ml-2">{copied ? "Copied!" : "Copy"}</span>
-                                </Button>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <Dialog open={showQRDialog} onOpenChange={setShowQRDialog}>
-                                <DialogTrigger asChild>
-                                    <Button variant="outline" className="gap-2">
-                                        <QrCode className="w-4 h-4" />
-                                        Show QR Code
-                                    </Button>
-                                </DialogTrigger>
-                                <DialogContent className="sm:max-w-md">
-                                    <DialogHeader>
-                                        <DialogTitle className="text-center">Scan to Join {group.name}</DialogTitle>
-                                    </DialogHeader>
-                                    <div className="flex flex-col items-center gap-6 py-6">
-                                        <div className="bg-white p-4 rounded-xl">
-                                            <QRCodeSVG
-                                                value={getQRCodeUrl()}
-                                                size={200}
-                                                level="H"
-                                                includeMargin={true}
-                                            />
-                                        </div>
-                                        <div className="text-center">
-                                            <p className="text-sm text-muted-foreground mb-2">Or enter this code manually:</p>
-                                            <p className="text-2xl font-bold font-mono tracking-[0.3em]">
-                                                {group.join_code}
-                                            </p>
-                                        </div>
+            <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
+                <TabsList>
+                    <TabsTrigger value="overview">Overview</TabsTrigger>
+                    <TabsTrigger value="tasks">Tasks</TabsTrigger>
+                    <TabsTrigger value="notes">Notes</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="overview" className="space-y-6">
+                    {/* Join Code & QR Code Card */}
+                    <Card className="border-cta-primary/30 bg-cta-primary/5">
+                        <CardContent className="p-4">
+                            <div className="flex flex-col sm:flex-row items-center gap-4">
+                                <div className="flex-1 text-center sm:text-left">
+                                    <p className="text-sm text-muted-foreground mb-1">Share this code with students to join</p>
+                                    <div className="flex items-center justify-center sm:justify-start gap-3">
+                                        <span className="text-3xl font-bold font-mono tracking-[0.3em] text-foreground">
+                                            {group.join_code}
+                                        </span>
                                         <Button
                                             variant="outline"
-                                            className="w-full"
-                                            onClick={() => {
-                                                copyCode();
-                                            }}
+                                            size="sm"
+                                            onClick={copyCode}
+                                            className="shrink-0"
                                         >
-                                            {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
-                                            {copied ? "Copied!" : "Copy Code"}
+                                            {copied ? (
+                                                <Check className="w-4 h-4 text-green-500" />
+                                            ) : (
+                                                <Copy className="w-4 h-4" />
+                                            )}
+                                            <span className="ml-2">{copied ? "Copied!" : "Copy"}</span>
                                         </Button>
                                     </div>
-                                </DialogContent>
-                            </Dialog>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Dialog open={showQRDialog} onOpenChange={setShowQRDialog}>
+                                        <DialogTrigger asChild>
+                                            <Button variant="outline" className="gap-2">
+                                                <QrCode className="w-4 h-4" />
+                                                Show QR Code
+                                            </Button>
+                                        </DialogTrigger>
+                                        <DialogContent className="sm:max-w-md">
+                                            <DialogHeader>
+                                                <DialogTitle className="text-center">Scan to Join {group.name}</DialogTitle>
+                                            </DialogHeader>
+                                            <div className="flex flex-col items-center gap-6 py-6">
+                                                <div className="bg-white p-4 rounded-xl">
+                                                    <QRCodeSVG
+                                                        value={getQRCodeUrl()}
+                                                        size={200}
+                                                        level="H"
+                                                        includeMargin={true}
+                                                    />
+                                                </div>
+                                                <div className="text-center">
+                                                    <p className="text-sm text-muted-foreground mb-2">Or enter this code manually:</p>
+                                                    <p className="text-2xl font-bold font-mono tracking-[0.3em]">
+                                                        {group.join_code}
+                                                    </p>
+                                                </div>
+                                                <Button
+                                                    variant="outline"
+                                                    className="w-full"
+                                                    onClick={() => {
+                                                        copyCode();
+                                                    }}
+                                                >
+                                                    {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
+                                                    {copied ? "Copied!" : "Copy Code"}
+                                                </Button>
+                                            </div>
+                                        </DialogContent>
+                                    </Dialog>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {/* Main Content: Roster Table */}
+                        <div className="md:col-span-2 space-y-6">
+                            <Card>
+                                <CardHeader className="pb-3">
+                                    <div className="flex items-center justify-between">
+                                        <CardTitle>Students</CardTitle>
+                                        <Select value={filterStatus} onValueChange={setFilterStatus}>
+                                            <SelectTrigger className="w-[140px]">
+                                                <SelectValue placeholder="Filter" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">All Students</SelectItem>
+                                                <SelectItem value="on_track">On Track</SelectItem>
+                                                <SelectItem value="behind">Behind</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="p-0">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead className="cursor-pointer" onClick={() => handleSort("name")}>
+                                                    Name {sortField === "name" && <ArrowUpDown className="inline w-3 h-3 ml-1" />}
+                                                </TableHead>
+                                                <TableHead>Tasks</TableHead>
+                                                <TableHead className="cursor-pointer" onClick={() => handleSort("completion")}>
+                                                    Progress {sortField === "completion" && <ArrowUpDown className="inline w-3 h-3 ml-1" />}
+                                                </TableHead>
+                                                <TableHead className="cursor-pointer" onClick={() => handleSort("status")}>
+                                                    Status {sortField === "status" && <ArrowUpDown className="inline w-3 h-3 ml-1" />}
+                                                </TableHead>
+                                                <TableHead className="w-[140px]"></TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {sortedStudents.map((student) => (
+                                                <TableRow key={student.id}>
+                                                    <TableCell>
+                                                        <div>
+                                                            <p className="font-medium">{student.display_name}</p>
+                                                            {student.email && (
+                                                                <p className="text-xs text-muted-foreground">{student.email}</p>
+                                                            )}
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <span className="text-sm">
+                                                            {student.completed_tasks}/{student.total_tasks}
+                                                        </span>
+                                                    </TableCell>
+                                                    <TableCell className="w-[30%]">
+                                                        <div className="flex items-center gap-2">
+                                                            <Progress value={student.completionRate} className="h-2 flex-1" />
+                                                            <span className="text-xs w-10 text-right">{student.completionRate}%</span>
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Badge
+                                                            variant={student.status === "On Track" ? "default" : student.status === "Behind" ? "secondary" : "destructive"}
+                                                            className={student.status === "On Track" ? "bg-green-500/20 text-green-700 border-green-500/30" : ""}
+                                                        >
+                                                            {student.status}
+                                                        </Badge>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <div className="flex items-center justify-end gap-2">
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={() => {
+                                                                    setAssignMode("individual");
+                                                                    setAssignStudent(student);
+                                                                    setAssignDialogOpen(true);
+                                                                }}
+                                                            >
+                                                                Assign
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                                                onClick={() => setStudentToRemove(student)}
+                                                            >
+                                                                <UserMinus className="w-4 h-4" />
+                                                            </Button>
+                                                        </div>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                            {sortedStudents.length === 0 && (
+                                                <TableRow>
+                                                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                                                        {students.length === 0
+                                                            ? "No students have joined this group yet. Share the join code above!"
+                                                            : "No students found matching filters."}
+                                                    </TableCell>
+                                                </TableRow>
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                </CardContent>
+                            </Card>
+                        </div>
+
+                        <div className="space-y-6">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Group Stats</CardTitle>
+                                </CardHeader>
+                                <CardContent className="grid gap-4">
+                                    <div className="text-center p-4 bg-secondary/30 rounded-lg">
+                                        <p className="text-3xl font-bold">{completionRate}%</p>
+                                        <p className="text-xs text-muted-foreground uppercase tracking-widest mt-1">Completion Rate</p>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="text-center p-3 bg-secondary/30 rounded-lg">
+                                            <p className="text-xl font-bold">{students.length}</p>
+                                            <p className="text-xs text-muted-foreground">Students</p>
+                                        </div>
+                                        <div className="text-center p-3 bg-secondary/30 rounded-lg">
+                                            <p className="text-xl font-bold">{notes.length}</p>
+                                            <p className="text-xs text-muted-foreground">Notes</p>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="destructive" size="sm" className="w-full">
+                                        <Trash2 className="w-4 h-4 mr-2" />
+                                        Delete Group
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Delete "{group.name}"?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            This will permanently delete this group. All students will be disconnected.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={handleDeleteGroup} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                            {deleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                                            Yes, Delete
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
                         </div>
                     </div>
-                </CardContent>
-            </Card>
+                </TabsContent>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Main Content: Roster Table */}
-                <div className="md:col-span-2 space-y-6">
+                <TabsContent value="tasks" className="space-y-6">
                     <Card>
-                        <CardHeader className="pb-3">
-                            <div className="flex items-center justify-between">
-                                <CardTitle>Students</CardTitle>
-                                <Select value={filterStatus} onValueChange={setFilterStatus}>
-                                    <SelectTrigger className="w-[140px]">
-                                        <SelectValue placeholder="Filter" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All Students</SelectItem>
-                                        <SelectItem value="on_track">On Track</SelectItem>
-                                        <SelectItem value="behind">Behind</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </CardHeader>
-                        <CardContent className="p-0">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="cursor-pointer" onClick={() => handleSort("name")}>
-                                            Name {sortField === "name" && <ArrowUpDown className="inline w-3 h-3 ml-1" />}
-                                        </TableHead>
-                                        <TableHead>Tasks</TableHead>
-                                        <TableHead className="cursor-pointer" onClick={() => handleSort("completion")}>
-                                            Progress {sortField === "completion" && <ArrowUpDown className="inline w-3 h-3 ml-1" />}
-                                        </TableHead>
-                                        <TableHead className="cursor-pointer" onClick={() => handleSort("status")}>
-                                            Status {sortField === "status" && <ArrowUpDown className="inline w-3 h-3 ml-1" />}
-                                        </TableHead>
-                                        <TableHead className="w-[140px]"></TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {sortedStudents.map((student) => (
-                                        <TableRow key={student.id}>
-                                            <TableCell>
-                                                <div>
-                                                    <p className="font-medium">{student.display_name}</p>
-                                                    {student.email && (
-                                                        <p className="text-xs text-muted-foreground">{student.email}</p>
-                                                    )}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <span className="text-sm">
-                                                    {student.completed_tasks}/{student.total_tasks}
-                                                </span>
-                                            </TableCell>
-                                            <TableCell className="w-[30%]">
-                                                <div className="flex items-center gap-2">
-                                                    <Progress value={student.completionRate} className="h-2 flex-1" />
-                                                    <span className="text-xs w-10 text-right">{student.completionRate}%</span>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge
-                                                    variant={student.status === "On Track" ? "default" : student.status === "Behind" ? "secondary" : "destructive"}
-                                                    className={student.status === "On Track" ? "bg-green-500/20 text-green-700 border-green-500/30" : ""}
-                                                >
-                                                    {student.status}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex items-center justify-end gap-2">
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() => {
-                                                            setAssignMode("individual");
-                                                            setAssignStudent(student);
-                                                            setAssignDialogOpen(true);
-                                                        }}
-                                                    >
-                                                        Assign
-                                                    </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                                                        onClick={() => setStudentToRemove(student)}
-                                                    >
-                                                        <UserMinus className="w-4 h-4" />
-                                                    </Button>
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                    {sortedStudents.length === 0 && (
-                                        <TableRow>
-                                            <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                                                {students.length === 0
-                                                    ? "No students have joined this group yet. Share the join code above!"
-                                                    : "No students found matching filters."}
-                                            </TableCell>
-                                        </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
+                        <CardContent className="p-6 text-sm text-muted-foreground">
+                            Coming soon.
                         </CardContent>
                     </Card>
-                </div>
+                </TabsContent>
 
-                {/* Sidebar: Notes & aggregated stats */}
-                <div className="space-y-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Group Stats</CardTitle>
-                        </CardHeader>
-                        <CardContent className="grid gap-4">
-                            <div className="text-center p-4 bg-secondary/30 rounded-lg">
-                                <p className="text-3xl font-bold">{completionRate}%</p>
-                                <p className="text-xs text-muted-foreground uppercase tracking-widest mt-1">Completion Rate</p>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="text-center p-3 bg-secondary/30 rounded-lg">
-                                    <p className="text-xl font-bold">{students.length}</p>
-                                    <p className="text-xs text-muted-foreground">Students</p>
-                                </div>
-                                <div className="text-center p-3 bg-secondary/30 rounded-lg">
-                                    <p className="text-xl font-bold">{notes.length}</p>
-                                    <p className="text-xs text-muted-foreground">Notes</p>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-
+                <TabsContent value="notes" className="space-y-6">
                     <Card className="h-[500px] flex flex-col">
                         <CardHeader className="pb-3 border-b">
                             <CardTitle className="flex items-center gap-2">
@@ -773,8 +802,8 @@ export default function GroupDetail() {
                             </div>
                         </div>
                     </Card>
-                </div>
-            </div>
+                </TabsContent>
+            </Tabs>
 
             {/* Remove Student Confirmation Dialog */}
             <AlertDialog open={!!studentToRemove} onOpenChange={(open) => !open && setStudentToRemove(null)}>

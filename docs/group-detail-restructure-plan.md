@@ -1,0 +1,51 @@
+# Group Detail Page Restructure Plan
+
+## Current State
+- Dashboard has group cards
+- Tasks tab exists at top level
+- Tabbed Group Detail page built with ?tab= routing (Overview, Tasks, Notes)
+- Overview tab: student list, join code, delete group
+- Tasks tab: placeholder
+- Notes tab: migrated existing content
+
+## Target Architecture
+
+### Dashboard (top level)
+- Collapsible group cards (name, member count, join code, progress summary)
+- Click group → /groups/:groupId (lands on Overview tab)
+
+### Tasks tab (top level)
+- Lists all groups (task-focused view)
+- Click group → /groups/:groupId?tab=tasks
+
+### Group Detail Page (route: /groups/:groupId)
+Three internal tabs via ?tab= query param:
+
+#### Overview Tab (default)
+- Student list with progress (task count, completion %, on-track status)
+- Join code display + QR code
+- Delete group action
+
+#### Tasks Tab
+- "Assign to group" button
+- Per-student assign buttons
+- Template dropdown in assign modal
+- Active/completed/overdue task list
+- Edit/revoke actions (future)
+
+#### Notes Tab
+- Compose note with audience dropdown (all students or individual)
+- Note history
+
+## Key Principle
+Dashboard = "How are my students doing?" (read-only overview)
+Tasks = "What do I want students to do?" (actions)
+Notes = Communication
+No duplication between views.
+
+## Build Progress
+- [x] Tabs shell + Overview tab
+- [ ] Tasks tab (assign modal integration, task list)
+- [ ] Notes tab (compose + history)
+- [ ] QR code for join code
+- [ ] Progress stats (completion %, on-track status)

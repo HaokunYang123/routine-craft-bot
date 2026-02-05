@@ -171,7 +171,7 @@ export function AssignTaskModal({
   const [templates, setTemplates] = useState<TemplateSummary[]>([]);
   const [templatesLoaded, setTemplatesLoaded] = useState(false);
   const [templatesLoading, setTemplatesLoading] = useState(false);
-  const [selectedTemplateId, setSelectedTemplateId] = useState("");
+  const [selectedTemplateId, setSelectedTemplateId] = useState("none");
   const [templateMeta, setTemplateMeta] = useState<TemplateMeta | null>(null);
 
   const [taskTitle, setTaskTitle] = useState("");
@@ -185,6 +185,7 @@ export function AssignTaskModal({
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [isAssigningIndividual, setIsAssigningIndividual] = useState(false);
+  const activeTemplateId = selectedTemplateId === "none" ? null : selectedTemplateId;
 
   useEffect(() => {
     if (scheduleType !== "once") {
@@ -249,7 +250,7 @@ export function AssignTaskModal({
   };
 
   useEffect(() => {
-    if (!selectedTemplateId) {
+    if (!activeTemplateId) {
       setTemplateMeta(null);
       resetFormFields({ keepDates: true });
       return;
@@ -259,7 +260,7 @@ export function AssignTaskModal({
       const { data, error } = await supabase
         .from("template_tasks")
         .select("title, description, day_offset, sort_order, start_time, end_time")
-        .eq("template_id", selectedTemplateId)
+        .eq("template_id", activeTemplateId)
         .order("day_offset", { ascending: true })
         .order("sort_order", { ascending: true });
 
@@ -303,7 +304,7 @@ export function AssignTaskModal({
     };
 
     void loadTemplateTasks();
-  }, [selectedTemplateId, toast]);
+  }, [activeTemplateId, toast]);
 
   const templateSummaryText = useMemo(() => {
     if (!templateMeta || templateMeta.taskCount === 0) return null;
@@ -319,10 +320,6 @@ export function AssignTaskModal({
   };
 
   const handleTemplateChange = (value: string) => {
-    if (!value) {
-      setSelectedTemplateId("");
-      return;
-    }
     setSelectedTemplateId(value);
   };
 
@@ -406,8 +403,8 @@ export function AssignTaskModal({
       });
 
       if (result !== null) {
-        if (selectedTemplateId) {
-          await updateLatestAssignmentTemplate(selectedTemplateId);
+        if (activeTemplateId) {
+          await updateLatestAssignmentTemplate(activeTemplateId);
         }
         onOpenChange(false);
         onAssigned?.();
@@ -440,8 +437,8 @@ export function AssignTaskModal({
 
         if (error) throw error;
 
-        if (selectedTemplateId) {
-          await updateLatestAssignmentTemplate(selectedTemplateId);
+        if (activeTemplateId) {
+          await updateLatestAssignmentTemplate(activeTemplateId);
         }
       } else {
         const [ay, am, ad] = assignDate.split("-").map(Number);
@@ -473,7 +470,7 @@ export function AssignTaskModal({
             start_date: assignDate,
             end_date: dueDate,
             is_active: true,
-            template_id: selectedTemplateId || null,
+            template_id: activeTemplateId,
           })
           .select()
           .single();
@@ -558,12 +555,13 @@ export function AssignTaskModal({
                   />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
-                  {templates.map((template) => (
-                    <SelectItem key={template.id} value={template.id}>
-                      {template.name}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="none">None</SelectItem>
+                  {templates.length > 0 &&
+                    templates.map((template) => (
+                      <SelectItem key={template.id} value={template.id}>
+                        {template.name}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
               {templateSummaryText && (
