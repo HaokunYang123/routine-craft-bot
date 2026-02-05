@@ -85,6 +85,7 @@ export default function AuthCallback() {
 
   const exchangeAttemptedRef = useRef<string | null>(null);
   const pkceRetryAttemptRef = useRef<string | null>(null);
+  const fragmentSessionHandledRef = useRef(false);
 
   const log = (message: string, uid?: string | null) => {
     if (uid) {
@@ -262,6 +263,40 @@ export default function AuthCallback() {
         );
         setState("session_error");
         return;
+      }
+
+      if (!fragmentSessionHandledRef.current) {
+        const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+        const fragmentAccessToken = hashParams.get("access_token");
+        const fragmentRefreshToken = hashParams.get("refresh_token");
+
+        if (fragmentAccessToken) {
+          fragmentSessionHandledRef.current = true;
+          const cleanedUrl = new URL(window.location.href);
+          cleanedUrl.hash = "";
+          window.history.replaceState({}, "", `${cleanedUrl.pathname}${cleanedUrl.search}`);
+          if (!fragmentRefreshToken) {
+            logError("fragment token missing refresh");
+            setError("Setup failed: no session");
+            setErrorDetail("Missing refresh token in callback.");
+            setState("session_error");
+            return;
+          }
+
+          log("fragment tokens detected, setting session");
+          const { error: fragmentError } = await supabase.auth.setSession({
+            access_token: fragmentAccessToken,
+            refresh_token: fragmentRefreshToken,
+          });
+
+          if (fragmentError) {
+            logError("setSession from fragment failed");
+            setError("Setup failed: no session");
+            setErrorDetail(fragmentError.message ?? "Could not set session from callback.");
+            setState("session_error");
+            return;
+          }
+        }
       }
 
       if (urlCode) {

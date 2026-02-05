@@ -57,3 +57,11 @@
   - `npm run build` -> timed out after 200s, but output showed build completed with chunk size warnings.
 - Files modified:
   - `src/pages/AuthCallback.test.tsx`
+
+## 2026-02-04 18:37:10 -0800
+- Fix: Added handling for implicit-flow fragment tokens by calling `supabase.auth.setSession` when `access_token`/`refresh_token` are present in the URL hash, then clearing the fragment.
+- Tests:
+  - `npm run lint` -> warnings only (pre-existing hook deps + fast refresh warnings).
+  - `npm run build` -> timed out after 200s, but output showed build completed with chunk size warnings.
+- Files modified:
+  - `src/pages/AuthCallback.tsx`
