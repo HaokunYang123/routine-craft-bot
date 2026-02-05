@@ -31,7 +31,8 @@ Three internal tabs via ?tab= query param:
 - "Assign to group" button at page level (header)
 - Per-student assign buttons
 - Template dropdown in assign modal
-- Active/completed/overdue task list
+- Grouped task list by task name with inline expand/collapse
+- Status filter: All | Active | Overdue | Completed
 - Edit/revoke actions (future)
 
 #### Notes Tab

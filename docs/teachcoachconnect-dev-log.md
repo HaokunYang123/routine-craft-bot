@@ -21,6 +21,7 @@
 - Fixed Dashboard and Tasks page navigation links to use /groups/${groupId}
 - Tasks tab built: assign to group, assign to student, task instance list with status grouping
 - Restructured GroupDetail: page-level assign button, gear menu for delete, Overview made read-only, actions consolidated to Tasks tab
+- Tasks tab redesigned: grouped accordion view by task name, status filter, visual fixes for dark theme
 
 ## Planned
 - Tasks tab build (assign modal integration, task list display)

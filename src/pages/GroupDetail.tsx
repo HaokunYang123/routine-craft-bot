@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -60,6 +60,8 @@ import {
     Check,
     Plus,
     Settings,
+    ChevronDown,
+    ChevronUp,
 } from "lucide-react";
 import { subDays, format } from "date-fns";
 import { QRCodeSVG } from "qrcode.react";
@@ -136,6 +138,8 @@ export default function GroupDetail() {
     const [notes, setNotes] = useState<Note[]>([]);
     const [taskInstances, setTaskInstances] = useState<TaskInstance[]>([]);
     const [tasksLoading, setTasksLoading] = useState(false);
+    const [taskStatusFilter, setTaskStatusFilter] = useState<"all" | "active" | "overdue" | "completed">("all");
+    const [expandedTaskGroups, setExpandedTaskGroups] = useState<Set<string>>(new Set());
 
     // Note State
     const [newNote, setNewNote] = useState("");
@@ -504,13 +508,62 @@ export default function GroupDetail() {
     const taskSort = (a: TaskInstance, b: TaskInstance) =>
         (getTaskDate(b) || "").localeCompare(getTaskDate(a) || "");
 
-    const activeTasks = taskInstances
-        .filter((task) => !isTaskOverdue(task) && task.status !== "completed")
-        .sort(taskSort);
-    const overdueTasks = taskInstances.filter(isTaskOverdue).sort(taskSort);
-    const completedTasks = taskInstances
-        .filter((task) => task.status === "completed")
-        .sort(taskSort);
+    const formatTaskStatusBadge = (task: TaskInstance) => {
+        if (isTaskOverdue(task)) return "Overdue";
+        if (task.status === "completed") return "Completed";
+        return "Pending";
+    };
+
+    const taskGroups = taskInstances.reduce<Record<string, TaskInstance[]>>((acc, task) => {
+        if (!acc[task.name]) {
+            acc[task.name] = [];
+        }
+        acc[task.name].push(task);
+        return acc;
+    }, {});
+
+    const groupedTasks = Object.entries(taskGroups).map(([name, instances]) => {
+        const sortedInstances = [...instances].sort(taskSort);
+        const completedCount = instances.filter((task) => task.status === "completed").length;
+        const totalCount = instances.length;
+        const hasOverdue = instances.some(isTaskOverdue);
+        const allCompleted = totalCount > 0 && completedCount === totalCount;
+        const groupStatus = allCompleted ? "completed" : hasOverdue ? "overdue" : "active";
+        const uniqueAssignees = Array.from(new Set(instances.map((task) => task.assignee_id)));
+        const assignmentLabel =
+            uniqueAssignees.length > 1
+                ? "Group"
+                : getStudentName(uniqueAssignees[0] || "");
+        const dateForGroup = sortedInstances.length > 0 ? getTaskDate(sortedInstances[sortedInstances.length - 1]) : "";
+
+        return {
+            name,
+            instances: sortedInstances,
+            completedCount,
+            totalCount,
+            groupStatus,
+            assignmentLabel,
+            dateForGroup,
+            isSingleAssignee: uniqueAssignees.length <= 1,
+        };
+    });
+
+    const filteredGroupedTasks = groupedTasks.filter((group) => {
+        if (taskStatusFilter === "all") return true;
+        return group.groupStatus === taskStatusFilter;
+    });
+
+    const toggleTaskGroup = (groupName: string) => {
+        setExpandedTaskGroups((prev) => {
+            const next = new Set(prev);
+            if (next.has(groupName)) {
+                next.delete(groupName);
+            } else {
+                next.add(groupName);
+            }
+            return next;
+        });
+    };
 
     if (loading) {
         return (
@@ -535,7 +588,7 @@ export default function GroupDetail() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
-                        <ArrowLeft className="w-5 h-5" />
+                        <ArrowLeft className="w-5 h-5 text-white" />
                     </Button>
                     <div>
                         <h1 className="text-3xl font-bold font-display text-foreground">{group.name}</h1>
@@ -779,10 +832,30 @@ export default function GroupDetail() {
 
                 <TabsContent value="tasks" className="space-y-6">
                     <div>
-                        <h2 className="text-lg font-semibold">Tasks</h2>
+                        <h2 className="text-lg font-semibold text-foreground">Tasks</h2>
                         <p className="text-sm text-muted-foreground">
                             Assign tasks and review task instances for this group.
                         </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                        {[
+                            { value: "all", label: "All" },
+                            { value: "active", label: "Active" },
+                            { value: "overdue", label: "Overdue" },
+                            { value: "completed", label: "Completed" },
+                        ].map((filter) => (
+                            <Button
+                                key={filter.value}
+                                type="button"
+                                size="sm"
+                                variant={taskStatusFilter === filter.value ? "default" : "outline"}
+                                onClick={() => setTaskStatusFilter(filter.value as typeof taskStatusFilter)}
+                                className={taskStatusFilter === filter.value ? "bg-cta-primary hover:bg-cta-hover text-white" : ""}
+                            >
+                                {filter.label}
+                            </Button>
+                        ))}
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -793,69 +866,124 @@ export default function GroupDetail() {
                                         Loading tasks...
                                     </CardContent>
                                 </Card>
-                            ) : taskInstances.length === 0 ? (
+                            ) : filteredGroupedTasks.length === 0 ? (
                                 <Card>
                                     <CardContent className="p-6 text-sm text-muted-foreground">
-                                        No tasks assigned to this group yet.
+                                        {taskInstances.length === 0
+                                            ? "No tasks assigned to this group yet."
+                                            : "No tasks match the selected filter."}
                                     </CardContent>
                                 </Card>
                             ) : (
-                                <>
-                                    {[
-                                        { key: "active", title: "Active", tasks: activeTasks },
-                                        { key: "overdue", title: "Overdue", tasks: overdueTasks },
-                                        { key: "completed", title: "Completed", tasks: completedTasks },
-                                    ]
-                                        .filter((group) => group.tasks.length > 0)
-                                        .map((group) => (
-                                            <Card key={group.key}>
-                                                <CardHeader className="pb-3">
-                                                    <CardTitle>{group.title}</CardTitle>
-                                                    <CardDescription>
-                                                        {group.tasks.length} task{group.tasks.length === 1 ? "" : "s"}
-                                                    </CardDescription>
-                                                </CardHeader>
-                                                <CardContent className="p-0">
-                                                    <Table>
-                                                        <TableHeader>
-                                                            <TableRow>
-                                                                <TableHead>Task</TableHead>
-                                                                <TableHead>Student</TableHead>
-                                                                <TableHead>Date</TableHead>
-                                                                <TableHead>Time</TableHead>
-                                                                <TableHead>Status</TableHead>
+                                <Card>
+                                    <CardContent className="p-0">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>Task</TableHead>
+                                                    <TableHead>Assignment</TableHead>
+                                                    <TableHead>Date</TableHead>
+                                                    <TableHead>Progress</TableHead>
+                                                    <TableHead>Status</TableHead>
+                                                    <TableHead className="w-[40px]"></TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {filteredGroupedTasks.map((group) => {
+                                                    const isExpanded = expandedTaskGroups.has(group.name);
+                                                    const statusLabel =
+                                                        group.groupStatus === "completed"
+                                                            ? "Completed"
+                                                            : group.groupStatus === "overdue"
+                                                            ? "Overdue"
+                                                            : "Active";
+                                                    const statusVariant =
+                                                        group.groupStatus === "completed"
+                                                            ? "secondary"
+                                                            : group.groupStatus === "overdue"
+                                                            ? "destructive"
+                                                            : "outline";
+                                                    const dateLabel = formatTaskDate(group.dateForGroup);
+
+                                                    return (
+                                                        <Fragment key={group.name}>
+                                                            <TableRow
+                                                                className={group.isSingleAssignee ? "" : "cursor-pointer"}
+                                                                onClick={() => {
+                                                                    if (!group.isSingleAssignee) {
+                                                                        toggleTaskGroup(group.name);
+                                                                    }
+                                                                }}
+                                                            >
+                                                                <TableCell className="font-medium">{group.name}</TableCell>
+                                                                <TableCell>{group.assignmentLabel}</TableCell>
+                                                                <TableCell>{dateLabel}</TableCell>
+                                                                <TableCell>
+                                                                    {group.completedCount}/{group.totalCount} completed
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    <Badge variant={statusVariant}>{statusLabel}</Badge>
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    {!group.isSingleAssignee && (
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="icon"
+                                                                            className="h-8 w-8"
+                                                                            onClick={(event) => {
+                                                                                event.stopPropagation();
+                                                                                toggleTaskGroup(group.name);
+                                                                            }}
+                                                                        >
+                                                                            {isExpanded ? (
+                                                                                <ChevronUp className="w-4 h-4" />
+                                                                            ) : (
+                                                                                <ChevronDown className="w-4 h-4" />
+                                                                            )}
+                                                                        </Button>
+                                                                    )}
+                                                                </TableCell>
                                                             </TableRow>
-                                                        </TableHeader>
-                                                        <TableBody>
-                                                            {group.tasks.map((task) => {
-                                                                const overdue = isTaskOverdue(task);
-                                                                const dateLabel = formatTaskDate(getTaskDate(task));
-                                                                return (
-                                                                    <TableRow key={task.id}>
-                                                                        <TableCell className="font-medium">
-                                                                            {task.name}
-                                                                        </TableCell>
-                                                                        <TableCell>{getStudentName(task.assignee_id)}</TableCell>
-                                                                        <TableCell>{dateLabel}</TableCell>
-                                                                        <TableCell>
-                                                                            {formatTaskTime(task.start_time, task.end_time)}
-                                                                        </TableCell>
-                                                                        <TableCell>
-                                                                            <Badge
-                                                                                variant={overdue ? "destructive" : task.status === "completed" ? "secondary" : "outline"}
-                                                                            >
-                                                                                {overdue ? "Overdue" : formatStatusLabel(task.status)}
-                                                                            </Badge>
-                                                                        </TableCell>
-                                                                    </TableRow>
-                                                                );
-                                                            })}
-                                                        </TableBody>
-                                                    </Table>
-                                                </CardContent>
-                                            </Card>
-                                        ))}
-                                </>
+
+                                                            {!group.isSingleAssignee && isExpanded && (
+                                                                <TableRow>
+                                                                    <TableCell colSpan={6} className="bg-muted/20">
+                                                                        <Table>
+                                                                            <TableHeader>
+                                                                                <TableRow>
+                                                                                    <TableHead>Student</TableHead>
+                                                                                    <TableHead>Date</TableHead>
+                                                                                    <TableHead>Time</TableHead>
+                                                                                    <TableHead>Status</TableHead>
+                                                                                </TableRow>
+                                                                            </TableHeader>
+                                                                            <TableBody>
+                                                                                {group.instances.map((task) => (
+                                                                                    <TableRow key={task.id}>
+                                                                                        <TableCell>{getStudentName(task.assignee_id)}</TableCell>
+                                                                                        <TableCell>{formatTaskDate(getTaskDate(task))}</TableCell>
+                                                                                        <TableCell>{formatTaskTime(task.start_time, task.end_time)}</TableCell>
+                                                                                        <TableCell>
+                                                                                            <Badge
+                                                                                                variant={isTaskOverdue(task) ? "destructive" : task.status === "completed" ? "secondary" : "outline"}
+                                                                                            >
+                                                                                                {formatTaskStatusBadge(task)}
+                                                                                            </Badge>
+                                                                                        </TableCell>
+                                                                                    </TableRow>
+                                                                                ))}
+                                                                            </TableBody>
+                                                                        </Table>
+                                                                    </TableCell>
+                                                                </TableRow>
+                                                            )}
+                                                        </Fragment>
+                                                    );
+                                                })}
+                                            </TableBody>
+                                        </Table>
+                                    </CardContent>
+                                </Card>
                             )}
                         </div>
 
