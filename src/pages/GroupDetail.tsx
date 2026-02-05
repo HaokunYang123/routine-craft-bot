@@ -102,6 +102,17 @@ interface Note {
     class_session_id?: string | null;
 }
 
+interface TaskInstance {
+    id: string;
+    assignee_id: string;
+    name: string;
+    scheduled_date: string | null;
+    assign_date: string | null;
+    start_time: string | null;
+    end_time: string | null;
+    status: string;
+}
+
 type SortField = "name" | "completion" | "status";
 type SortOrder = "asc" | "desc";
 
@@ -117,6 +128,8 @@ export default function GroupDetail() {
     const [group, setGroup] = useState<GroupInfo | null>(null);
     const [students, setStudents] = useState<StudentWithProgress[]>([]);
     const [notes, setNotes] = useState<Note[]>([]);
+    const [taskInstances, setTaskInstances] = useState<TaskInstance[]>([]);
+    const [tasksLoading, setTasksLoading] = useState(false);
 
     // Note State
     const [newNote, setNewNote] = useState("");
@@ -174,8 +187,8 @@ export default function GroupDetail() {
                 .select("id, user_id")
                 .eq("group_id", groupId);
 
-            if (members && members.length > 0) {
-                const memberIds = members.map((m) => m.user_id);
+            const memberIds = members?.map((m) => m.user_id) ?? [];
+            if (memberIds.length > 0) {
 
                 // Get profiles
                 const { data: profiles } = await supabase
@@ -228,6 +241,26 @@ export default function GroupDetail() {
                 setStudents(studentsWithProgress);
             } else {
                 setStudents([]);
+            }
+
+            if (memberIds.length > 0) {
+                setTasksLoading(true);
+                const { data: tasksData, error: tasksError } = await supabase
+                    .from("task_instances")
+                    .select("id, assignee_id, name, scheduled_date, assign_date, start_time, end_time, status")
+                    .in("assignee_id", memberIds)
+                    .order("scheduled_date", { ascending: false });
+
+                if (tasksError) {
+                    handleError(tasksError, { component: "GroupDetail", action: "fetch task instances", silent: true });
+                    setTaskInstances([]);
+                } else {
+                    setTaskInstances((tasksData ?? []) as TaskInstance[]);
+                }
+                setTasksLoading(false);
+            } else {
+                setTaskInstances([]);
+                setTasksLoading(false);
             }
 
             // 3. Fetch notes for this group
@@ -434,6 +467,44 @@ export default function GroupDetail() {
     const completionRate = students.length > 0
         ? Math.round(students.reduce((sum, s) => sum + s.completed_tasks, 0) / Math.max(students.reduce((sum, s) => sum + s.total_tasks, 0), 1) * 100)
         : 0;
+    const todayStr = format(new Date(), "yyyy-MM-dd");
+
+    const getTaskDate = (task: TaskInstance) =>
+        task.scheduled_date || task.assign_date || "";
+
+    const isTaskOverdue = (task: TaskInstance) => {
+        const dateStr = getTaskDate(task);
+        return Boolean(dateStr && dateStr < todayStr && task.status !== "completed");
+    };
+
+    const formatTaskDate = (dateStr: string | null) =>
+        dateStr ? format(new Date(dateStr), "MMM d, yyyy") : "—";
+
+    const formatTaskTime = (start: string | null, end: string | null) => {
+        if (start && end) return `${start} - ${end}`;
+        return start || end || "—";
+    };
+
+    const formatStatusLabel = (status: string) =>
+        status
+            ? status
+                .replace(/_/g, " ")
+                .replace(/\b\w/g, (match) => match.toUpperCase())
+            : "Pending";
+
+    const getStudentName = (assigneeId: string) =>
+        students.find((student) => student.student_id === assigneeId)?.display_name || "Student";
+
+    const taskSort = (a: TaskInstance, b: TaskInstance) =>
+        (getTaskDate(b) || "").localeCompare(getTaskDate(a) || "");
+
+    const activeTasks = taskInstances
+        .filter((task) => !isTaskOverdue(task) && task.status !== "completed")
+        .sort(taskSort);
+    const overdueTasks = taskInstances.filter(isTaskOverdue).sort(taskSort);
+    const completedTasks = taskInstances
+        .filter((task) => task.status === "completed")
+        .sort(taskSort);
 
     if (loading) {
         return (
@@ -717,11 +788,148 @@ export default function GroupDetail() {
                 </TabsContent>
 
                 <TabsContent value="tasks" className="space-y-6">
-                    <Card>
-                        <CardContent className="p-6 text-sm text-muted-foreground">
-                            Coming soon.
-                        </CardContent>
-                    </Card>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                            <h2 className="text-lg font-semibold">Tasks</h2>
+                            <p className="text-sm text-muted-foreground">
+                                Assign tasks and review task instances for this group.
+                            </p>
+                        </div>
+                        <Button
+                            onClick={() => {
+                                setAssignMode("group");
+                                setAssignStudent(null);
+                                setAssignDialogOpen(true);
+                            }}
+                            className="bg-cta-primary hover:bg-cta-hover text-white"
+                        >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Assign to Group
+                        </Button>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className="lg:col-span-2 space-y-6">
+                            {tasksLoading ? (
+                                <Card>
+                                    <CardContent className="p-6 text-sm text-muted-foreground">
+                                        Loading tasks...
+                                    </CardContent>
+                                </Card>
+                            ) : taskInstances.length === 0 ? (
+                                <Card>
+                                    <CardContent className="p-6 text-sm text-muted-foreground">
+                                        No tasks assigned to this group yet.
+                                    </CardContent>
+                                </Card>
+                            ) : (
+                                <>
+                                    {[
+                                        { key: "active", title: "Active", tasks: activeTasks },
+                                        { key: "overdue", title: "Overdue", tasks: overdueTasks },
+                                        { key: "completed", title: "Completed", tasks: completedTasks },
+                                    ]
+                                        .filter((group) => group.tasks.length > 0)
+                                        .map((group) => (
+                                            <Card key={group.key}>
+                                                <CardHeader className="pb-3">
+                                                    <CardTitle>{group.title}</CardTitle>
+                                                    <CardDescription>
+                                                        {group.tasks.length} task{group.tasks.length === 1 ? "" : "s"}
+                                                    </CardDescription>
+                                                </CardHeader>
+                                                <CardContent className="p-0">
+                                                    <Table>
+                                                        <TableHeader>
+                                                            <TableRow>
+                                                                <TableHead>Task</TableHead>
+                                                                <TableHead>Student</TableHead>
+                                                                <TableHead>Date</TableHead>
+                                                                <TableHead>Time</TableHead>
+                                                                <TableHead>Status</TableHead>
+                                                            </TableRow>
+                                                        </TableHeader>
+                                                        <TableBody>
+                                                            {group.tasks.map((task) => {
+                                                                const overdue = isTaskOverdue(task);
+                                                                const dateLabel = formatTaskDate(getTaskDate(task));
+                                                                return (
+                                                                    <TableRow key={task.id}>
+                                                                        <TableCell className="font-medium">
+                                                                            {task.name}
+                                                                        </TableCell>
+                                                                        <TableCell>{getStudentName(task.assignee_id)}</TableCell>
+                                                                        <TableCell>{dateLabel}</TableCell>
+                                                                        <TableCell>
+                                                                            {formatTaskTime(task.start_time, task.end_time)}
+                                                                        </TableCell>
+                                                                        <TableCell>
+                                                                            <Badge
+                                                                                variant={overdue ? "destructive" : task.status === "completed" ? "secondary" : "outline"}
+                                                                            >
+                                                                                {overdue ? "Overdue" : formatStatusLabel(task.status)}
+                                                                            </Badge>
+                                                                        </TableCell>
+                                                                    </TableRow>
+                                                                );
+                                                            })}
+                                                        </TableBody>
+                                                    </Table>
+                                                </CardContent>
+                                            </Card>
+                                        ))}
+                                </>
+                            )}
+                        </div>
+
+                        <div className="space-y-6">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Assign to Student</CardTitle>
+                                    <CardDescription>Assign tasks to an individual student.</CardDescription>
+                                </CardHeader>
+                                <CardContent className="p-0">
+                                    {students.length === 0 ? (
+                                        <div className="p-6 text-sm text-muted-foreground">
+                                            No students in this group yet.
+                                        </div>
+                                    ) : (
+                                        <Table>
+                                            <TableBody>
+                                                {students.map((student) => (
+                                                    <TableRow key={student.student_id}>
+                                                        <TableCell>
+                                                            <div className="flex flex-col">
+                                                                <span className="font-medium">{student.display_name}</span>
+                                                                {student.email && (
+                                                                    <span className="text-xs text-muted-foreground">
+                                                                        {student.email}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell className="text-right">
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={() => {
+                                                                    setAssignMode("individual");
+                                                                    setAssignStudent(student);
+                                                                    setAssignDialogOpen(true);
+                                                                }}
+                                                            >
+                                                                Assign
+                                                            </Button>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </div>
                 </TabsContent>
 
                 <TabsContent value="notes" className="space-y-6">

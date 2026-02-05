@@ -19,6 +19,7 @@
 - Notes tab: migrated existing content
 - Old group detail route removed (use /groups/${groupId})
 - Fixed Dashboard and Tasks page navigation links to use /groups/${groupId}
+- Tasks tab built: assign to group, assign to student, task instance list with status grouping
 
 ## Planned
 - Tasks tab build (assign modal integration, task list display)
