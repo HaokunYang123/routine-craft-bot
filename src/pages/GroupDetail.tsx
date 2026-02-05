@@ -5,17 +5,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useGroups } from "@/hooks/useGroups";
-import { useAssignments } from "@/hooks/useAssignments";
 import { handleError } from "@/lib/error";
 import { queryKeys } from "@/lib/queries/keys";
-import { generateTimeSlots } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
     Select,
@@ -44,11 +41,6 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
-    Collapsible,
-    CollapsibleContent,
-    CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import {
     ArrowLeft,
     Users,
     Trash2,
@@ -62,7 +54,6 @@ import {
     Check,
     UserMinus,
     Plus,
-    ChevronDown,
 } from "lucide-react";
 import { subDays, format } from "date-fns";
 import { QRCodeSVG } from "qrcode.react";
@@ -74,6 +65,7 @@ import {
     DialogTrigger,
     DialogFooter,
 } from "@/components/ui/dialog";
+import { AssignTaskModal } from "@/components/assignments/AssignTaskModal";
 
 interface GroupInfo {
     id: string;
@@ -113,27 +105,12 @@ interface Note {
 type SortField = "name" | "completion" | "status";
 type SortOrder = "asc" | "desc";
 
-// Pre-generate time slots for performance
-const TIME_SLOTS = generateTimeSlots();
-
-// Days of week for custom schedule selection
-const DAYS_OF_WEEK = [
-    { value: 0, label: "Sun" },
-    { value: 1, label: "Mon" },
-    { value: 2, label: "Tue" },
-    { value: 3, label: "Wed" },
-    { value: 4, label: "Thu" },
-    { value: 5, label: "Fri" },
-    { value: 6, label: "Sat" },
-];
-
 export default function GroupDetail() {
     const { groupId } = useParams<{ groupId: string }>();
     const navigate = useNavigate();
     const { user } = useAuth();
     const { toast } = useToast();
     const { deleteGroup } = useGroups();
-    const { assignGroupTask, isAssigningGroupTask } = useAssignments();
     const queryClient = useQueryClient();
 
     const [loading, setLoading] = useState(true);
@@ -161,118 +138,8 @@ export default function GroupDetail() {
 
     // Assign task dialog state
     const [assignDialogOpen, setAssignDialogOpen] = useState(false);
-    const [taskTitle, setTaskTitle] = useState("");
-    const [taskDescription, setTaskDescription] = useState("");
-    const [assignDate, setAssignDate] = useState(format(new Date(), "yyyy-MM-dd"));
-    const [dueDate, setDueDate] = useState(format(new Date(), "yyyy-MM-dd"));
-    const [scheduleType, setScheduleType] = useState<"once" | "daily" | "weekly" | "monthly" | "custom">("once");
-    const [scheduleDays, setScheduleDays] = useState<number[]>([]);
-    const [monthlyDay, setMonthlyDay] = useState<number>(1);
-    const [isMultiDayOpen, setIsMultiDayOpen] = useState(false);
-    const [startTime, setStartTime] = useState("");
-    const [endTime, setEndTime] = useState("");
-
-    // Reset derived state when schedule type changes
-    useEffect(() => {
-        if (scheduleType !== "once") {
-            setIsMultiDayOpen(false);
-        }
-        if (scheduleType !== "custom") {
-            setScheduleDays([]);
-        }
-        if (scheduleType !== "monthly") {
-            setMonthlyDay(1);
-        }
-    }, [scheduleType]);
-
-    // Helper to convert "HH:MM AM/PM" to 24-hour minutes for comparison
-    const timeToMinutes = (timeStr: string): number => {
-        if (!timeStr) return -1;
-        const match = timeStr.match(/^(\d{2}):(\d{2})\s*(AM|PM)$/i);
-        if (!match) return -1;
-        let hours = parseInt(match[1], 10);
-        const minutes = parseInt(match[2], 10);
-        const period = match[3].toUpperCase();
-        if (period === "PM" && hours !== 12) hours += 12;
-        if (period === "AM" && hours === 12) hours = 0;
-        return hours * 60 + minutes;
-    };
-
-    // Validate that end time is after start time
-    const isTimeRangeValid = (): boolean => {
-        if (!startTime || !endTime) return true; // No validation if times not set
-        return timeToMinutes(endTime) > timeToMinutes(startTime);
-    };
-
-    // Toggle day of week selection for custom schedule
-    const toggleDayOfWeek = (day: number) => {
-        setScheduleDays(current =>
-            current.includes(day)
-                ? current.filter(d => d !== day)
-                : [...current, day].sort((a, b) => a - b)
-        );
-    };
-
-    // Reset form to initial state
-    const resetAssignForm = () => {
-        setTaskTitle("");
-        setTaskDescription("");
-        setAssignDate(format(new Date(), "yyyy-MM-dd"));
-        setDueDate(format(new Date(), "yyyy-MM-dd"));
-        setScheduleType("once");
-        setScheduleDays([]);
-        setMonthlyDay(1);
-        setIsMultiDayOpen(false);
-        setStartTime("");
-        setEndTime("");
-    };
-
-    // Handle task assignment
-    const handleAssignTask = async () => {
-        if (!taskTitle.trim() || !groupId) return;
-
-        // Validate time range
-        if (!isTimeRangeValid()) {
-            toast({
-                title: "Invalid Time Range",
-                description: "End time must be after start time",
-                variant: "destructive",
-            });
-            return;
-        }
-
-        // For recurring tasks with custom days, need at least one day selected
-        if (scheduleType === "custom" && scheduleDays.length === 0) {
-            toast({
-                title: "No Days Selected",
-                description: "Please select at least one day for custom schedule",
-                variant: "destructive",
-            });
-            return;
-        }
-
-        const result = await assignGroupTask({
-            groupId,
-            title: taskTitle.trim(),
-            description: taskDescription.trim() || undefined,
-            assignDate: assignDate,  // When student sees task
-            dueDate: dueDate,        // When task is due
-            startTime: startTime || undefined,
-            endTime: endTime || undefined,
-            scheduleType: scheduleType,
-            scheduleDays: scheduleType === "custom" ? scheduleDays :
-                          scheduleType === "monthly" ? [monthlyDay] : [],
-        });
-
-        if (result !== null) {
-            // Success - close dialog and reset form
-            toast({ title: "Task Assigned", description: `Assigned to all students in ${group?.name}.` });
-            setAssignDialogOpen(false);
-            resetAssignForm();
-            // Refresh dashboard data
-            fetchData();
-        }
-    };
+    const [assignMode, setAssignMode] = useState<"group" | "individual">("group");
+    const [assignStudent, setAssignStudent] = useState<StudentWithProgress | null>(null);
 
     useEffect(() => {
         if (!user || !groupId) return;
@@ -593,7 +460,11 @@ export default function GroupDetail() {
                 </div>
                 <div className="flex gap-2">
                     <Button
-                        onClick={() => setAssignDialogOpen(true)}
+                        onClick={() => {
+                            setAssignMode("group");
+                            setAssignStudent(null);
+                            setAssignDialogOpen(true);
+                        }}
                         className="bg-cta-primary hover:bg-cta-hover text-white"
                     >
                         <Plus className="w-4 h-4 mr-2" />
@@ -728,7 +599,7 @@ export default function GroupDetail() {
                                         <TableHead className="cursor-pointer" onClick={() => handleSort("status")}>
                                             Status {sortField === "status" && <ArrowUpDown className="inline w-3 h-3 ml-1" />}
                                         </TableHead>
-                                        <TableHead className="w-[60px]"></TableHead>
+                                        <TableHead className="w-[140px]"></TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -762,14 +633,27 @@ export default function GroupDetail() {
                                                 </Badge>
                                             </TableCell>
                                             <TableCell>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                                                    onClick={() => setStudentToRemove(student)}
-                                                >
-                                                    <UserMinus className="w-4 h-4" />
-                                                </Button>
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => {
+                                                            setAssignMode("individual");
+                                                            setAssignStudent(student);
+                                                            setAssignDialogOpen(true);
+                                                        }}
+                                                    >
+                                                        Assign
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                                        onClick={() => setStudentToRemove(student)}
+                                                    >
+                                                        <UserMinus className="w-4 h-4" />
+                                                    </Button>
+                                                </div>
                                             </TableCell>
                                         </TableRow>
                                     ))}
@@ -916,238 +800,16 @@ export default function GroupDetail() {
                 </AlertDialogContent>
             </AlertDialog>
 
-            {/* Assign Task Dialog */}
-            <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
-                <DialogContent className="max-w-md">
-                    <DialogHeader>
-                        <DialogTitle>Assign Task to {group.name}</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                        {/* Task Title */}
-                        <div className="space-y-2">
-                            <Label htmlFor="task-title">Task Title</Label>
-                            <Input
-                                id="task-title"
-                                value={taskTitle}
-                                onChange={(e) => setTaskTitle(e.target.value)}
-                                placeholder="Enter task title"
-                                className="bg-card border-border"
-                            />
-                        </div>
-
-                        {/* Task Description */}
-                        <div className="space-y-2">
-                            <Label htmlFor="task-description">Description (optional)</Label>
-                            <Textarea
-                                id="task-description"
-                                value={taskDescription}
-                                onChange={(e) => setTaskDescription(e.target.value)}
-                                placeholder="Enter task description"
-                                rows={2}
-                                className="bg-card border-border"
-                            />
-                        </div>
-
-                        {/* Assign Date and Due Date */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="assign-date">Assign Date</Label>
-                                <Input
-                                    id="assign-date"
-                                    type="date"
-                                    value={assignDate}
-                                    onChange={(e) => {
-                                        setAssignDate(e.target.value);
-                                        // Auto-adjust due date if now before assign date
-                                        if (dueDate < e.target.value) {
-                                            setDueDate(e.target.value);
-                                        }
-                                    }}
-                                    min={format(new Date(), "yyyy-MM-dd")}
-                                    className="bg-card border-border"
-                                />
-                                <p className="text-xs text-muted-foreground">
-                                    When students will see this task
-                                </p>
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="due-date">Due Date</Label>
-                                <Input
-                                    id="due-date"
-                                    type="date"
-                                    value={dueDate}
-                                    onChange={(e) => setDueDate(e.target.value)}
-                                    min={assignDate}
-                                    className="bg-card border-border"
-                                />
-                                <p className="text-xs text-muted-foreground">
-                                    When this task is due
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Schedule Type */}
-                        <div className="space-y-2">
-                            <Label>Schedule</Label>
-                            <div className="flex flex-wrap gap-2">
-                                {[
-                                    { value: "once", label: "One-time" },
-                                    { value: "daily", label: "Daily" },
-                                    { value: "weekly", label: "Weekly" },
-                                    { value: "monthly", label: "Monthly" },
-                                    { value: "custom", label: "Custom days" },
-                                ].map((opt) => (
-                                    <Button
-                                        key={opt.value}
-                                        type="button"
-                                        variant={scheduleType === opt.value ? "default" : "outline"}
-                                        size="sm"
-                                        onClick={() => setScheduleType(opt.value as typeof scheduleType)}
-                                        className={scheduleType === opt.value ? "bg-cta-primary hover:bg-cta-hover" : ""}
-                                    >
-                                        {opt.label}
-                                    </Button>
-                                ))}
-                            </div>
-                            {scheduleType !== "once" && (
-                                <p className="text-xs text-muted-foreground">
-                                    {scheduleType === "monthly"
-                                        ? "Task will repeat on the selected day each month"
-                                        : "Tasks will repeat starting from the Assign Date"}
-                                </p>
-                            )}
-                        </div>
-
-                        {/* Monthly day picker */}
-                        {scheduleType === "monthly" && (
-                            <div className="space-y-2">
-                                <Label>Day of Month</Label>
-                                <Select value={String(monthlyDay)} onValueChange={(v) => setMonthlyDay(Number(v))}>
-                                    <SelectTrigger className="bg-card border-border">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
-                                            <SelectItem key={day} value={String(day)}>
-                                                {day}
-                                            </SelectItem>
-                                        ))}
-                                        <SelectItem value="-1">Last day of month</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        )}
-
-                        {/* Day-of-week selector (only for custom schedule) */}
-                        {scheduleType === "custom" && (
-                            <div className="space-y-2">
-                                <Label>Days of Week</Label>
-                                <div className="flex flex-wrap gap-2">
-                                    {DAYS_OF_WEEK.map((day) => (
-                                        <Button
-                                            key={day.value}
-                                            type="button"
-                                            variant={scheduleDays.includes(day.value) ? "default" : "outline"}
-                                            size="sm"
-                                            onClick={() => toggleDayOfWeek(day.value)}
-                                            className={scheduleDays.includes(day.value) ? "bg-cta-primary hover:bg-cta-hover" : ""}
-                                        >
-                                            {day.label}
-                                        </Button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Multi-day task (only for one-time schedule) */}
-                        {scheduleType === "once" && (
-                            <Collapsible open={isMultiDayOpen} onOpenChange={setIsMultiDayOpen}>
-                                <CollapsibleTrigger asChild>
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        className="w-full justify-between text-muted-foreground hover:text-foreground"
-                                    >
-                                        <span>Multi-day task</span>
-                                        <ChevronDown className={`w-4 h-4 transition-transform ${isMultiDayOpen ? "rotate-180" : ""}`} />
-                                    </Button>
-                                </CollapsibleTrigger>
-                                <CollapsibleContent className="pt-2">
-                                    <p className="text-xs text-muted-foreground">
-                                        Use assign date and due date above to define the task span.
-                                    </p>
-                                </CollapsibleContent>
-                            </Collapsible>
-                        )}
-
-                        {/* Time Range */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="start-time">Start Time (optional)</Label>
-                                <Select value={startTime} onValueChange={setStartTime}>
-                                    <SelectTrigger className="bg-card border-border">
-                                        <SelectValue placeholder="Select time" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {TIME_SLOTS.map((slot) => (
-                                            <SelectItem key={slot.label} value={slot.label}>
-                                                {slot.label}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="end-time">End Time (optional)</Label>
-                                <Select value={endTime} onValueChange={setEndTime}>
-                                    <SelectTrigger className="bg-card border-border">
-                                        <SelectValue placeholder="Select time" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {TIME_SLOTS.map((slot) => (
-                                            <SelectItem key={slot.label} value={slot.label}>
-                                                {slot.label}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-
-                        {/* Time validation warning */}
-                        {startTime && endTime && !isTimeRangeValid() && (
-                            <p className="text-sm text-destructive">
-                                End time must be after start time
-                            </p>
-                        )}
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setAssignDialogOpen(false)}>
-                            Cancel
-                        </Button>
-                        <Button
-                            onClick={handleAssignTask}
-                            disabled={
-                                !taskTitle.trim() ||
-                                isAssigningGroupTask ||
-                                (startTime && endTime && !isTimeRangeValid()) ||
-                                (scheduleType === "custom" && scheduleDays.length === 0)
-                            }
-                            className="bg-cta-primary hover:bg-cta-hover text-white"
-                        >
-                            {isAssigningGroupTask ? (
-                                <>
-                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                    Assigning...
-                                </>
-                            ) : (
-                                "Assign Task"
-                            )}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            <AssignTaskModal
+                open={assignDialogOpen}
+                onOpenChange={setAssignDialogOpen}
+                mode={assignMode}
+                groupId={group.id}
+                groupName={group.name}
+                studentId={assignStudent?.student_id}
+                studentName={assignStudent?.display_name}
+                onAssigned={fetchData}
+            />
         </div>
     );
 }

@@ -73,3 +73,12 @@
   - `npm run build` -> timed out after 200s, but output showed build completed with chunk size warnings.
 - Files modified:
   - `src/components/auth/AuthTabs.tsx`
+
+## 2026-02-04 20:23:59 -0800
+- Features: Added template selection to the assign task modal and enabled individual student assignment via a shared modal.
+- Tests:
+  - `npm run lint` -> warnings only (pre-existing hook deps + fast refresh warnings).
+  - `npm run build` -> timed out after 200s, but output showed build completed with chunk size warnings.
+- Files modified:
+  - `src/components/assignments/AssignTaskModal.tsx`
+  - `src/pages/GroupDetail.tsx`
