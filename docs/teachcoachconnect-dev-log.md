@@ -2,6 +2,9 @@
 
 ## Completed
 
+### Manual Template Builder Redesign + Radix Sentinel Fix (2026-02-05)
+- Manual Template Builder fix: replaced empty-string Select.Item values with sentinel strings to fix Radix crash, also fixed same pattern in RecurringSchedules.tsx. Redesigned task entry UI to card/blob layout with Add Task button. Removed due_time_offset_minutes from form. Priority stored in UI only (DB migration TODO).
+
 ### Coach Calendar Group Filter + Date Panel Fix (2026-02-05)
 - Coach Calendar fix: added task_instances fetch filtered by selected group's members via group_members table, green dot indicators on dates with tasks, right panel groups tasks by name with student list underneath, removed redundant date-click modal on desktop (kept for mobile responsive view)
 

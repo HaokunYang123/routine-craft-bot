@@ -114,8 +114,6 @@ export function useTemplates() {
           duration_minutes: task.duration_minutes,
           day_offset: task.day_offset,
           sort_order: index,
-          // Scheduling fields (Phase 25)
-          due_time_offset_minutes: task.due_time_offset_minutes,
           start_time: task.start_time,
           end_time: task.end_time,
         }));
@@ -176,8 +174,6 @@ export function useTemplates() {
           duration_minutes: task.duration_minutes,
           day_offset: task.day_offset,
           sort_order: index,
-          // Scheduling fields (Phase 25)
-          due_time_offset_minutes: task.due_time_offset_minutes,
           start_time: task.start_time,
           end_time: task.end_time,
         }));

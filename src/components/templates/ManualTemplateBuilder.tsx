@@ -1,18 +1,10 @@
 import { useState } from "react";
-import {
-  Plus,
-  Trash2,
-  Clock,
-  Calendar,
-  Save,
-  GripVertical,
-} from "lucide-react";
+import { Plus, Trash2, Clock, Calendar, Save } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -22,19 +14,26 @@ import {
 } from "@/components/ui/select";
 import { generateTimeSlots } from "@/lib/utils";
 
-// Pre-generate time slots for performance
 const TIME_SLOTS = generateTimeSlots();
+const NO_TIME_VALUE = "none";
+
+type Priority = "low" | "medium" | "high";
 
 export interface ManualTask {
   title: string;
   description: string;
   duration_minutes: number;
   day_offset: number;
-  time?: string;
-  priority?: "low" | "medium" | "high";
-  due_time_offset_minutes?: number;
+  priority?: Priority;
+  // TODO: Persist priority once template_tasks gains a priority column.
   start_time?: string;
   end_time?: string;
+  sort_order?: number;
+}
+
+interface ManualTaskForm extends Omit<ManualTask, "start_time" | "end_time"> {
+  start_time: string;
+  end_time: string;
 }
 
 interface ManualTemplateBuilderProps {
@@ -42,35 +41,25 @@ interface ManualTemplateBuilderProps {
   isSaving?: boolean;
 }
 
+const createEmptyTask = (dayOffset = 0): ManualTaskForm => ({
+  title: "",
+  description: "",
+  duration_minutes: 15,
+  day_offset: dayOffset,
+  priority: "medium",
+  start_time: NO_TIME_VALUE,
+  end_time: NO_TIME_VALUE,
+});
+
 export function ManualTemplateBuilder({ onSave, isSaving }: ManualTemplateBuilderProps) {
   const [templateName, setTemplateName] = useState("");
   const [templateDescription, setTemplateDescription] = useState("");
-  const [tasks, setTasks] = useState<ManualTask[]>([
-    {
-      title: "",
-      description: "",
-      duration_minutes: 15,
-      day_offset: 0,
-      priority: "medium",
-      due_time_offset_minutes: undefined,
-      start_time: undefined,
-      end_time: undefined,
-    },
-  ]);
+  const [tasks, setTasks] = useState<ManualTaskForm[]>([createEmptyTask(0)]);
 
   const addTask = () => {
     setTasks([
       ...tasks,
-      {
-        title: "",
-        description: "",
-        duration_minutes: 15,
-        day_offset: tasks.length > 0 ? tasks[tasks.length - 1].day_offset : 0,
-        priority: "medium",
-        due_time_offset_minutes: undefined,
-        start_time: undefined,
-        end_time: undefined,
-      },
+      createEmptyTask(tasks.length > 0 ? tasks[tasks.length - 1].day_offset : 0),
     ]);
   };
 
@@ -80,7 +69,11 @@ export function ManualTemplateBuilder({ onSave, isSaving }: ManualTemplateBuilde
     }
   };
 
-  const updateTask = (index: number, field: keyof ManualTask, value: ManualTask[keyof ManualTask]) => {
+  const updateTask = (
+    index: number,
+    field: keyof ManualTaskForm,
+    value: ManualTaskForm[keyof ManualTaskForm]
+  ) => {
     setTasks(
       tasks.map((task, i) =>
         i === index ? { ...task, [field]: value } : task
@@ -88,25 +81,68 @@ export function ManualTemplateBuilder({ onSave, isSaving }: ManualTemplateBuilde
     );
   };
 
-  const handleSave = () => {
-    const validTasks = tasks.filter((t) => t.title.trim());
-    if (!templateName.trim() || validTasks.length === 0) return;
-    onSave(templateName.trim(), templateDescription.trim(), validTasks);
+  const getTimeSlotValue = (label: string): number | null => {
+    const slot = TIME_SLOTS.find((timeSlot) => timeSlot.label === label);
+    return slot?.value ?? null;
   };
 
-  const isValid = templateName.trim() && tasks.some((t) => t.title.trim());
+  const handleStartTimeChange = (index: number, value: string) => {
+    const selectedStart = value;
+    setTasks((prev) =>
+      prev.map((task, i) => {
+        if (i !== index) return task;
 
-  // Group tasks by day for display
+        const nextTask = { ...task, start_time: selectedStart };
+        if (selectedStart === NO_TIME_VALUE) {
+          nextTask.end_time = NO_TIME_VALUE;
+          return nextTask;
+        }
+
+        const selectedStartValue = getTimeSlotValue(selectedStart);
+        const currentEndValue = getTimeSlotValue(task.end_time);
+        if (
+          task.end_time !== NO_TIME_VALUE &&
+          selectedStartValue !== null &&
+          currentEndValue !== null &&
+          currentEndValue <= selectedStartValue
+        ) {
+          nextTask.end_time = NO_TIME_VALUE;
+        }
+
+        return nextTask;
+      })
+    );
+  };
+
+  const handleSave = () => {
+    const validTasks = tasks.filter((task) => task.title.trim());
+    if (!templateName.trim() || validTasks.length === 0) return;
+
+    const normalizedTasks: ManualTask[] = validTasks.map((task, index) => ({
+      title: task.title.trim(),
+      description: task.description.trim(),
+      duration_minutes: task.duration_minutes,
+      day_offset: task.day_offset,
+      priority: task.priority ?? "medium",
+      start_time: task.start_time === NO_TIME_VALUE ? undefined : task.start_time,
+      end_time: task.end_time === NO_TIME_VALUE ? undefined : task.end_time,
+      sort_order: index,
+    }));
+
+    onSave(templateName.trim(), templateDescription.trim(), normalizedTasks);
+  };
+
+  const isValid = templateName.trim() && tasks.some((task) => task.title.trim());
+
   const tasksByDay = tasks.reduce((acc, task, index) => {
     const day = task.day_offset;
     if (!acc[day]) acc[day] = [];
     acc[day].push({ ...task, index });
     return acc;
-  }, {} as Record<number, (ManualTask & { index: number })[]>);
+  }, {} as Record<number, (ManualTaskForm & { index: number })[]>);
 
   return (
     <div className="space-y-6">
-      {/* Template Info */}
       <Card className="border-border">
         <CardHeader className="pb-3">
           <CardTitle className="text-lg text-foreground">Template Details</CardTitle>
@@ -134,183 +170,152 @@ export function ManualTemplateBuilder({ onSave, isSaving }: ManualTemplateBuilde
         </CardContent>
       </Card>
 
-      {/* Tasks */}
       <Card className="border-border">
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg text-foreground">
-              Tasks ({tasks.filter((t) => t.title.trim()).length})
-            </CardTitle>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={addTask}
-              className="text-btn-secondary border-btn-secondary/30 hover:bg-btn-secondary/10"
-            >
-              <Plus className="w-4 h-4 mr-1" />
-              Add Task
-            </Button>
-          </div>
+          <CardTitle className="text-lg text-foreground">
+            Tasks ({tasks.filter((task) => task.title.trim()).length})
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {tasks.map((task, index) => (
             <div
               key={index}
-              className="p-4 rounded-lg border border-border bg-card/50 space-y-3"
+              className="rounded-xl border border-border/80 bg-muted/20 p-4 space-y-4"
             >
-              <div className="flex items-start gap-3">
-                <GripVertical className="w-5 h-5 text-muted-foreground mt-2 cursor-grab" />
-                <div className="flex-1 space-y-3">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <Label className="text-xs">Task Title *</Label>
-                      <Input
-                        value={task.title}
-                        onChange={(e) => updateTask(index, "title", e.target.value)}
-                        placeholder="Task name"
-                        className="bg-card border-border"
-                      />
-                    </div>
-                    <div className="grid grid-cols-3 gap-2">
-                      <div className="space-y-1">
-                        <Label className="text-xs">Day</Label>
-                        <Select
-                          value={String(task.day_offset)}
-                          onValueChange={(v) => updateTask(index, "day_offset", parseInt(v))}
-                        >
-                          <SelectTrigger className="bg-card border-border">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {[0, 1, 2, 3, 4, 5, 6].map((d) => (
-                              <SelectItem key={d} value={String(d)}>
-                                Day {d + 1}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">Duration</Label>
-                        <div className="flex items-center gap-1">
-                          <Input
-                            type="number"
-                            value={task.duration_minutes}
-                            onChange={(e) =>
-                              updateTask(index, "duration_minutes", parseInt(e.target.value) || 15)
-                            }
-                            min={1}
-                            className="bg-card border-border"
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">Priority</Label>
-                        <Select
-                          value={task.priority || "medium"}
-                          onValueChange={(v) => updateTask(index, "priority", v)}
-                        >
-                          <SelectTrigger className="bg-card border-border">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="low">Low</SelectItem>
-                            <SelectItem value="medium">Medium</SelectItem>
-                            <SelectItem value="high">High</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Description (optional)</Label>
-                    <Textarea
-                      value={task.description}
-                      onChange={(e) => updateTask(index, "description", e.target.value)}
-                      placeholder="Describe this task..."
-                      rows={2}
-                      className="bg-card border-border text-sm"
-                    />
-                  </div>
-                  {/* Time scheduling fields */}
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="space-y-1">
-                      <Label className="text-xs">Due Time</Label>
-                      <Select
-                        value={task.due_time_offset_minutes?.toString() ?? ""}
-                        onValueChange={(v) => updateTask(index, "due_time_offset_minutes", v ? parseInt(v) : undefined)}
-                      >
-                        <SelectTrigger className="bg-card border-border">
-                          <SelectValue placeholder="All day" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="">All day</SelectItem>
-                          {TIME_SLOTS.map((slot) => (
-                            <SelectItem key={slot.value} value={slot.value.toString()}>
-                              {slot.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">Start Time</Label>
-                      <Select
-                        value={task.start_time ?? ""}
-                        onValueChange={(v) => {
-                          updateTask(index, "start_time", v || undefined);
-                          // Clear end_time if start_time is cleared or changed to be after end_time
-                          if (!v || (task.end_time && v >= task.end_time)) {
-                            updateTask(index, "end_time", undefined);
-                          }
-                        }}
-                      >
-                        <SelectTrigger className="bg-card border-border">
-                          <SelectValue placeholder="None" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="">None</SelectItem>
-                          {TIME_SLOTS.map((slot) => (
-                            <SelectItem key={slot.label} value={slot.label}>
-                              {slot.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">End Time</Label>
-                      <Select
-                        value={task.end_time ?? ""}
-                        onValueChange={(v) => updateTask(index, "end_time", v || undefined)}
-                        disabled={!task.start_time}
-                      >
-                        <SelectTrigger className="bg-card border-border">
-                          <SelectValue placeholder="None" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="">None</SelectItem>
-                          {TIME_SLOTS
-                            .filter((slot) => !task.start_time || slot.label > task.start_time)
-                            .map((slot) => (
-                              <SelectItem key={slot.label} value={slot.label}>
-                                {slot.label}
-                              </SelectItem>
-                            ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </div>
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-foreground">Task {index + 1}</p>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => removeTask(index)}
                   disabled={tasks.length === 1}
-                  className="text-muted-foreground hover:text-destructive shrink-0"
+                  className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs">Task Title *</Label>
+                <Input
+                  value={task.title}
+                  onChange={(e) => updateTask(index, "title", e.target.value)}
+                  placeholder="Task name"
+                  className="bg-card border-border"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs">Description (optional)</Label>
+                <Textarea
+                  value={task.description}
+                  onChange={(e) => updateTask(index, "description", e.target.value)}
+                  placeholder="Describe this task..."
+                  rows={2}
+                  className="bg-card border-border text-sm"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                <div className="space-y-2">
+                  <Label className="text-xs">Day</Label>
+                  <Select
+                    value={String(task.day_offset)}
+                    onValueChange={(value) => updateTask(index, "day_offset", parseInt(value, 10))}
+                  >
+                    <SelectTrigger className="bg-card border-border">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[0, 1, 2, 3, 4, 5, 6].map((day) => (
+                        <SelectItem key={day} value={String(day)}>
+                          Day {day + 1}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs">Priority</Label>
+                  <Select
+                    value={task.priority || "medium"}
+                    onValueChange={(value) =>
+                      updateTask(index, "priority", value as Priority)
+                    }
+                  >
+                    <SelectTrigger className="bg-card border-border">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs">Duration (minutes)</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={task.duration_minutes}
+                    onChange={(e) => {
+                      const parsed = Number.parseInt(e.target.value, 10);
+                      updateTask(
+                        index,
+                        "duration_minutes",
+                        Number.isNaN(parsed) ? 15 : Math.max(parsed, 1)
+                      );
+                    }}
+                    className="bg-card border-border"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label className="text-xs">Start Time (optional)</Label>
+                  <Select value={task.start_time} onValueChange={(value) => handleStartTimeChange(index, value)}>
+                    <SelectTrigger className="bg-card border-border">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NO_TIME_VALUE}>None</SelectItem>
+                      {TIME_SLOTS.map((slot) => (
+                        <SelectItem key={slot.label} value={slot.label}>
+                          {slot.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs">End Time (optional)</Label>
+                  <Select
+                    value={task.end_time}
+                    onValueChange={(value) => updateTask(index, "end_time", value)}
+                    disabled={task.start_time === NO_TIME_VALUE}
+                  >
+                    <SelectTrigger className="bg-card border-border">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NO_TIME_VALUE}>None</SelectItem>
+                      {TIME_SLOTS.filter((slot) => {
+                        if (task.start_time === NO_TIME_VALUE) return true;
+                        const startValue = getTimeSlotValue(task.start_time);
+                        return startValue === null ? true : slot.value > startValue;
+                      }).map((slot) => (
+                        <SelectItem key={slot.label} value={slot.label}>
+                          {slot.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
           ))}
@@ -321,13 +326,12 @@ export function ManualTemplateBuilder({ onSave, isSaving }: ManualTemplateBuilde
             className="w-full border-dashed border-border text-muted-foreground hover:text-foreground"
           >
             <Plus className="w-4 h-4 mr-2" />
-            Add Another Task
+            Add Task
           </Button>
         </CardContent>
       </Card>
 
-      {/* Preview Summary */}
-      {tasks.some((t) => t.title.trim()) && (
+      {tasks.some((task) => task.title.trim()) && (
         <Card className="border-border bg-muted/30">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-muted-foreground">Preview</CardTitle>
@@ -340,17 +344,16 @@ export function ManualTemplateBuilder({ onSave, isSaving }: ManualTemplateBuilde
               </div>
               <div className="flex items-center gap-1 text-muted-foreground">
                 <Clock className="w-4 h-4" />
-                {tasks.reduce((sum, t) => sum + (t.duration_minutes || 0), 0)} min total
+                {tasks.reduce((sum, task) => sum + (task.duration_minutes || 0), 0)} min total
               </div>
               <div className="flex items-center gap-1 text-muted-foreground">
-                {tasks.filter((t) => t.title.trim()).length} tasks
+                {tasks.filter((task) => task.title.trim()).length} tasks
               </div>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Save Button */}
       <Button
         onClick={handleSave}
         disabled={!isValid || isSaving}

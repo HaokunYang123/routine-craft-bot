@@ -86,14 +86,15 @@ export default function Templates() {
     const result = await createTemplate(
       name,
       description,
-      tasks.map((t) => ({
+      tasks.map((t, index) => ({
         title: t.title,
         description: t.description,
         duration_minutes: t.duration_minutes,
         day_offset: t.day_offset,
-        due_time_offset_minutes: t.due_time_offset_minutes,
-        start_time: t.start_time,
-        end_time: t.end_time,
+        sort_order: t.sort_order ?? index,
+        start_time: t.start_time ?? null,
+        end_time: t.end_time ?? null,
+        // TODO: Persist task priority once template_tasks adds a priority column.
       }))
     );
     setManualSaving(false);

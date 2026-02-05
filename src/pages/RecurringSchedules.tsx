@@ -68,6 +68,10 @@ const DAYS_OF_WEEK = [
   { value: 6, label: "Sat" },
 ];
 
+const NO_TEMPLATE_SENTINEL = "no-template";
+const ALL_CLASSES_SENTINEL = "all-classes";
+const ALL_STUDENTS_SENTINEL = "all-students";
+
 export default function RecurringSchedules() {
   const { user } = useAuth();
   const { schedules, loading, createSchedule, updateSchedule, deleteSchedule, generateTasks } = useRecurringSchedules();
@@ -90,9 +94,9 @@ export default function RecurringSchedules() {
     custom_interval_days: 7,
     start_date: new Date().toISOString().split("T")[0],
     end_date: "",
-    template_id: "",
-    assigned_student_id: "",
-    class_session_id: "",
+    template_id: NO_TEMPLATE_SENTINEL,
+    assigned_student_id: ALL_STUDENTS_SENTINEL,
+    class_session_id: ALL_CLASSES_SENTINEL,
   });
 
   useEffect(() => {
@@ -141,9 +145,18 @@ export default function RecurringSchedules() {
     setCreating(true);
     const result = await createSchedule({
       ...formData,
-      template_id: formData.template_id || undefined,
-      assigned_student_id: formData.assigned_student_id || undefined,
-      class_session_id: formData.class_session_id || undefined,
+      template_id:
+        formData.template_id === NO_TEMPLATE_SENTINEL
+          ? undefined
+          : formData.template_id || undefined,
+      assigned_student_id:
+        formData.assigned_student_id === ALL_STUDENTS_SENTINEL
+          ? undefined
+          : formData.assigned_student_id || undefined,
+      class_session_id:
+        formData.class_session_id === ALL_CLASSES_SENTINEL
+          ? undefined
+          : formData.class_session_id || undefined,
       end_date: formData.end_date || undefined,
     });
 
@@ -163,9 +176,9 @@ export default function RecurringSchedules() {
       custom_interval_days: 7,
       start_date: new Date().toISOString().split("T")[0],
       end_date: "",
-      template_id: "",
-      assigned_student_id: "",
-      class_session_id: "",
+      template_id: NO_TEMPLATE_SENTINEL,
+      assigned_student_id: ALL_STUDENTS_SENTINEL,
+      class_session_id: ALL_CLASSES_SENTINEL,
     });
   };
 
@@ -349,7 +362,7 @@ export default function RecurringSchedules() {
                     <SelectValue placeholder="Select a template..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No template (manual tasks)</SelectItem>
+                    <SelectItem value={NO_TEMPLATE_SENTINEL}>No template (manual tasks)</SelectItem>
                     {templates.map((t) => (
                       <SelectItem key={t.id} value={t.id}>
                         {t.name} ({t.tasks?.length || 0} tasks)
@@ -371,13 +384,19 @@ export default function RecurringSchedules() {
                 <div className="grid grid-cols-2 gap-2">
                   <Select
                     value={formData.class_session_id}
-                    onValueChange={(v) => setFormData({ ...formData, class_session_id: v, assigned_student_id: "" })}
+                    onValueChange={(v) =>
+                      setFormData({
+                        ...formData,
+                        class_session_id: v,
+                        assigned_student_id: ALL_STUDENTS_SENTINEL,
+                      })
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="All classes" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All classes</SelectItem>
+                      <SelectItem value={ALL_CLASSES_SENTINEL}>All classes</SelectItem>
                       {classes.map((c) => (
                         <SelectItem key={c.id} value={c.id}>
                           {c.name}
@@ -393,7 +412,7 @@ export default function RecurringSchedules() {
                       <SelectValue placeholder="All students" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All students</SelectItem>
+                      <SelectItem value={ALL_STUDENTS_SENTINEL}>All students</SelectItem>
                       {students.map((s) => (
                         <SelectItem key={s.id} value={s.id}>
                           {s.name}
