@@ -15,6 +15,12 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
     Select,
     SelectContent,
     SelectItem,
@@ -52,8 +58,8 @@ import {
     Globe,
     QrCode,
     Check,
-    UserMinus,
     Plus,
+    Settings,
 } from "lucide-react";
 import { subDays, format } from "date-fns";
 import { QRCodeSVG } from "qrcode.react";
@@ -548,8 +554,40 @@ export default function GroupDetail() {
                         className="bg-cta-primary hover:bg-cta-hover text-white"
                     >
                         <Plus className="w-4 h-4 mr-2" />
-                        Assign Task
+                        Assign to Group
                     </Button>
+                    <AlertDialog>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" size="icon">
+                                    <Settings className="w-4 h-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <AlertDialogTrigger asChild>
+                                    <DropdownMenuItem className="text-destructive focus:text-destructive">
+                                        <Trash2 className="w-4 h-4 mr-2" />
+                                        Delete Group
+                                    </DropdownMenuItem>
+                                </AlertDialogTrigger>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Delete "{group.name}"?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    This will permanently delete this group. All students will be disconnected.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleDeleteGroup} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                    {deleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                                    Yes, Delete
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
                 </div>
             </div>
 
@@ -664,7 +702,6 @@ export default function GroupDetail() {
                                                 <TableHead className="cursor-pointer" onClick={() => handleSort("status")}>
                                                     Status {sortField === "status" && <ArrowUpDown className="inline w-3 h-3 ml-1" />}
                                                 </TableHead>
-                                                <TableHead className="w-[140px]"></TableHead>
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
@@ -697,34 +734,11 @@ export default function GroupDetail() {
                                                             {student.status}
                                                         </Badge>
                                                     </TableCell>
-                                                    <TableCell>
-                                                        <div className="flex items-center justify-end gap-2">
-                                                            <Button
-                                                                variant="outline"
-                                                                size="sm"
-                                                                onClick={() => {
-                                                                    setAssignMode("individual");
-                                                                    setAssignStudent(student);
-                                                                    setAssignDialogOpen(true);
-                                                                }}
-                                                            >
-                                                                Assign
-                                                            </Button>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                                                                onClick={() => setStudentToRemove(student)}
-                                                            >
-                                                                <UserMinus className="w-4 h-4" />
-                                                            </Button>
-                                                        </div>
-                                                    </TableCell>
                                                 </TableRow>
                                             ))}
                                             {sortedStudents.length === 0 && (
                                                 <TableRow>
-                                                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                                                    <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
                                                         {students.length === 0
                                                             ? "No students have joined this group yet. Share the join code above!"
                                                             : "No students found matching filters."}
@@ -759,53 +773,16 @@ export default function GroupDetail() {
                                     </div>
                                 </CardContent>
                             </Card>
-
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <Button variant="destructive" size="sm" className="w-full">
-                                        <Trash2 className="w-4 h-4 mr-2" />
-                                        Delete Group
-                                    </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>Delete "{group.name}"?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            This will permanently delete this group. All students will be disconnected.
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction onClick={handleDeleteGroup} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                            {deleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                                            Yes, Delete
-                                        </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
                         </div>
                     </div>
                 </TabsContent>
 
                 <TabsContent value="tasks" className="space-y-6">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div>
-                            <h2 className="text-lg font-semibold">Tasks</h2>
-                            <p className="text-sm text-muted-foreground">
-                                Assign tasks and review task instances for this group.
-                            </p>
-                        </div>
-                        <Button
-                            onClick={() => {
-                                setAssignMode("group");
-                                setAssignStudent(null);
-                                setAssignDialogOpen(true);
-                            }}
-                            className="bg-cta-primary hover:bg-cta-hover text-white"
-                        >
-                            <Plus className="w-4 h-4 mr-2" />
-                            Assign to Group
-                        </Button>
+                    <div>
+                        <h2 className="text-lg font-semibold">Tasks</h2>
+                        <p className="text-sm text-muted-foreground">
+                            Assign tasks and review task instances for this group.
+                        </p>
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -4,8 +4,8 @@
 - Dashboard has group cards
 - Tasks tab exists at top level
 - Tabbed Group Detail page built with ?tab= routing (Overview, Tasks, Notes)
-- Overview tab: student list, join code, delete group
-- Tasks tab: placeholder
+- Overview tab: read-only student list + join code + group stats
+- Tasks tab: task instance list + per-student assignment
 - Notes tab: migrated existing content
 
 ## Target Architecture
@@ -24,10 +24,11 @@ Three internal tabs via ?tab= query param:
 #### Overview Tab (default)
 - Student list with progress (task count, completion %, on-track status)
 - Join code display + QR code
-- Delete group action
+- Read-only (no per-student actions)
+- Delete group action via page-level settings menu
 
 #### Tasks Tab
-- "Assign to group" button
+- "Assign to group" button at page level (header)
 - Per-student assign buttons
 - Template dropdown in assign modal
 - Active/completed/overdue task list
@@ -45,7 +46,7 @@ No duplication between views.
 
 ## Build Progress
 - [x] Tabs shell + Overview tab
-- [ ] Tasks tab (assign modal integration, task list)
-- [ ] Notes tab (compose + history)
-- [ ] QR code for join code
-- [ ] Progress stats (completion %, on-track status)
+- [x] Tasks tab (assign modal integration, task list)
+- [x] Notes tab (compose + history)
+- [x] QR code for join code
+- [x] Progress stats (completion %, on-track status)
