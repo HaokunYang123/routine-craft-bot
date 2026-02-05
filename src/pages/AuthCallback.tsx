@@ -19,12 +19,48 @@ const LOG_PREFIX = "[auth-callback]";
 const MAX_PROFILE_RETRIES = 5;
 const PROFILE_RETRY_DELAY_MS = 500;
 const CODE_STORAGE_KEY = "authCallbackCode";
+const PKCE_RETRY_DELAY_MS = 400;
+const PROFILE_FETCH_TIMEOUT_MS = 8000;
+const PROFILE_CREATE_TIMEOUT_MS = 8000;
+const ROLE_UPDATE_TIMEOUT_MS = 8000;
 
 function normalizeRole(value: string | null | undefined): AuthRole | null {
   if (value === "coach" || value === "student") {
     return value;
   }
   return null;
+}
+
+function isFlowStateNotFound(message: string | null | undefined) {
+  const value = message?.toLowerCase() ?? "";
+  return value.includes("flow_state_not_found") || value.includes("flow state not found");
+}
+
+function isPkceVerifierMissing(message: string | null | undefined) {
+  const value = message?.toLowerCase() ?? "";
+  return (
+    value.includes("pkce") && value.includes("verifier")
+  ) || value.includes("code_verifier") || value.includes("code verifier");
+}
+
+type TimeoutResult<T> = { timedOut: true } | { timedOut: false; value: T };
+
+async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<TimeoutResult<T>> {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  const timeoutPromise = new Promise<TimeoutResult<T>>((resolve) => {
+    timeoutId = globalThis.setTimeout(() => resolve({ timedOut: true }), ms);
+  });
+
+  const result = await Promise.race([
+    promise.then((value) => ({ timedOut: false, value })),
+    timeoutPromise,
+  ]);
+
+  if (timeoutId) {
+    globalThis.clearTimeout(timeoutId);
+  }
+
+  return result;
 }
 
 export default function AuthCallback() {
@@ -35,6 +71,9 @@ export default function AuthCallback() {
   const urlIntent = searchParams.get("intent");
   const urlRole = searchParams.get("role");
   const urlCode = searchParams.get("code");
+  const urlError = searchParams.get("error");
+  const urlErrorDescription = searchParams.get("error_description");
+  const urlErrorCode = searchParams.get("error_code");
 
   const [state, setState] = useState<CallbackState>("processing");
   const [error, setError] = useState<string | null>(null);
@@ -45,9 +84,22 @@ export default function AuthCallback() {
   const [retryNonce, setRetryNonce] = useState(0);
 
   const exchangeAttemptedRef = useRef<string | null>(null);
+  const pkceRetryAttemptRef = useRef<string | null>(null);
 
-  const log = (...args: unknown[]) => console.log(LOG_PREFIX, ...args);
-  const logError = (...args: unknown[]) => console.error(LOG_PREFIX, ...args);
+  const log = (message: string, uid?: string | null) => {
+    if (uid) {
+      console.log(LOG_PREFIX, message, { userId: uid });
+    } else {
+      console.log(LOG_PREFIX, message);
+    }
+  };
+  const logError = (message: string, uid?: string | null) => {
+    if (uid) {
+      console.error(LOG_PREFIX, message, { userId: uid });
+    } else {
+      console.error(LOG_PREFIX, message);
+    }
+  };
 
   const clearPendingAuth = () => {
     localStorage.removeItem("pendingAuthRole");
@@ -67,7 +119,7 @@ export default function AuthCallback() {
 
       if (profileError) {
         lastError = profileError;
-        log("profile fetch error", { attempt, profileError });
+        log(`profile fetch error (attempt ${attempt}/${MAX_PROFILE_RETRIES})`, uid);
       }
 
       if (data) {
@@ -76,7 +128,7 @@ export default function AuthCallback() {
       }
 
       if (attempt < MAX_PROFILE_RETRIES) {
-        log("profile not ready, retrying", { attempt, max: MAX_PROFILE_RETRIES });
+        log(`profile not ready, retrying (${attempt}/${MAX_PROFILE_RETRIES})`, uid);
         await new Promise((resolve) => setTimeout(resolve, PROFILE_RETRY_DELAY_MS));
       }
     }
@@ -85,7 +137,7 @@ export default function AuthCallback() {
   };
 
   const createProfileIfMissing = async (uid: string, role: AuthRole | null) => {
-    log("profile missing, attempting create", { uid, role });
+    log("profile missing, attempting create", uid);
 
     const { data, error: createError } = await supabase
       .from("profiles")
@@ -99,7 +151,7 @@ export default function AuthCallback() {
 
     if (createError) {
       if (createError.code === "23505") {
-        log("profile already exists, will re-fetch", { uid });
+        log("profile already exists, will re-fetch", uid);
         return { profile: null, error: null };
       }
 
@@ -129,21 +181,33 @@ export default function AuthCallback() {
     setState("setting_role");
     setStatusMessage(`Setting up your ${role} account...`);
 
-    log("attempting role update", { role, uid });
+    log("attempting role update", uid);
 
-    const { data: updatedProfile, error: updateError } = await supabase
-      .from("profiles")
-      .update({
-        role,
-        timezone: detectBrowserTimezone(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq("user_id", uid)
-      .select("role, timezone")
-      .maybeSingle();
+    const updateResult = await withTimeout(
+      supabase
+        .from("profiles")
+        .update({
+          role,
+          timezone: detectBrowserTimezone(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("user_id", uid)
+        .select("role, timezone")
+        .maybeSingle(),
+      ROLE_UPDATE_TIMEOUT_MS
+    );
+
+    if (updateResult.timedOut) {
+      setError("We couldn’t set your role in time. Please try again.");
+      setErrorDetail("Role update timed out.");
+      setState("role_picker");
+      return;
+    }
+
+    const { data: updatedProfile, error: updateError } = updateResult.value;
 
     if (updateError) {
-      logError("role update failed", updateError);
+      logError("role update failed", uid);
       setError("Could not set your role. Please try again.");
       setErrorDetail(updateError.message ?? "Unknown role update error");
       setState("role_picker");
@@ -153,12 +217,12 @@ export default function AuthCallback() {
     let confirmedRole = normalizeRole(updatedProfile?.role ?? null);
 
     if (!confirmedRole) {
-      log("role update did not confirm, re-fetching profile", { uid });
+      log("role update did not confirm, re-fetching profile", uid);
       const { profile: refreshedProfile } = await fetchProfileWithRetries(uid);
       confirmedRole = normalizeRole(refreshedProfile?.role ?? null);
     }
 
-    log("role after update", { confirmedRole });
+    log("role updated", uid);
 
     if (!confirmedRole) {
       setError("We couldn’t confirm your role. Please select again.");
@@ -188,6 +252,18 @@ export default function AuthCallback() {
       const storageRole = localStorage.getItem("pendingAuthRole");
       const storageIntent = localStorage.getItem("pendingAuthIntent");
 
+      if (urlError || urlErrorDescription) {
+        log("oauth error param detected");
+        setError("Authentication failed. Please try again.");
+        setErrorDetail(
+          urlErrorDescription ??
+            (urlErrorCode ? `${urlError} (${urlErrorCode})` : urlError) ??
+            "OAuth provider returned an error."
+        );
+        setState("session_error");
+        return;
+      }
+
       if (urlCode) {
         localStorage.setItem(CODE_STORAGE_KEY, urlCode);
       }
@@ -196,54 +272,113 @@ export default function AuthCallback() {
       const codeForExchange = urlCode ?? storedCode;
       const codeSource = urlCode ? "url" : storedCode ? "storage" : "none";
 
-      log("callback start", {
-        url: window.location.href,
-        intent: urlIntent,
-        roleParam: urlRole,
-        storageRole,
-        storageIntent,
-        hasCode: Boolean(urlCode),
-      });
+      log("callback start");
 
-      log("code source", { codeSource });
+      const { data: { session: preSession }, error: preSessionError } = await supabase.auth.getSession();
 
-      if (codeForExchange && exchangeAttemptedRef.current !== codeForExchange) {
+      if (preSessionError) {
+        logError("getSession pre-check error");
+      }
+
+      let session = preSession ?? null;
+
+      if (session) {
+        log("session already present, skipping exchange", session.user.id);
+      } else if (codeForExchange && exchangeAttemptedRef.current !== codeForExchange) {
         exchangeAttemptedRef.current = codeForExchange;
-        log("exchange attempt", { codeSource });
+        log("exchange attempt");
 
-        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(codeForExchange);
+        let { error: exchangeError } = await supabase.auth.exchangeCodeForSession(codeForExchange);
 
         if (exchangeError) {
-          logError("exchange failed", exchangeError);
-          setError("Setup failed: no session");
-          setErrorDetail(exchangeError.message ?? "Could not exchange code for session");
-          setState("session_error");
-          return;
+          const message = exchangeError.message ?? "";
+          const flowStateNotFound = isFlowStateNotFound(message);
+          const pkceVerifierMissing = isPkceVerifierMissing(message);
+
+          if (
+            pkceVerifierMissing &&
+            codeSource === "storage" &&
+            pkceRetryAttemptRef.current !== codeForExchange
+          ) {
+            pkceRetryAttemptRef.current = codeForExchange;
+            log("pkce verifier missing, retrying exchange once");
+            await new Promise((resolve) => setTimeout(resolve, PKCE_RETRY_DELAY_MS));
+            const { error: retryError } = await supabase.auth.exchangeCodeForSession(codeForExchange);
+            exchangeError = retryError ?? null;
+          }
+
+          if (exchangeError) {
+            const retryMessage = exchangeError.message ?? "";
+            const retryFlowStateNotFound = isFlowStateNotFound(retryMessage);
+            const retryPkceVerifierMissing = isPkceVerifierMissing(retryMessage);
+
+            logError("exchange failed");
+
+            const { data: { session: fallbackSession }, error: fallbackError } =
+              await supabase.auth.getSession();
+
+            if (fallbackError) {
+              logError("getSession fallback error");
+            }
+
+            if (fallbackSession) {
+              session = fallbackSession;
+              log("session recovered after exchange error", fallbackSession.user.id);
+            } else {
+              exchangeAttemptedRef.current = null;
+              if (retryFlowStateNotFound) {
+                setError("Your sign-in link expired or was already used. Please try again.");
+              } else if (retryPkceVerifierMissing) {
+                setError("We couldn’t verify your sign-in. Please try again.");
+              } else {
+                setError("Setup failed: no session");
+              }
+              setErrorDetail(retryMessage || "Could not exchange code for session");
+              setState("session_error");
+              return;
+            }
+          }
         }
 
-        log("exchange succeeded");
-        localStorage.removeItem(CODE_STORAGE_KEY);
+        if (!exchangeError) {
+          log("exchange succeeded");
+          localStorage.removeItem(CODE_STORAGE_KEY);
 
-        if (urlCode) {
-          const cleanedUrl = new URL(window.location.href);
-          cleanedUrl.searchParams.delete("code");
-          window.history.replaceState({}, "", `${cleanedUrl.pathname}${cleanedUrl.search}${cleanedUrl.hash}`);
+          if (urlCode) {
+            const cleanedUrl = new URL(window.location.href);
+            cleanedUrl.searchParams.delete("code");
+            window.history.replaceState({}, "", `${cleanedUrl.pathname}${cleanedUrl.search}${cleanedUrl.hash}`);
+          }
+
+          const { data: { session: exchangedSession }, error: sessionError } =
+            await supabase.auth.getSession();
+
+          if (sessionError) {
+            logError("getSession error");
+            setError("Setup failed: no session");
+            setErrorDetail(sessionError.message ?? "Could not load session");
+            setState("session_error");
+            return;
+          }
+
+          session = exchangedSession ?? null;
+        } else if (session) {
+          localStorage.removeItem(CODE_STORAGE_KEY);
+          if (urlCode) {
+            const cleanedUrl = new URL(window.location.href);
+            cleanedUrl.searchParams.delete("code");
+            window.history.replaceState({}, "", `${cleanedUrl.pathname}${cleanedUrl.search}${cleanedUrl.hash}`);
+          }
         }
       } else {
-        log("exchange skipped", { reason: codeForExchange ? "already_exchanged" : "no_code" });
+        log("exchange skipped");
       }
 
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-      if (sessionError) {
-        logError("getSession error", sessionError);
-        setError("Setup failed: no session");
-        setErrorDetail(sessionError.message ?? "Could not load session");
-        setState("session_error");
-        return;
+      if (session) {
+        log("session present", session.user.id);
+      } else {
+        log("session missing");
       }
-
-      log("session present", { hasSession: Boolean(session) });
 
       if (!session) {
         setError("Setup failed: no session");
@@ -255,10 +390,22 @@ export default function AuthCallback() {
       setUserId(session.user.id);
 
       setStatusMessage("Loading your profile...");
-      const { profile: fetchedProfile, error: profileError } = await fetchProfileWithRetries(session.user.id);
+      const profileResult = await withTimeout(
+        fetchProfileWithRetries(session.user.id),
+        PROFILE_FETCH_TIMEOUT_MS
+      );
+
+      if (profileResult.timedOut) {
+        setError("We couldn’t load your profile in time.");
+        setErrorDetail("Profile fetch timed out.");
+        setState("role_picker");
+        return;
+      }
+
+      const { profile: fetchedProfile, error: profileError } = profileResult.value;
 
       if (profileError) {
-        logError("profile fetch error", profileError);
+        logError("profile fetch error", session.user.id);
       }
 
       let profile = fetchedProfile;
@@ -270,13 +417,22 @@ export default function AuthCallback() {
           profileRole: null,
         });
 
-        const { profile: createdProfile, error: createError } = await createProfileIfMissing(
-          session.user.id,
-          intendedForCreate
+        const createResult = await withTimeout(
+          createProfileIfMissing(session.user.id, intendedForCreate),
+          PROFILE_CREATE_TIMEOUT_MS
         );
 
+        if (createResult.timedOut) {
+          setError("We couldn’t create your profile in time.");
+          setErrorDetail("Profile create timed out.");
+          setState("role_picker");
+          return;
+        }
+
+        const { profile: createdProfile, error: createError } = createResult.value;
+
         if (createError) {
-          logError("profile create failed", createError);
+          logError("profile create failed", session.user.id);
           setError("We couldn’t create your profile.");
           setErrorDetail(createError.message ?? "Profile create failed");
           setState("role_picker");
@@ -298,11 +454,24 @@ export default function AuthCallback() {
         profileRole: currentRole,
       });
 
-      log("profile resolved", {
-        profileFound: Boolean(profile),
-        currentRole,
-        intendedRole,
-      });
+      log("profile resolved", session.user.id);
+
+      const intentMismatch = Boolean(urlIntent && storageIntent && urlIntent !== storageIntent);
+
+      if (!currentRole && !intendedRole) {
+        if (intentMismatch) {
+          setError("We couldn’t confirm your role from this sign-in. Please select one to continue.");
+          setErrorDetail(null);
+        } else if (profileError) {
+          setError("We couldn’t read your role.");
+          setErrorDetail("Profile role is missing or unreadable.");
+        } else {
+          setError(null);
+          setErrorDetail(null);
+        }
+        setState("role_picker");
+        return;
+      }
 
       const decision = decideNextStep({
         hasSession: true,

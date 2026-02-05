@@ -1,8 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { persistRoleToAuthMetadata } from "./persistRoleMetadata";
-import { getMockSupabase, resetMockSupabase, mockSupabaseModule } from "@/test/mocks/supabase";
+import { getMockSupabase, resetMockSupabase } from "@/test/mocks/supabase";
 
-vi.mock("@/integrations/supabase/client", () => mockSupabaseModule);
+vi.mock("@/integrations/supabase/client", async () => {
+  const { mockSupabaseModule } = await import("@/test/mocks/supabase");
+  return mockSupabaseModule;
+});
 
 describe("persistRoleToAuthMetadata", () => {
   beforeEach(() => {
