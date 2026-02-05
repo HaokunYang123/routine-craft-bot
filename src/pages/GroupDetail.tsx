@@ -318,11 +318,15 @@ export default function GroupDetail() {
         () => students.map((student) => student.student_id),
         [students]
     );
+    const memberIdsKey = useMemo(
+        () => [...new Set(memberIds)].sort().join(","),
+        [memberIds]
+    );
 
     useEffect(() => {
-        if (!groupId || memberIds.length === 0) return;
+        if (!groupId || !memberIdsKey) return;
 
-        const filter = `assignee_id=in.(${memberIds.join(",")})`;
+        const filter = `assignee_id=in.(${memberIdsKey})`;
         const channel = supabase
             .channel(`group-detail-tasks-${groupId}`)
             .on(
@@ -337,7 +341,7 @@ export default function GroupDetail() {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [groupId, memberIds, fetchData]);
+    }, [groupId, memberIdsKey, fetchData]);
 
     const handleSendNote = async () => {
         if (!newNote.trim() || !user || !groupId) return;

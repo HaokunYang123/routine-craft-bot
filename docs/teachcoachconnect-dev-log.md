@@ -2,6 +2,9 @@
 
 ## Completed
 
+### Group Detail Realtime Stability (2026-02-05)
+- Fixed realtime subscription thrashing in GroupDetail.tsx (stabilized useEffect dependencies with useCallback and serialized member IDs)
+
 ### Group Detail Crash Fix (2026-02-05)
 - Fixed circular dependency crash in GroupDetail.tsx (ReferenceError: Cannot access before initialization)
 
