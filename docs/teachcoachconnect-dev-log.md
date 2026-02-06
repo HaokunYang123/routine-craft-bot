@@ -6,6 +6,7 @@
 - Created src/lib/gemini.ts: shared Gemini API utility with typed request/response, JSON mode, 15s timeout, single retry on parse failure
 - Updated gemini.ts: use VITE_GEMINI_API_KEY as sole env var (Vite requires VITE_ prefix for client-side access)
 - Phase 1 AI Template Builder: built AIPlanBuilder.tsx with input, generate, preview, edit, save flow. Created templatePrompt.ts for Gemini prompt construction. Wired into Templates page. Saves to templates + template_tasks with is_ai_generated flag.
+- Added unsaved changes protection to AIPlanBuilder: beforeunload listener + tab switch confirmation when AI template is in preview but not saved
 
 ### Delete Account Feature (2026-02-05)
 - Delete Account: added Supabase Edge Function (`delete-account`) that verifies caller JWT and deletes the authenticated user via `supabase.auth.admin.deleteUser`.

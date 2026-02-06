@@ -37,6 +37,7 @@ export default function Templates() {
   const { refineTask } = useAIAssistant();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("ai");
+  const [hasUnsavedAITemplate, setHasUnsavedAITemplate] = useState(false);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [pendingTasks, setPendingTasks] = useState<GeneratedTask[]>([]);
   const [templateName, setTemplateName] = useState("");
@@ -169,6 +170,23 @@ export default function Templates() {
     }
   };
 
+  const handleTabChange = (nextTab: string) => {
+    if (nextTab === activeTab) return;
+
+    const leavingAIBuilder = activeTab === "ai" && nextTab !== "ai";
+    if (leavingAIBuilder && hasUnsavedAITemplate) {
+      const confirmed = window.confirm(
+        "You have an unsaved AI-generated template. Leave without saving?",
+      );
+      if (!confirmed) {
+        return;
+      }
+      setHasUnsavedAITemplate(false);
+    }
+
+    setActiveTab(nextTab);
+  };
+
   if (loading) {
     return <TemplatesSkeleton />;
   }
@@ -184,7 +202,7 @@ export default function Templates() {
       </div>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={handleTabChange}>
         <TabsList className="bg-muted/30">
           <TabsTrigger
             value="ai"
@@ -210,7 +228,10 @@ export default function Templates() {
         </TabsList>
 
         <TabsContent value="ai" className="mt-6">
-          <AIPlanBuilder onSavePlan={handleSavePlan} />
+          <AIPlanBuilder
+            onSavePlan={handleSavePlan}
+            onUnsavedTemplateChange={setHasUnsavedAITemplate}
+          />
         </TabsContent>
 
         <TabsContent value="manual" className="mt-6">

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Loader2, Sparkles, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +23,7 @@ interface LegacyGeneratedTask {
 interface AIPlanBuilderProps {
   onSavePlan?: (tasks: LegacyGeneratedTask[]) => void;
   context?: string;
+  onUnsavedTemplateChange?: (hasUnsavedTemplate: boolean) => void;
 }
 
 type BuilderState = "input" | "generating" | "preview" | "saving";
@@ -182,7 +183,7 @@ const buildWeeksPayload = (tasks: PersistedTask[]) => {
 };
 
 export function AIPlanBuilder(props: AIPlanBuilderProps) {
-  void props;
+  const { onUnsavedTemplateChange } = props;
 
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -193,10 +194,36 @@ export function AIPlanBuilder(props: AIPlanBuilderProps) {
   const [templateDraft, setTemplateDraft] = useState<TemplateDraft | null>(null);
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [hasUnsavedTemplate, setHasUnsavedTemplate] = useState(false);
 
   const isGenerating = builderState === "generating";
   const isSaving = builderState === "saving";
   const isPreviewVisible = builderState === "preview" || builderState === "saving";
+
+  useEffect(() => {
+    onUnsavedTemplateChange?.(hasUnsavedTemplate);
+  }, [hasUnsavedTemplate, onUnsavedTemplateChange]);
+
+  useEffect(() => {
+    return () => {
+      onUnsavedTemplateChange?.(false);
+    };
+  }, [onUnsavedTemplateChange]);
+
+  useEffect(() => {
+    if (!hasUnsavedTemplate) return;
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [hasUnsavedTemplate]);
 
   const groupedWeeks = useMemo<GroupedWeek[]>(() => {
     if (!templateDraft) return [];
@@ -234,6 +261,7 @@ export function AIPlanBuilder(props: AIPlanBuilderProps) {
     setTemplateDraft(null);
     setGenerationError(null);
     setSaveError(null);
+    setHasUnsavedTemplate(false);
   };
 
   const handleTryAgain = () => {
@@ -267,6 +295,7 @@ export function AIPlanBuilder(props: AIPlanBuilderProps) {
     }
 
     setTemplateDraft(normalizedTemplate);
+    setHasUnsavedTemplate(true);
     setBuilderState("preview");
   };
 
