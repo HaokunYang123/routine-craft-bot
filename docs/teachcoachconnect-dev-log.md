@@ -2,6 +2,10 @@
 
 ## Completed
 
+### Shared Gemini Utility (2026-02-06)
+- Created src/lib/gemini.ts: shared Gemini API utility with typed request/response, JSON mode, 15s timeout, single retry on parse failure
+- Updated gemini.ts: use VITE_GEMINI_API_KEY as sole env var (Vite requires VITE_ prefix for client-side access)
+
 ### Delete Account Feature (2026-02-05)
 - Delete Account: added Supabase Edge Function (`delete-account`) that verifies caller JWT and deletes the authenticated user via `supabase.auth.admin.deleteUser`.
 - Added reusable Delete Account section in settings with warning card + type-to-confirm dialog (`DELETE`) for both coach and student settings pages.
@@ -10,6 +14,7 @@
 - Edge Function fix: replaced esm.sh import with jsdelivr CDN for supabase-js in delete-account function to fix bundle timeout on deploy
 - Fixed delete account 401: added proper Authorization header with session JWT to Edge Function fetch call
 - Fixed delete account 401 (part 2): added apikey header to Edge Function fetch call — Supabase gateway requires both Authorization and apikey headers
+- Fixed QR code join flow: added /join route and JoinGroup page, handles auth redirect with pending token in sessionStorage, group lookup by qr_token, duplicate member check
 
 ### Excuse Status Constraint + Template Dialog Theme Fixes (2026-02-05)
 - Excuse fix: added migration `20260205000001_add_excused_status.sql` to include `excused` in `task_instances` status CHECK constraint with defensive dynamic constraint discovery/drop + enum support.

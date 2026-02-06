@@ -19,6 +19,7 @@ const LOG_PREFIX = "[auth-callback]";
 const MAX_PROFILE_RETRIES = 5;
 const PROFILE_RETRY_DELAY_MS = 500;
 const CODE_STORAGE_KEY = "authCallbackCode";
+const PENDING_JOIN_TOKEN_KEY = "pending_join_token";
 const PKCE_RETRY_DELAY_MS = 400;
 const PROFILE_FETCH_TIMEOUT_MS = 8000;
 const PROFILE_CREATE_TIMEOUT_MS = 8000;
@@ -173,6 +174,13 @@ export default function AuthCallback() {
     setStatusMessage(`Welcome! Redirecting to your ${role} dashboard...`);
 
     await new Promise((resolve) => setTimeout(resolve, 400));
+
+    const pendingJoinToken = sessionStorage.getItem(PENDING_JOIN_TOKEN_KEY);
+    if (pendingJoinToken) {
+      sessionStorage.removeItem(PENDING_JOIN_TOKEN_KEY);
+      navigate(`/join?token=${encodeURIComponent(pendingJoinToken)}`, { replace: true });
+      return;
+    }
 
     navigate(role === "coach" ? "/dashboard" : "/app", { replace: true });
   };
