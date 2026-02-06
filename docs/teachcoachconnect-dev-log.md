@@ -9,6 +9,7 @@
 - All data cleanup is handled by existing CASCADE / SET NULL foreign-key behavior after auth user deletion.
 - Edge Function fix: replaced esm.sh import with jsdelivr CDN for supabase-js in delete-account function to fix bundle timeout on deploy
 - Fixed delete account 401: added proper Authorization header with session JWT to Edge Function fetch call
+- Fixed delete account 401 (part 2): added apikey header to Edge Function fetch call — Supabase gateway requires both Authorization and apikey headers
 
 ### Excuse Status Constraint + Template Dialog Theme Fixes (2026-02-05)
 - Excuse fix: added migration `20260205000001_add_excused_status.sql` to include `excused` in `task_instances` status CHECK constraint with defensive dynamic constraint discovery/drop + enum support.
