@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PolishButton } from "@/components/ui/PolishButton";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -74,11 +75,15 @@ export function ManualTemplateBuilder({ onSave, isSaving }: ManualTemplateBuilde
     field: keyof ManualTaskForm,
     value: ManualTaskForm[keyof ManualTaskForm]
   ) => {
-    setTasks(
-      tasks.map((task, i) =>
+    setTasks((prevTasks) =>
+      prevTasks.map((task, i) =>
         i === index ? { ...task, [field]: value } : task
       )
     );
+  };
+
+  const updateTaskDescription = (index: number, value: string) => {
+    updateTask(index, "description", value);
   };
 
   const getTimeSlotValue = (label: string): number | null => {
@@ -209,10 +214,14 @@ export function ManualTemplateBuilder({ onSave, isSaving }: ManualTemplateBuilde
                 <Label className="text-xs">Description (optional)</Label>
                 <Textarea
                   value={task.description}
-                  onChange={(e) => updateTask(index, "description", e.target.value)}
+                  onChange={(e) => updateTaskDescription(index, e.target.value)}
                   placeholder="Describe this task..."
                   rows={2}
                   className="bg-card border-border text-sm"
+                />
+                <PolishButton
+                  value={task.description}
+                  onChange={(value) => updateTaskDescription(index, value)}
                 />
               </div>
 
