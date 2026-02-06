@@ -1,367 +1,712 @@
-import { useState } from "react";
-import {
-  Sparkles,
-  Loader2,
-  CheckCircle2,
-  Clock,
-  Calendar,
-  Edit2,
-  Trash2,
-  Plus,
-  Save,
-  Wand2,
-  X,
-} from "lucide-react";
+import { useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { Loader2, Sparkles, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { InputWithMagicWand } from "./InputWithMagicWand";
-import { useAIAssistant, GeneratedTask } from "@/hooks/useAIAssistant";
-import { cn } from "@/lib/utils";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { callGemini } from "@/lib/gemini";
+import { queryKeys } from "@/lib/queries/keys";
+import { buildTemplatePrompt } from "@/lib/templatePrompt";
+
+interface LegacyGeneratedTask {
+  title: string;
+  description: string;
+  duration_minutes: number;
+  day_offset: number;
+}
 
 interface AIPlanBuilderProps {
-  onSavePlan?: (tasks: GeneratedTask[]) => void;
+  onSavePlan?: (tasks: LegacyGeneratedTask[]) => void;
   context?: string;
 }
 
-export function AIPlanBuilder({ onSavePlan, context }: AIPlanBuilderProps) {
-  const { generatePlan, modifyPlan, refineTask, loading, error, cancel } = useAIAssistant();
-  const [generatedTasks, setGeneratedTasks] = useState<GeneratedTask[]>([]);
-  const [modificationPrompt, setModificationPrompt] = useState("");
-  const [isModifying, setIsModifying] = useState(false);
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [polishingIndex, setPolishingIndex] = useState<number | null>(null);
+type BuilderState = "input" | "generating" | "preview" | "saving";
 
-  const handleGeneratePlan = async (prompt: string) => {
-    const result = await generatePlan(prompt, context);
-    if (result.success && result.data) {
-      // result.data is GeneratedPlan { name, description, tasks }
-      setGeneratedTasks(result.data.tasks || []);
+interface TemplateTaskDraft {
+  id: string;
+  title: string;
+  description: string;
+  day_offset: number;
+  duration_minutes: number;
+  start_time: string;
+  end_time: string;
+}
+
+interface TemplateDraft {
+  name: string;
+  description: string;
+  duration_weeks: number;
+  frequency_per_week: number;
+  tasks: TemplateTaskDraft[];
+}
+
+interface TemplateModelResponse {
+  name?: unknown;
+  description?: unknown;
+  duration_weeks?: unknown;
+  frequency_per_week?: unknown;
+  tasks?: unknown;
+}
+
+interface GroupedWeek {
+  weekNumber: number;
+  days: Array<{
+    dayNumber: number;
+    tasks: TemplateTaskDraft[];
+  }>;
+}
+
+interface PersistedTask {
+  title: string;
+  description: string | null;
+  day_offset: number;
+  duration_minutes: number;
+  start_time: string | null;
+  end_time: string | null;
+}
+
+const TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
+let generatedTaskCounter = 0;
+
+const createTaskId = (): string => {
+  generatedTaskCounter += 1;
+  return `ai-task-${Date.now()}-${generatedTaskCounter}`;
+};
+
+const parseNonNegativeInt = (value: unknown, fallback: number): number => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.max(0, Math.floor(parsed));
+};
+
+const parsePositiveInt = (value: unknown, fallback: number): number => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.max(1, Math.floor(parsed));
+};
+
+const parseString = (value: unknown): string => {
+  if (typeof value !== "string") return "";
+  return value.trim();
+};
+
+const normalizeDraftTime = (value: unknown): string => {
+  const parsed = parseString(value);
+  if (!parsed) return "";
+  return TIME_PATTERN.test(parsed) ? parsed : "";
+};
+
+const normalizeSaveTime = (value: string): string | null => {
+  const parsed = value.trim();
+  if (!parsed) return null;
+  return TIME_PATTERN.test(parsed) ? parsed : null;
+};
+
+const estimateFrequency = (tasks: Array<{ day_offset: number }>, durationWeeks: number): number => {
+  if (tasks.length === 0) return 1;
+  const uniqueOffsets = new Set(tasks.map((task) => task.day_offset));
+  const estimated = Math.round(uniqueOffsets.size / Math.max(durationWeeks, 1));
+  return Math.max(1, estimated);
+};
+
+const normalizeTemplateResponse = (data: TemplateModelResponse): TemplateDraft | null => {
+  const rawTasks = Array.isArray(data.tasks) ? data.tasks : [];
+
+  const tasks = rawTasks
+    .map((task, index) => {
+      if (typeof task !== "object" || task === null) return null;
+      const parsed = task as Record<string, unknown>;
+      const title = parseString(parsed.title);
+      if (!title) return null;
+
+      return {
+        id: createTaskId(),
+        title,
+        description: parseString(parsed.description),
+        day_offset: parseNonNegativeInt(parsed.day_offset, index),
+        duration_minutes: parsePositiveInt(parsed.duration_minutes, 30),
+        start_time: normalizeDraftTime(parsed.start_time),
+        end_time: normalizeDraftTime(parsed.end_time),
+      } as TemplateTaskDraft;
+    })
+    .filter((task): task is TemplateTaskDraft => task !== null)
+    .sort((a, b) => a.day_offset - b.day_offset);
+
+  if (tasks.length === 0) return null;
+
+  const maxOffset = Math.max(...tasks.map((task) => task.day_offset), 0);
+  const derivedWeeks = Math.max(1, Math.ceil((maxOffset + 1) / 7));
+
+  return {
+    name: parseString(data.name) || "AI Generated Plan",
+    description: parseString(data.description) || "Plan generated with AI.",
+    duration_weeks: parsePositiveInt(data.duration_weeks, derivedWeeks),
+    frequency_per_week: parsePositiveInt(
+      data.frequency_per_week,
+      estimateFrequency(tasks, derivedWeeks),
+    ),
+    tasks,
+  };
+};
+
+const buildWeeksPayload = (tasks: PersistedTask[]) => {
+  const weekMap = new Map<number, Map<number, PersistedTask[]>>();
+
+  tasks.forEach((task) => {
+    const weekNumber = Math.floor(task.day_offset / 7) + 1;
+    const dayNumber = (task.day_offset % 7) + 1;
+
+    const dayMap = weekMap.get(weekNumber) ?? new Map<number, PersistedTask[]>();
+    const dayTasks = dayMap.get(dayNumber) ?? [];
+    dayTasks.push(task);
+    dayMap.set(dayNumber, dayTasks);
+    weekMap.set(weekNumber, dayMap);
+  });
+
+  return Array.from(weekMap.entries())
+    .sort(([a], [b]) => a - b)
+    .map(([weekNumber, dayMap]) => ({
+      week: weekNumber,
+      days: Array.from(dayMap.entries())
+        .sort(([a], [b]) => a - b)
+        .map(([dayNumber, dayTasks]) => ({
+          day: dayNumber,
+          tasks: dayTasks,
+        })),
+    }));
+};
+
+export function AIPlanBuilder(props: AIPlanBuilderProps) {
+  void props;
+
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const [builderState, setBuilderState] = useState<BuilderState>("input");
+  const [userRequest, setUserRequest] = useState("");
+  const [templateDraft, setTemplateDraft] = useState<TemplateDraft | null>(null);
+  const [generationError, setGenerationError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const isGenerating = builderState === "generating";
+  const isSaving = builderState === "saving";
+  const isPreviewVisible = builderState === "preview" || builderState === "saving";
+
+  const groupedWeeks = useMemo<GroupedWeek[]>(() => {
+    if (!templateDraft) return [];
+
+    const weekMap = new Map<number, Map<number, TemplateTaskDraft[]>>();
+    templateDraft.tasks
+      .slice()
+      .sort((a, b) => a.day_offset - b.day_offset)
+      .forEach((task) => {
+        const weekNumber = Math.floor(task.day_offset / 7) + 1;
+        const dayNumber = (task.day_offset % 7) + 1;
+        const dayMap = weekMap.get(weekNumber) ?? new Map<number, TemplateTaskDraft[]>();
+        const tasksForDay = dayMap.get(dayNumber) ?? [];
+        tasksForDay.push(task);
+        dayMap.set(dayNumber, tasksForDay);
+        weekMap.set(weekNumber, dayMap);
+      });
+
+    return Array.from(weekMap.entries())
+      .sort(([a], [b]) => a - b)
+      .map(([weekNumber, dayMap]) => ({
+        weekNumber,
+        days: Array.from(dayMap.entries())
+          .sort(([a], [b]) => a - b)
+          .map(([dayNumber, tasks]) => ({
+            dayNumber,
+            tasks,
+          })),
+      }));
+  }, [templateDraft]);
+
+  const resetToInput = () => {
+    setBuilderState("input");
+    setUserRequest("");
+    setTemplateDraft(null);
+    setGenerationError(null);
+    setSaveError(null);
+  };
+
+  const handleTryAgain = () => {
+    setBuilderState("input");
+    setGenerationError(null);
+    setSaveError(null);
+  };
+
+  const handleGeneratePlan = async () => {
+    const trimmedInput = userRequest.trim();
+    if (!trimmedInput) return;
+
+    setBuilderState("generating");
+    setGenerationError(null);
+    setSaveError(null);
+
+    const prompt = buildTemplatePrompt(trimmedInput);
+    const result = await callGemini<TemplateModelResponse>(prompt);
+
+    if (!result.success || !result.data) {
+      setGenerationError(result.error || "Failed to generate a plan.");
+      setBuilderState("input");
+      return;
     }
-  };
 
-  const handleModifyPlan = async () => {
-    if (!modificationPrompt.trim() || generatedTasks.length === 0) return;
-    setIsModifying(true);
-    try {
-      const result = await modifyPlan(generatedTasks, modificationPrompt.trim());
-      if (result.success && result.data) {
-        setGeneratedTasks(result.data);
-        setModificationPrompt("");
-      }
-    } finally {
-      setIsModifying(false);
+    const normalizedTemplate = normalizeTemplateResponse(result.data);
+    if (!normalizedTemplate) {
+      setGenerationError("AI response was missing required plan fields.");
+      setBuilderState("input");
+      return;
     }
+
+    setTemplateDraft(normalizedTemplate);
+    setBuilderState("preview");
   };
 
-  const handleCancelModify = () => {
-    cancel();
-    setIsModifying(false);
+  const handleTemplateFieldChange = (field: "name" | "description", value: string) => {
+    setTemplateDraft((prev) => (prev ? { ...prev, [field]: value } : prev));
   };
 
-  const handleDeleteTask = (index: number) => {
-    setGeneratedTasks((prev) => prev.filter((_, i) => i !== index));
+  const handleTaskTextChange = (
+    taskId: string,
+    field: "title" | "description" | "start_time" | "end_time",
+    value: string,
+  ) => {
+    setTemplateDraft((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        tasks: prev.tasks.map((task) =>
+          task.id === taskId ? { ...task, [field]: value } : task,
+        ),
+      };
+    });
   };
 
-  const handleEditTask = (index: number, field: keyof GeneratedTask, value: GeneratedTask[keyof GeneratedTask]) => {
-    setGeneratedTasks((prev) =>
-      prev.map((task, i) =>
-        i === index ? { ...task, [field]: value } : task
-      )
+  const handleTaskDayChange = (taskId: string, value: string) => {
+    const parsed = Number.parseInt(value, 10);
+    const dayOffset = Number.isNaN(parsed) ? 0 : Math.max(0, parsed - 1);
+    setTemplateDraft((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        tasks: prev.tasks.map((task) =>
+          task.id === taskId ? { ...task, day_offset: dayOffset } : task,
+        ),
+      };
+    });
+  };
+
+  const handleTaskDurationChange = (taskId: string, value: string) => {
+    const parsed = Number.parseInt(value, 10);
+    const duration = Number.isNaN(parsed) ? 30 : Math.max(1, parsed);
+    setTemplateDraft((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        tasks: prev.tasks.map((task) =>
+          task.id === taskId ? { ...task, duration_minutes: duration } : task,
+        ),
+      };
+    });
+  };
+
+  const handleDeleteTask = (taskId: string) => {
+    setTemplateDraft((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        tasks: prev.tasks.filter((task) => task.id !== taskId),
+      };
+    });
+  };
+
+  const handleSaveTemplate = async () => {
+    if (!templateDraft) return;
+
+    if (!user) {
+      setSaveError("You must be logged in to save templates.");
+      return;
+    }
+
+    const templateName = templateDraft.name.trim();
+    if (!templateName) {
+      setSaveError("Template name is required.");
+      return;
+    }
+
+    const persistedTasks = templateDraft.tasks
+      .map((task, index) => ({
+        title: task.title.trim(),
+        description: task.description.trim() || null,
+        day_offset: Math.max(0, Math.floor(task.day_offset)),
+        duration_minutes: Math.max(1, Math.floor(task.duration_minutes)),
+        start_time: normalizeSaveTime(task.start_time),
+        end_time: normalizeSaveTime(task.end_time),
+        sort_index: index,
+      }))
+      .filter((task) => task.title.length > 0)
+      .sort((a, b) => a.day_offset - b.day_offset || a.sort_index - b.sort_index);
+
+    if (persistedTasks.length === 0) {
+      setSaveError("At least one task with a title is required.");
+      return;
+    }
+
+    const maxOffset = Math.max(...persistedTasks.map((task) => task.day_offset), 0);
+    const durationWeeks = Math.max(
+      1,
+      parsePositiveInt(templateDraft.duration_weeks, Math.ceil((maxOffset + 1) / 7)),
     );
-  };
+    const frequencyPerWeek = Math.max(
+      1,
+      parsePositiveInt(
+        templateDraft.frequency_per_week,
+        estimateFrequency(persistedTasks, durationWeeks),
+      ),
+    );
 
-  const handleAddTask = () => {
-    setGeneratedTasks((prev) => [
-      ...prev,
-      {
-        title: "New Task",
-        description: "",
-        duration_minutes: 15,
-        day_offset: prev.length > 0 ? prev[prev.length - 1].day_offset : 0,
-      },
-    ]);
-    setEditingIndex(generatedTasks.length);
-  };
+    setBuilderState("saving");
+    setSaveError(null);
 
-  const handleSave = () => {
-    if (onSavePlan && generatedTasks.length > 0) {
-      onSavePlan(generatedTasks);
-    }
-  };
+    let createdTemplateId: string | null = null;
+    let tasksInserted = false;
 
-  const handlePolishTask = async (index: number) => {
-    const task = generatedTasks[index];
-    if (!task.description && !task.title) return;
-
-    setPolishingIndex(index);
     try {
-      // Use the task description, or title if no description
-      const textToPolish = task.description || task.title;
-      const result = await refineTask(textToPolish);
-      if (result.success && result.data) {
-        handleEditTask(index, "description", result.data);
+      const { data: insertedTemplate, error: templateError } = await supabase
+        .from("templates")
+        .insert({
+          coach_id: user.id,
+          name: templateName,
+          description: templateDraft.description.trim() || null,
+          duration_weeks: durationWeeks,
+          frequency_per_week: frequencyPerWeek,
+          is_ai_generated: true,
+          weeks: buildWeeksPayload(
+            persistedTasks.map((task) => ({
+              title: task.title,
+              description: task.description,
+              day_offset: task.day_offset,
+              duration_minutes: task.duration_minutes,
+              start_time: task.start_time,
+              end_time: task.end_time,
+            })),
+          ),
+        })
+        .select("id")
+        .single();
+
+      if (templateError || !insertedTemplate) {
+        throw new Error(templateError?.message || "Failed to create template.");
       }
-    } finally {
-      setPolishingIndex(null);
+
+      createdTemplateId = insertedTemplate.id;
+
+      const { error: tasksError } = await supabase.from("template_tasks").insert(
+        persistedTasks.map((task, index) => ({
+          template_id: insertedTemplate.id,
+          title: task.title,
+          description: task.description,
+          day_offset: task.day_offset,
+          duration_minutes: task.duration_minutes,
+          start_time: task.start_time,
+          end_time: task.end_time,
+          sort_order: index,
+        })),
+      );
+
+      if (tasksError) {
+        throw new Error(tasksError.message || "Failed to create template tasks.");
+      }
+
+      tasksInserted = true;
+
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.templates.list(user.id),
+      });
+
+      toast({
+        title: "Template saved!",
+      });
+
+      resetToInput();
+    } catch (error) {
+      if (createdTemplateId && !tasksInserted) {
+        await supabase.from("templates").delete().eq("id", createdTemplateId);
+      }
+
+      if (error instanceof Error) {
+        setSaveError(error.message);
+      } else {
+        setSaveError("Failed to save template.");
+      }
+
+      setBuilderState("preview");
     }
   };
-
-  // Group tasks by day
-  const tasksByDay = generatedTasks.reduce((acc, task, index) => {
-    const day = task.day_offset;
-    if (!acc[day]) acc[day] = [];
-    acc[day].push({ ...task, originalIndex: index });
-    return acc;
-  }, {} as Record<number, (GeneratedTask & { originalIndex: number })[]>);
 
   return (
     <div className="space-y-6">
-      {/* AI Input */}
       <Card className="border-cta-primary/30 bg-cta-primary/5">
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-lg text-foreground">
-            <Sparkles className="w-5 h-5 text-cta-primary" />
+            <Sparkles className="h-5 w-5 text-cta-primary" />
             AI Plan Builder
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <InputWithMagicWand
-            placeholder="e.g., 'Create a 5-week beginner plan, 3x per week' or 'Build a 2-week study schedule for math exam'"
-            onSubmit={handleGeneratePlan}
-            isLoading={loading}
-          />
-          {loading && (
-            <div className="mt-2 flex items-center gap-2">
-              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Generating plan...</span>
-              <button
-                onClick={cancel}
-                className="ml-auto text-sm text-muted-foreground hover:text-foreground flex items-center gap-1"
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="ai-template-input">Describe your plan</Label>
+            <Textarea
+              id="ai-template-input"
+              value={userRequest}
+              onChange={(event) => setUserRequest(event.target.value)}
+              disabled={isGenerating}
+              placeholder="e.g. Make a 4-week beginner plan, 3 days per week, focused on basketball fundamentals"
+              className="min-h-[120px] bg-card border-border"
+            />
+          </div>
+
+          <Button
+            type="button"
+            onClick={handleGeneratePlan}
+            disabled={!userRequest.trim() || isGenerating}
+            className="bg-cta-primary hover:bg-cta-hover text-white"
+          >
+            {isGenerating ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              "Generate Plan"
+            )}
+          </Button>
+
+          {generationError && builderState === "input" && (
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3">
+              <p className="text-sm text-destructive">{generationError}</p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleTryAgain}
+                className="mt-3 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
               >
-                <X className="w-3 h-3" />
-                Cancel
-              </button>
+                Try Again
+              </Button>
             </div>
-          )}
-          {error && (
-            <p className="mt-2 text-sm text-urgent">{error}</p>
           )}
         </CardContent>
       </Card>
 
-      {/* Generated Plan */}
-      {generatedTasks.length > 0 && (
+      {templateDraft && isPreviewVisible && (
         <Card className="border-border">
           <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg text-foreground">
-                Generated Plan ({generatedTasks.length} tasks)
-              </CardTitle>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleAddTask}
-                  className="text-btn-secondary border-btn-secondary/30 hover:bg-btn-secondary/10"
-                >
-                  <Plus className="w-4 h-4 mr-1" />
-                  Add Task
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={handleSave}
-                  className="bg-cta-primary hover:bg-cta-hover text-white"
-                >
-                  <Save className="w-4 h-4 mr-1" />
-                  Save Plan
-                </Button>
-              </div>
-            </div>
+            <CardTitle className="text-lg text-foreground">Template Preview</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Modification Input */}
-            <div className="flex gap-2 p-3 bg-muted/30 rounded-lg border border-border/50">
-              <Input
-                value={modificationPrompt}
-                onChange={(e) => setModificationPrompt(e.target.value)}
-                placeholder="Modify: 'Make it easier' or 'Add more rest days' or 'Adjust for knee injury'"
-                className="bg-card border-border"
-                onKeyDown={(e) => e.key === "Enter" && handleModifyPlan()}
-                disabled={isModifying}
-              />
-              <Button
-                onClick={handleModifyPlan}
-                disabled={!modificationPrompt.trim() || isModifying}
-                variant="secondary"
-                className="shrink-0 bg-btn-secondary hover:bg-btn-secondary-hover text-white"
-              >
-                {isModifying ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Sparkles className="w-4 h-4" />
-                )}
-              </Button>
-              {isModifying && (
-                <Button
-                  onClick={handleCancelModify}
-                  variant="ghost"
-                  size="icon"
-                  className="shrink-0 text-muted-foreground hover:text-foreground"
-                  title="Cancel modification"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              )}
+          <CardContent className="space-y-6">
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <Label htmlFor="ai-template-name">Template Name</Label>
+                <Input
+                  id="ai-template-name"
+                  value={templateDraft.name}
+                  onChange={(event) =>
+                    handleTemplateFieldChange("name", event.target.value)
+                  }
+                  disabled={isSaving}
+                  className="bg-card border-border"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="ai-template-description">Description</Label>
+                <Textarea
+                  id="ai-template-description"
+                  value={templateDraft.description}
+                  onChange={(event) =>
+                    handleTemplateFieldChange("description", event.target.value)
+                  }
+                  disabled={isSaving}
+                  className="min-h-[90px] bg-card border-border"
+                />
+              </div>
+
+              <p className="text-xs text-muted-foreground">
+                {templateDraft.duration_weeks} week plan • {templateDraft.frequency_per_week} days per week
+              </p>
             </div>
 
-            {/* Tasks by Day */}
             <div className="space-y-4">
-              {Object.entries(tasksByDay)
-                .sort(([a], [b]) => Number(a) - Number(b))
-                .map(([day, tasks]) => (
-                  <div key={day} className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm font-medium text-muted-foreground">
-                        Day {Number(day) + 1}
-                      </span>
+              {groupedWeeks.map((week) => (
+                <div key={week.weekNumber} className="space-y-3">
+                  <h3 className="text-sm font-semibold text-foreground">
+                    Week {week.weekNumber}
+                  </h3>
+                  {week.days.map((day) => (
+                    <div key={`${week.weekNumber}-${day.dayNumber}`} className="space-y-2">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        Day {day.dayNumber}
+                      </p>
+                      <div className="space-y-3">
+                        {day.tasks.map((task) => (
+                          <div
+                            key={task.id}
+                            className="rounded-lg border border-border bg-card p-4 space-y-3"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="text-sm font-medium text-foreground">Task</p>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDeleteTask(task.id)}
+                                disabled={isSaving}
+                                className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                aria-label="Delete task"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor={`task-title-${task.id}`}>Title</Label>
+                              <Input
+                                id={`task-title-${task.id}`}
+                                value={task.title}
+                                onChange={(event) =>
+                                  handleTaskTextChange(task.id, "title", event.target.value)
+                                }
+                                disabled={isSaving}
+                                className="bg-card border-border"
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor={`task-description-${task.id}`}>Description</Label>
+                              <Textarea
+                                id={`task-description-${task.id}`}
+                                value={task.description}
+                                onChange={(event) =>
+                                  handleTaskTextChange(
+                                    task.id,
+                                    "description",
+                                    event.target.value,
+                                  )
+                                }
+                                disabled={isSaving}
+                                className="min-h-[80px] bg-card border-border"
+                              />
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+                              <div className="space-y-2">
+                                <Label htmlFor={`task-day-${task.id}`}>Day #</Label>
+                                <Input
+                                  id={`task-day-${task.id}`}
+                                  type="number"
+                                  min={1}
+                                  value={task.day_offset + 1}
+                                  onChange={(event) =>
+                                    handleTaskDayChange(task.id, event.target.value)
+                                  }
+                                  disabled={isSaving}
+                                  className="bg-card border-border"
+                                />
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label htmlFor={`task-duration-${task.id}`}>Duration (min)</Label>
+                                <Input
+                                  id={`task-duration-${task.id}`}
+                                  type="number"
+                                  min={1}
+                                  value={task.duration_minutes}
+                                  onChange={(event) =>
+                                    handleTaskDurationChange(task.id, event.target.value)
+                                  }
+                                  disabled={isSaving}
+                                  className="bg-card border-border"
+                                />
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label htmlFor={`task-start-${task.id}`}>Start Time</Label>
+                                <Input
+                                  id={`task-start-${task.id}`}
+                                  value={task.start_time}
+                                  onChange={(event) =>
+                                    handleTaskTextChange(
+                                      task.id,
+                                      "start_time",
+                                      event.target.value,
+                                    )
+                                  }
+                                  disabled={isSaving}
+                                  placeholder="HH:MM"
+                                  className="bg-card border-border"
+                                />
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label htmlFor={`task-end-${task.id}`}>End Time</Label>
+                                <Input
+                                  id={`task-end-${task.id}`}
+                                  value={task.end_time}
+                                  onChange={(event) =>
+                                    handleTaskTextChange(task.id, "end_time", event.target.value)
+                                  }
+                                  disabled={isSaving}
+                                  placeholder="HH:MM"
+                                  className="bg-card border-border"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <div className="space-y-2 pl-6">
-                      {tasks.map((task) => (
-                        <TaskCard
-                          key={task.originalIndex}
-                          task={task}
-                          isEditing={editingIndex === task.originalIndex}
-                          isPolishing={polishingIndex === task.originalIndex}
-                          onEdit={() =>
-                            setEditingIndex(
-                              editingIndex === task.originalIndex
-                                ? null
-                                : task.originalIndex
-                            )
-                          }
-                          onDelete={() => handleDeleteTask(task.originalIndex)}
-                          onChange={(field, value) =>
-                            handleEditTask(task.originalIndex, field, value)
-                          }
-                          onPolish={() => handlePolishTask(task.originalIndex)}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
+              ))}
+            </div>
+
+            {saveError && (
+              <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3">
+                <p className="text-sm text-destructive">{saveError}</p>
+              </div>
+            )}
+
+            <div className="flex flex-wrap gap-2 pt-2">
+              <Button
+                type="button"
+                onClick={handleSaveTemplate}
+                disabled={isSaving || !templateDraft.name.trim()}
+                className="bg-cta-primary hover:bg-cta-hover text-white"
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save Template"
+                )}
+              </Button>
+              <Button type="button" variant="outline" onClick={resetToInput} disabled={isSaving}>
+                Start Over
+              </Button>
             </div>
           </CardContent>
         </Card>
-      )}
-    </div>
-  );
-}
-
-interface TaskCardProps {
-  task: GeneratedTask;
-  isEditing: boolean;
-  isPolishing: boolean;
-  onEdit: () => void;
-  onDelete: () => void;
-  onChange: (field: keyof GeneratedTask, value: GeneratedTask[keyof GeneratedTask]) => void;
-  onPolish: () => void;
-}
-
-function TaskCard({ task, isEditing, isPolishing, onEdit, onDelete, onChange, onPolish }: TaskCardProps) {
-  return (
-    <div
-      className={cn(
-        "p-3 rounded-lg border transition-all",
-        isEditing
-          ? "border-cta-primary bg-cta-primary/5"
-          : "border-border bg-card hover:border-border/80"
-      )}
-    >
-      {isEditing ? (
-        <div className="space-y-3">
-          <Input
-            value={task.title}
-            onChange={(e) => onChange("title", e.target.value)}
-            placeholder="Task title"
-            className="font-medium bg-card border-border"
-          />
-          <div className="flex gap-2">
-            <Input
-              value={task.description}
-              onChange={(e) => onChange("description", e.target.value)}
-              placeholder="Description (e.g., 'warmup stretches')"
-              className="text-sm bg-card border-border flex-1"
-            />
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={onPolish}
-              disabled={isPolishing || (!task.description && !task.title)}
-              className="shrink-0 border-purple-300 text-purple-600 hover:bg-purple-50 hover:text-purple-700"
-              title="Polish with AI - makes it clear and encouraging"
-            >
-              {isPolishing ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Wand2 className="w-4 h-4" />
-              )}
-            </Button>
-          </div>
-          <div className="flex gap-2">
-            <div className="flex items-center gap-2 flex-1">
-              <Clock className="w-4 h-4 text-muted-foreground" />
-              <Input
-                type="number"
-                value={task.duration_minutes}
-                onChange={(e) =>
-                  onChange("duration_minutes", parseInt(e.target.value) || 0)
-                }
-                className="w-20 bg-card border-border"
-                min={1}
-              />
-              <span className="text-sm text-muted-foreground">min</span>
-            </div>
-            <Button size="sm" onClick={onEdit} className="bg-cta-primary hover:bg-cta-hover text-white">
-              <CheckCircle2 className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1 min-w-0">
-            <p className="font-medium text-foreground">{task.title}</p>
-            {task.description && (
-              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                {task.description}
-              </p>
-            )}
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <Badge variant="secondary" className="bg-muted text-muted-foreground">
-              <Clock className="w-3 h-3 mr-1" />
-              {task.duration_minutes}m
-            </Badge>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onEdit}
-              className="h-8 w-8 text-muted-foreground hover:text-foreground"
-            >
-              <Edit2 className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onDelete}
-              className="h-8 w-8 text-muted-foreground hover:text-urgent"
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
       )}
     </div>
   );
