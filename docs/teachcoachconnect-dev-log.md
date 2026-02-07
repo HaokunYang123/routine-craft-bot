@@ -29,6 +29,9 @@
 ### Weekly Summaries Phase 4 (2026-02-07)
 - Phase 4: Created summaryPrompt.ts (prompt builder for weekly group summaries) and WeeklySummary.tsx (group dropdown, chained data fetching with per-step error handling, local rawStats computation, Gemini summary with raw stats fallback on AI failure, timezone-aware 7 day window). Wired into coach dashboard.
 
+### Assign Task Modal Mobile Scroll Bug Fix (2026-02-07)
+- Bug fix: AssignTaskModal mobile scroll. Added max-height and overflow-y auto to dialog content, pinned confirm button at bottom so it is always reachable on small screens.
+
 ### Delete Account Feature (2026-02-05)
 - Delete Account: added Supabase Edge Function (`delete-account`) that verifies caller JWT and deletes the authenticated user via `supabase.auth.admin.deleteUser`.
 - Added reusable Delete Account section in settings with warning card + type-to-confirm dialog (`DELETE`) for both coach and student settings pages.

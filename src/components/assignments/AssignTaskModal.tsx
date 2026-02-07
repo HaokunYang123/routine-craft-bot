@@ -545,11 +545,11 @@ export function AssignTaskModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] grid-rows-[auto,minmax(0,1fr),auto] overflow-hidden">
         <DialogHeader>
           <DialogTitle>{modalTitle}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 py-4">
+        <div className="min-h-0 space-y-4 overflow-y-auto py-4 pr-1">
           {(templatesLoaded || templatesLoading) && (
             <div className="space-y-2">
               <Label>Use Template</Label>
@@ -776,7 +776,7 @@ export function AssignTaskModal({
           {/* Time validation warning */}
           {timeError && <p className="text-sm text-destructive">{timeError}</p>}
         </div>
-        <DialogFooter>
+        <DialogFooter className="shrink-0 border-t border-border bg-background pt-4">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
