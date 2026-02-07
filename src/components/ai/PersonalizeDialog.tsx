@@ -581,7 +581,7 @@ export function PersonalizeDialog({ open, onOpenChange, template }: PersonalizeD
                   value={modifier}
                   onChange={(event) => setModifier(event.target.value)}
                   disabled={isGenerating || isSaving}
-                  placeholder="e.g. Make it harder for Sarah and add balance work for knee recovery"
+                  placeholder="e.g. make harder for advanced athletes, reduce to 2 days per week, add a warm up before each session"
                   className="bg-card border-border"
                 />
               </div>
