@@ -17,6 +17,9 @@
 ### Gemini Reliability Update (2026-02-07)
 - Increased Gemini timeout from 15s to 45s for template generation, improved error messages for timeout and network failures
 
+### Personalize a Plan Phase 3 Chunk 1 (2026-02-07)
+- Phase 3 Chunk 1: Created personalizePrompt.ts (prompt builder with ai_note fallback for bad/unrelated input) and PersonalizeDialog.tsx (dialog with modifier input, Gemini generation, editable preview with ai_note banner, save as new template)
+
 ### Delete Account Feature (2026-02-05)
 - Delete Account: added Supabase Edge Function (`delete-account`) that verifies caller JWT and deletes the authenticated user via `supabase.auth.admin.deleteUser`.
 - Added reusable Delete Account section in settings with warning card + type-to-confirm dialog (`DELETE`) for both coach and student settings pages.
