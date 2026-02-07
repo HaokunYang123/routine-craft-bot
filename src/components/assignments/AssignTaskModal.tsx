@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { generateTimeSlots } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PolishButton } from "@/components/ui/PolishButton";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
@@ -607,6 +608,7 @@ export function AssignTaskModal({
               rows={2}
               className="bg-card border-border"
             />
+            <PolishButton value={taskDescription} onChange={setTaskDescription} />
           </div>
 
           {/* Assign Date and Due Date */}

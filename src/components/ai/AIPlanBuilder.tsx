@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PolishButton } from "@/components/ui/PolishButton";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -319,6 +320,10 @@ export function AIPlanBuilder(props: AIPlanBuilderProps) {
     });
   };
 
+  const handleTaskDescriptionChange = (taskId: string, value: string) => {
+    handleTaskTextChange(taskId, "description", value);
+  };
+
   const handleTaskDayChange = (taskId: string, value: string) => {
     const parsed = Number.parseInt(value, 10);
     const dayOffset = Number.isNaN(parsed) ? 0 : Math.max(0, parsed - 1);
@@ -625,14 +630,14 @@ export function AIPlanBuilder(props: AIPlanBuilderProps) {
                                 id={`task-description-${task.id}`}
                                 value={task.description}
                                 onChange={(event) =>
-                                  handleTaskTextChange(
-                                    task.id,
-                                    "description",
-                                    event.target.value,
-                                  )
+                                  handleTaskDescriptionChange(task.id, event.target.value)
                                 }
                                 disabled={isSaving}
                                 className="min-h-[80px] bg-card border-border"
+                              />
+                              <PolishButton
+                                value={task.description}
+                                onChange={(value) => handleTaskDescriptionChange(task.id, value)}
                               />
                             </div>
 

@@ -11,6 +11,9 @@
 ### Task Writing Helper Phase 2 Chunk 1 (2026-02-06)
 - Phase 2 Chunk 1: Created PolishButton component and polishPrompt.ts. AI Polish feature wired into ManualTemplateBuilder task descriptions with undo support.
 
+### Task Writing Helper Phase 2 Chunk 2 (2026-02-06)
+- Phase 2 Chunk 2: Wired PolishButton into AssignTaskModal and AIPlanBuilder preview task descriptions
+
 ### Delete Account Feature (2026-02-05)
 - Delete Account: added Supabase Edge Function (`delete-account`) that verifies caller JWT and deletes the authenticated user via `supabase.auth.admin.deleteUser`.
 - Added reusable Delete Account section in settings with warning card + type-to-confirm dialog (`DELETE`) for both coach and student settings pages.
