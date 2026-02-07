@@ -1,6 +1,6 @@
 const GEMINI_API_URL =
   "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
-const REQUEST_TIMEOUT_MS = 15000;
+const REQUEST_TIMEOUT_MS = 45000;
 const JSON_RETRY_SUFFIX = " Respond with valid JSON only, no markdown.";
 
 export interface GeminiRequest {
@@ -121,7 +121,16 @@ const requestGemini = async (
       return {
         success: false,
         data: null,
-        error: "Gemini request timed out after 15 seconds.",
+        error: "Request timed out. Try a simpler prompt or try again.",
+      };
+    }
+
+    if (error instanceof TypeError) {
+      console.error("[gemini] Gemini network error:", error.message);
+      return {
+        success: false,
+        data: null,
+        error: "Network error. Check your connection and try again.",
       };
     }
 
