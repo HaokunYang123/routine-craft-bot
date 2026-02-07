@@ -367,7 +367,7 @@ export default function Templates() {
                   manually.
                 </p>
                 <Button
-                  onClick={() => setActiveTab("create")}
+                  onClick={() => setActiveTab("ai")}
                   className="bg-cta-primary hover:bg-cta-hover text-white"
                 >
                   <Sparkles className="w-4 h-4 mr-2" />
@@ -463,10 +463,11 @@ export default function Templates() {
                           className="border-cta-primary/40 text-cta-primary hover:bg-cta-primary/10"
                         >
                           {personalizingTemplateId === template.id ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <Loader2 className="w-4 h-4 mr-1 animate-spin" />
                           ) : (
-                            <Sparkles className="w-4 h-4" />
+                            <Sparkles className="w-4 h-4 mr-1" />
                           )}
+                          Personalize with AI
                         </Button>
                         <Button
                           variant="outline"
