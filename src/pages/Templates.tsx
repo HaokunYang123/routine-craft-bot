@@ -26,14 +26,41 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { AIPlanBuilder } from "@/components/ai/AIPlanBuilder";
+import { PersonalizeDialog } from "@/components/ai/PersonalizeDialog";
 import { ManualTemplateBuilder, ManualTask } from "@/components/templates/ManualTemplateBuilder";
 import { GeneratedTask, useAIAssistant } from "@/hooks/useAIAssistant";
 import { useTemplates, Template } from "@/hooks/useTemplates";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { minutesToTimeString } from "@/lib/utils";
 
+type PersonalizeTemplateTask = {
+  title: string;
+  description: string | null;
+  day_offset: number;
+  duration_minutes: number;
+  start_time: string | null;
+  end_time: string | null;
+};
+
+type PersonalizeTemplatePayload = {
+  name: string;
+  description: string | null;
+  duration_weeks: number;
+  frequency_per_week: number;
+  tasks: PersonalizeTemplateTask[];
+};
+
+const EMPTY_PERSONALIZE_TEMPLATE: PersonalizeTemplatePayload = {
+  name: "",
+  description: null,
+  duration_weeks: 1,
+  frequency_per_week: 1,
+  tasks: [],
+};
+
 export default function Templates() {
-  const { templates, loading, createTemplate, updateTemplate, deleteTemplate } = useTemplates();
+  const { templates, loading, createTemplate, updateTemplate, deleteTemplate, fetchTemplates } = useTemplates();
   const { refineTask } = useAIAssistant();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("ai");
@@ -51,6 +78,17 @@ export default function Templates() {
   const [editSaving, setEditSaving] = useState(false);
   const [manualSaving, setManualSaving] = useState(false);
   const [polishingTaskIndex, setPolishingTaskIndex] = useState<number | null>(null);
+  const [personalizeOpen, setPersonalizeOpen] = useState(false);
+  const [personalizeTemplate, setPersonalizeTemplate] = useState<PersonalizeTemplatePayload | null>(null);
+  const [personalizingTemplateId, setPersonalizingTemplateId] = useState<string | null>(null);
+
+  const buildPersonalizeTemplate = (template: Template, tasks: PersonalizeTemplateTask[]): PersonalizeTemplatePayload => ({
+    name: template.name,
+    description: template.description ?? null,
+    duration_weeks: Math.max(1, template.duration_weeks ?? 1),
+    frequency_per_week: Math.max(1, template.frequency_per_week ?? 1),
+    tasks,
+  });
 
   const handleSavePlan = (tasks: GeneratedTask[]) => {
     setPendingTasks(tasks);
@@ -185,6 +223,80 @@ export default function Templates() {
     }
 
     setActiveTab(nextTab);
+  };
+
+  const handlePersonalizeOpenChange = (nextOpen: boolean) => {
+    setPersonalizeOpen(nextOpen);
+    if (!nextOpen) {
+      setPersonalizeTemplate(null);
+      setPersonalizingTemplateId(null);
+      void fetchTemplates();
+    }
+  };
+
+  const handleOpenPersonalize = async (template: Template) => {
+    if (hasUnsavedAITemplate) {
+      const confirmed = window.confirm(
+        "You have an unsaved AI-generated template. Continue without saving it?",
+      );
+      if (!confirmed) return;
+      setHasUnsavedAITemplate(false);
+    }
+
+    if (activeTab === "manual") {
+      const confirmed = window.confirm(
+        "You may have unsaved changes in Manual Builder. Continue to personalize a saved template?",
+      );
+      if (!confirmed) return;
+    }
+
+    setPersonalizingTemplateId(template.id);
+
+    try {
+      let tasks: PersonalizeTemplateTask[] = [];
+
+      if (template.tasks && template.tasks.length > 0) {
+        tasks = template.tasks.map((task) => ({
+          title: task.title,
+          description: task.description ?? null,
+          day_offset: Math.max(0, task.day_offset ?? 0),
+          duration_minutes: Math.max(1, task.duration_minutes ?? 15),
+          start_time: task.start_time ?? null,
+          end_time: task.end_time ?? null,
+        }));
+      } else {
+        const { data, error } = await supabase
+          .from("template_tasks")
+          .select("title, description, day_offset, duration_minutes, start_time, end_time, sort_order")
+          .eq("template_id", template.id)
+          .order("day_offset", { ascending: true })
+          .order("sort_order", { ascending: true });
+
+        if (error) throw error;
+
+        tasks = (data ?? []).map((task) => ({
+          title: task.title,
+          description: task.description ?? null,
+          day_offset: Math.max(0, task.day_offset ?? 0),
+          duration_minutes: Math.max(1, task.duration_minutes ?? 15),
+          start_time: task.start_time ?? null,
+          end_time: task.end_time ?? null,
+        }));
+      }
+
+      setPersonalizeTemplate(buildPersonalizeTemplate(template, tasks));
+      setPersonalizeOpen(true);
+    } catch (error) {
+      const description =
+        error instanceof Error ? error.message : "Could not load template tasks for personalization.";
+      toast({
+        title: "Unable to personalize template",
+        description,
+        variant: "destructive",
+      });
+    } finally {
+      setPersonalizingTemplateId(null);
+    }
   };
 
   if (loading) {
@@ -346,6 +458,19 @@ export default function Templates() {
                         <Button
                           variant="outline"
                           size="sm"
+                          onClick={() => handleOpenPersonalize(template)}
+                          disabled={personalizingTemplateId === template.id}
+                          className="border-cta-primary/40 text-cta-primary hover:bg-cta-primary/10"
+                        >
+                          {personalizingTemplateId === template.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Sparkles className="w-4 h-4" />
+                          )}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={() => handleOpenEdit(template)}
                           className="border-btn-secondary/30 text-btn-secondary hover:bg-btn-secondary/10"
                         >
@@ -409,7 +534,26 @@ export default function Templates() {
       <Dialog open={!!previewTemplate} onOpenChange={() => setPreviewTemplate(null)}>
         <DialogContent className="coach-theme dark max-w-2xl max-h-[80vh] overflow-y-auto text-foreground">
           <DialogHeader>
-            <DialogTitle>{previewTemplate?.name}</DialogTitle>
+            <div className="flex items-center justify-between gap-3">
+              <DialogTitle>{previewTemplate?.name}</DialogTitle>
+              {previewTemplate && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleOpenPersonalize(previewTemplate)}
+                  disabled={personalizingTemplateId === previewTemplate.id}
+                  className="border-cta-primary/40 text-cta-primary hover:bg-cta-primary/10"
+                >
+                  {personalizingTemplateId === previewTemplate.id ? (
+                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-4 h-4 mr-1" />
+                  )}
+                  Personalize with AI
+                </Button>
+              )}
+            </div>
             {previewTemplate?.description && (
               <p className="text-sm text-muted-foreground">{previewTemplate.description}</p>
             )}
@@ -581,6 +725,12 @@ export default function Templates() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <PersonalizeDialog
+        open={personalizeOpen}
+        onOpenChange={handlePersonalizeOpenChange}
+        template={personalizeTemplate ?? EMPTY_PERSONALIZE_TEMPLATE}
+      />
     </div>
   );
 }
