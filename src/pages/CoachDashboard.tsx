@@ -1,9 +1,7 @@
 import { useEffect, useState, Profiler } from "react";
 import { onRenderCallback } from "@/lib/profiling";
-import { useNavigate, useLocation } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
 import { useGroups } from "@/hooks/useGroups";
 import { useAssignments } from "@/hooks/useAssignments";
 import { useTimezone } from "@/hooks/useTimezone";
@@ -14,7 +12,8 @@ import { queryKeys } from "@/lib/queries/keys";
 import { GroupReviewCard, GroupData } from "@/components/groups/GroupReviewCard";
 import { StudentDetailSheet } from "@/components/dashboard/StudentDetailSheet";
 import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { WeeklySummary } from "@/components/ai/WeeklySummary";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -26,7 +25,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -34,7 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Users, Plus, Loader2, Sparkles, FileText } from "lucide-react";
+import { Users, Plus, Loader2, FileText } from "lucide-react";
 import { handleError } from "@/lib/error";
 
 const GROUP_COLORS = [
@@ -49,10 +47,8 @@ const GROUP_COLORS = [
 
 export default function CoachDashboard() {
   const { user } = useAuth();
-  const { toast } = useToast();
-  const navigate = useNavigate();
   const location = useLocation();
-  const { groups, loading: groupsLoading, createGroup, fetchGroups } = useGroups();
+  const { groups, loading: groupsLoading, createGroup } = useGroups();
   const { getGroupProgress } = useAssignments();
   const { todayDateString, formatDate } = useTimezone();
 
@@ -82,8 +78,6 @@ export default function CoachDashboard() {
 
   // Weekly Summary State
   const [summaryOpen, setSummaryOpen] = useState(false);
-  const [generatingSummary, setGeneratingSummary] = useState(false);
-  const [weeklySummary, setWeeklySummary] = useState("");
 
   // Student Detail Sheet State
   const [studentSheetOpen, setStudentSheetOpen] = useState(false);
@@ -164,43 +158,6 @@ export default function CoachDashboard() {
     setCreating(false);
   };
 
-  const handleGenerateWeeklySummary = async () => {
-    setGeneratingSummary(true);
-    setWeeklySummary("");
-
-    try {
-      // Collect completion data for all groups
-      const completionData = groupsWithStats.map((g) => ({
-        group: g.name,
-        members: g.members?.map((m) => ({
-          name: m.name,
-          completed: m.completedToday,
-          total: m.totalToday,
-          rate: m.totalToday > 0 ? Math.round((m.completedToday / m.totalToday) * 100) : 0,
-        })) || [],
-        overallRate: g.totalToday > 0
-          ? Math.round((g.completedToday / g.totalToday) * 100)
-          : 0,
-      }));
-
-      const { data, error } = await supabase.functions.invoke("ai-assistant", {
-        body: {
-          action: "weekly_summary",
-          payload: { completionData },
-        },
-      });
-
-      if (error) throw error;
-
-      setWeeklySummary(data.result || "Unable to generate summary. Please try again.");
-    } catch (error) {
-      handleError(error, { component: 'CoachDashboard', action: 'generate weekly summary' });
-      setWeeklySummary("Unable to generate summary. Please try again later.");
-    } finally {
-      setGeneratingSummary(false);
-    }
-  };
-
   const handleMemberClick = (memberId: string) => {
     // Find the member name from groupsWithStats
     let memberName = "Student";
@@ -247,79 +204,15 @@ export default function CoachDashboard() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Dialog open={summaryOpen} onOpenChange={setSummaryOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="border-btn-secondary/30 text-btn-secondary">
-                <FileText className="w-4 h-4 mr-2" />
-                Weekly Summary
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-cta-primary" />
-                  AI Weekly Summary
-                </DialogTitle>
-              </DialogHeader>
-              <div className="py-4">
-                {weeklySummary ? (
-                  <div className="prose prose-sm max-w-none">
-                    <div className="bg-muted/30 p-4 rounded-lg whitespace-pre-wrap">
-                      {weeklySummary}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-                    <p className="text-muted-foreground mb-4">
-                      Generate an AI summary of your team's weekly performance
-                    </p>
-                    <Button
-                      onClick={handleGenerateWeeklySummary}
-                      disabled={generatingSummary}
-                      className="bg-cta-primary hover:bg-cta-hover text-white"
-                    >
-                      {generatingSummary ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Generating...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="w-4 h-4 mr-2" />
-                          Generate Summary
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                )}
-              </div>
-              {weeklySummary && (
-                <DialogFooter>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setWeeklySummary("");
-                    }}
-                  >
-                    Clear
-                  </Button>
-                  <Button
-                    onClick={handleGenerateWeeklySummary}
-                    disabled={generatingSummary}
-                    className="bg-cta-primary hover:bg-cta-hover text-white"
-                  >
-                    {generatingSummary ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <Sparkles className="w-4 h-4 mr-2" />
-                    )}
-                    Regenerate
-                  </Button>
-                </DialogFooter>
-              )}
-            </DialogContent>
-          </Dialog>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setSummaryOpen((prev) => !prev)}
+            className="border-btn-secondary/30 text-btn-secondary"
+          >
+            <FileText className="w-4 h-4 mr-2" />
+            Weekly Summary
+          </Button>
 
           <Dialog open={createOpen} onOpenChange={setCreateOpen}>
             <DialogTrigger asChild>
@@ -386,6 +279,8 @@ export default function CoachDashboard() {
           </Dialog>
         </div>
       </div>
+
+      {summaryOpen && <WeeklySummary />}
 
       {/* Quick Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

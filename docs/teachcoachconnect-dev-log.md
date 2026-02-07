@@ -26,6 +26,9 @@
 ### Personalize a Plan Phase 3 Fix (2026-02-07)
 - Phase 3 fix: Updated PersonalizeDialog modifier input placeholder to use template-appropriate examples instead of student-specific ones
 
+### Weekly Summaries Phase 4 (2026-02-07)
+- Phase 4: Created summaryPrompt.ts (prompt builder for weekly group summaries) and WeeklySummary.tsx (group dropdown, chained data fetching with per-step error handling, local rawStats computation, Gemini summary with raw stats fallback on AI failure, timezone-aware 7 day window). Wired into coach dashboard.
+
 ### Delete Account Feature (2026-02-05)
 - Delete Account: added Supabase Edge Function (`delete-account`) that verifies caller JWT and deletes the authenticated user via `supabase.auth.admin.deleteUser`.
 - Added reusable Delete Account section in settings with warning card + type-to-confirm dialog (`DELETE`) for both coach and student settings pages.
