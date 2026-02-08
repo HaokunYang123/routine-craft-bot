@@ -44,10 +44,6 @@ function isPkceVerifierMissing(message: string | null | undefined) {
   ) || value.includes("code_verifier") || value.includes("code verifier");
 }
 
-function isEmailConfirmationType(value: string | null | undefined) {
-  return value === "signup" || value === "email";
-}
-
 type TimeoutResult<T> = { timedOut: true } | { timedOut: false; value: T };
 
 async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<TimeoutResult<T>> {
@@ -393,7 +389,7 @@ export default function AuthCallback() {
               session = fallbackSession;
               log("session recovered after exchange error", fallbackSession.user.id);
             } else {
-              if (retryPkceVerifierMissing && isEmailConfirmationType(urlType)) {
+              if (retryPkceVerifierMissing && urlType !== "recovery") {
                 log("email confirmation pkce verifier missing, redirecting to login with confirmed flag");
                 redirectToConfirmedLogin();
                 return;
