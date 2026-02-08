@@ -74,6 +74,7 @@ export function AuthTabs({ forceResetMode = false }: AuthTabsProps) {
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
+  const [signupRole, setSignupRole] = useState<Role | null>(null);
   const [signupError, setSignupError] = useState<string | null>(null);
   const [signupSuccess, setSignupSuccess] = useState<string | null>(null);
   const [loginEmail, setLoginEmail] = useState("");
@@ -244,6 +245,12 @@ export function AuthTabs({ forceResetMode = false }: AuthTabsProps) {
     event.preventDefault();
     if (loading !== null) return;
 
+    if (!signupRole) {
+      setSignupSuccess(null);
+      setSignupError("Please select Coach or Student");
+      return;
+    }
+
     const email = signupEmail.trim();
     if (!isValidEmail(email)) {
       setSignupError("Please enter a valid email address.");
@@ -263,16 +270,22 @@ export function AuthTabs({ forceResetMode = false }: AuthTabsProps) {
     setLoading("signup-email");
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password: signupPassword,
         options: {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
+          data: { role: signupRole },
         },
       });
 
       if (error) {
         setSignupError(mapSignupError(error.message));
+        return;
+      }
+
+      if (data.user?.identities?.length === 0) {
+        setSignupError("An account with this email already exists. Try signing in with Google.");
         return;
       }
 
@@ -597,6 +610,41 @@ export function AuthTabs({ forceResetMode = false }: AuthTabsProps) {
         </div>
 
         <form className="space-y-4" onSubmit={handleEmailSignUp}>
+          <div className="space-y-2">
+            <Label>Role</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setSignupRole("coach");
+                  setSignupError(null);
+                }}
+                className={`rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
+                  signupRole === "coach"
+                    ? "border-blue-500 bg-blue-50 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
+                    : "border-border bg-background text-foreground hover:bg-muted"
+                }`}
+                disabled={emailSignupDisabled}
+              >
+                Coach
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSignupRole("student");
+                  setSignupError(null);
+                }}
+                className={`rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
+                  signupRole === "student"
+                    ? "border-green-500 bg-green-50 text-green-800 dark:bg-green-950 dark:text-green-300"
+                    : "border-border bg-background text-foreground hover:bg-muted"
+                }`}
+                disabled={emailSignupDisabled}
+              >
+                Student
+              </button>
+            </div>
+          </div>
           <div className="space-y-2">
             <Label htmlFor="signup-email">Email</Label>
             <Input

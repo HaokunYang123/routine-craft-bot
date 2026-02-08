@@ -445,6 +445,18 @@ export default function AuthCallback() {
         return;
       }
 
+      const rawMetadataRole = normalizeRole(
+        (
+          session.user as {
+            raw_user_meta_data?: { role?: string | null } | null;
+          }
+        ).raw_user_meta_data?.role ?? null
+      );
+      const userMetadataRole = normalizeRole(
+        (session.user.user_metadata as { role?: string | null } | undefined)?.role ?? null
+      );
+      const signupMetadataRole = urlType === "signup" ? rawMetadataRole ?? userMetadataRole : null;
+
       setUserId(session.user.id);
 
       setStatusMessage("Loading your profile...");
@@ -469,7 +481,7 @@ export default function AuthCallback() {
       let profile = fetchedProfile;
 
       if (!profile) {
-        const intendedForCreate = deriveIntendedRole({
+        const intendedForCreate = signupMetadataRole ?? deriveIntendedRole({
           urlRole,
           storageRole,
           profileRole: null,
@@ -506,7 +518,7 @@ export default function AuthCallback() {
       }
 
       const currentRole = normalizeRole(profile?.role ?? null);
-      const intendedRole = deriveIntendedRole({
+      const intendedRole = signupMetadataRole ?? deriveIntendedRole({
         urlRole,
         storageRole,
         profileRole: currentRole,

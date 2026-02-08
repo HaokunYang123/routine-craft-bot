@@ -2,6 +2,13 @@
 
 ## Completed
 
+### Email Signup Role Selection and Callback Auto-Role (2026-02-08)
+- Added role selection (Coach/Student) to email signup form
+- Role stored in user metadata during signUp
+- AuthCallback reads role from metadata after email confirmation and creates profile automatically
+- Skips role selection page for email signup users
+- Google OAuth flow unchanged, legacy fallback preserved
+
 ### Email/Password Auth Chunk 2 Forgot Password Flow (2026-02-08)
 - Wired "Forgot password?" in auth login tab to a new reset-request view with email input and send action.
 - Added reset email request via `supabase.auth.resetPasswordForEmail(email, { redirectTo: /auth/callback })`.
@@ -9,6 +16,7 @@
 - Added password update via `supabase.auth.updateUser({ password })` and sign-out after successful reset.
 - Updated AuthCallback to detect Supabase recovery callbacks (`type=recovery`) and redirect to `/login?mode=reset` instead of role setup routing.
 - Updated Auth page session gating to allow reset mode to render auth reset UI without auto-redirecting to coach or student dashboards.
+- Fixed duplicate email signup: detects existing identity via empty identities array and shows helpful error instead of fake success message
 
 ### Shared Gemini Utility (2026-02-06)
 - Created src/lib/gemini.ts: shared Gemini API utility with typed request/response, JSON mode, 15s timeout, single retry on parse failure
