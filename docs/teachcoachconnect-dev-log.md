@@ -14,6 +14,8 @@
 - Added placeholder /parent route and ParentDashboard.tsx
 - Fixed PKCE failure on email confirmation: redirects to login with "Email confirmed" message instead of showing error
 - Fixed PKCE email confirmation fallback: expanded condition to handle missing urlType param in Supabase confirmation URLs
+- Fixed AuthCallback to read role from user_metadata during email confirmation and auto-create profile
+- Added Parent option to role selection fallback page
 
 ### Email Signup Role Selection and Callback Auto-Role (2026-02-08)
 - Added role selection (Coach/Student) to email signup form

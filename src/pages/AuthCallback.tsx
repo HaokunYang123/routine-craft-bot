@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, AlertCircle, RefreshCw, School, GraduationCap } from "lucide-react";
+import { Loader2, AlertCircle, RefreshCw, School, GraduationCap, Users } from "lucide-react";
 import { detectBrowserTimezone } from "@/lib/timezone";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -475,6 +475,7 @@ export default function AuthCallback() {
       const userMetadataRole = normalizeRole(
         (session.user.user_metadata as { role?: string | null } | undefined)?.role ?? null
       );
+      const metadataRole = rawMetadataRole ?? userMetadataRole;
       const signupMetadataRole = urlType === "signup" ? rawMetadataRole ?? userMetadataRole : null;
 
       setUserId(session.user.id);
@@ -501,7 +502,7 @@ export default function AuthCallback() {
       let profile = fetchedProfile;
 
       if (!profile) {
-        const intendedForCreate = signupMetadataRole ?? deriveIntendedRole({
+        const intendedForCreate = metadataRole ?? deriveIntendedRole({
           urlRole,
           storageRole,
           profileRole: null,
@@ -675,7 +676,7 @@ export default function AuthCallback() {
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <Button
                   variant="outline"
                   className="h-32 flex flex-col items-center justify-center gap-3 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950 transition-colors"
@@ -701,6 +702,20 @@ export default function AuthCallback() {
                   <div className="text-center">
                     <span className="font-medium text-foreground block">I'm a Student</span>
                     <span className="text-xs text-muted-foreground">Complete tasks</span>
+                  </div>
+                </Button>
+
+                <Button
+                  variant="outline"
+                  className="h-32 flex flex-col items-center justify-center gap-3 hover:border-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950 transition-colors"
+                  onClick={() => handleRoleSelection("parent")}
+                >
+                  <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
+                    <Users className="w-6 h-6" />
+                  </div>
+                  <div className="text-center">
+                    <span className="font-medium text-foreground block">I'm a Parent</span>
+                    <span className="text-xs text-muted-foreground">Monitor progress</span>
                   </div>
                 </Button>
               </div>
