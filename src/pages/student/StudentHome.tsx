@@ -639,10 +639,10 @@ export default function StudentHome() {
         </CardContent>
       </Card>
 
-      {/* Responsive Layout: My Groups | Coach's Notes | Today's Tasks */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-12">
+      {/* Desktop: top row My Groups + Today's Tasks, second row Coach's Notes full width */}
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-1 lg:grid-cols-3">
         {/* My Groups Card */}
-        <Card className="min-h-[300px] border-l-4 border-l-blue-500 bg-card shadow-md rounded-lg border border-border md:col-span-1 lg:col-span-3">
+        <Card className="order-1 min-h-[300px] border-l-4 border-l-blue-500 bg-card shadow-md rounded-lg border border-border lg:col-span-1">
           <CardHeader className="p-5 pb-2 md:p-6 md:pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="font-bold text-base">
@@ -746,7 +746,7 @@ export default function StudentHome() {
       </Card>
 
       {/* Coach's Notes - Always visible */}
-      <Card className="min-h-[300px] border-l-4 border-l-amber-500 bg-card shadow-md rounded-lg border border-border md:col-span-1 lg:col-span-3">
+      <Card className="order-3 min-h-[300px] border-l-4 border-l-amber-500 bg-card shadow-md rounded-lg border border-border lg:col-span-3">
         <CardHeader className="p-5 pb-2 md:p-6 md:pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="font-bold text-base">
@@ -777,49 +777,51 @@ export default function StudentHome() {
               </p>
             </div>
           ) : showNotes ? (
-            coachNotes.map((note) => (
-              <div
-                key={note.id}
-                className={cn(
-                  "p-3 rounded-lg border",
-                  note.is_new
-                    ? "bg-amber-100 border-amber-300"
-                    : "bg-muted/30 border-border"
-                )}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    {note.title && (
-                      <p className={cn("font-medium", note.is_new ? "text-amber-900" : "text-foreground")}>{note.title}</p>
-                    )}
-                    <p className={cn(
-                      "text-sm whitespace-pre-wrap",
-                      note.is_new
-                        ? "text-amber-800"
-                        : note.title ? "text-muted-foreground mt-1" : "text-foreground"
-                    )}>
-                      {note.content}
-                    </p>
-                    <div className={cn("flex items-center gap-2 mt-2 text-xs", note.is_new ? "text-amber-700" : "text-muted-foreground")}>
-                      <span>{note.coach_name}</span>
-                      {note.group_name && (
-                        <>
-                          <span>•</span>
-                          <span>{note.group_name}</span>
-                        </>
-                      )}
-                      <span>•</span>
-                      <span>{formatDate(note.created_at, "MMM d, h:mm a")}</span>
-                    </div>
-                  </div>
-                  {note.is_new && (
-                    <Badge variant="outline" className="shrink-0 text-amber-600 border-amber-300 text-xs">
-                      New
-                    </Badge>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {coachNotes.map((note) => (
+                <div
+                  key={note.id}
+                  className={cn(
+                    "p-3 rounded-lg border",
+                    note.is_new
+                      ? "bg-amber-100 border-amber-300"
+                      : "bg-muted/30 border-border"
                   )}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      {note.title && (
+                        <p className={cn("font-medium", note.is_new ? "text-amber-900" : "text-foreground")}>{note.title}</p>
+                      )}
+                      <p className={cn(
+                        "text-sm whitespace-pre-wrap",
+                        note.is_new
+                          ? "text-amber-800"
+                          : note.title ? "text-muted-foreground mt-1" : "text-foreground"
+                      )}>
+                        {note.content}
+                      </p>
+                      <div className={cn("flex items-center gap-2 mt-2 text-xs", note.is_new ? "text-amber-700" : "text-muted-foreground")}>
+                        <span>{note.coach_name}</span>
+                        {note.group_name && (
+                          <>
+                            <span>•</span>
+                            <span>{note.group_name}</span>
+                          </>
+                        )}
+                        <span>•</span>
+                        <span>{formatDate(note.created_at, "MMM d, h:mm a")}</span>
+                      </div>
+                    </div>
+                    {note.is_new && (
+                      <Badge variant="outline" className="shrink-0 text-amber-600 border-amber-300 text-xs">
+                        New
+                      </Badge>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))
+              ))}
+            </div>
           ) : (
             <p className="text-sm text-muted-foreground text-center py-2">
               {coachNotes.length} note{coachNotes.length !== 1 ? 's' : ''} hidden
@@ -829,7 +831,7 @@ export default function StudentHome() {
       </Card>
 
       {/* Today's Tasks (uses useTaskRollover for categorization) */}
-      <Card className="min-h-[320px] border-l-4 border-l-emerald-500 bg-card shadow-md rounded-lg border border-border md:col-span-2 lg:col-span-6">
+      <Card className="order-2 min-h-[320px] border-l-4 border-l-emerald-500 bg-card shadow-md rounded-lg border border-border lg:col-span-2">
         <CardHeader className="p-5 pb-2 md:p-6 md:pb-3">
           <CardTitle className="flex items-center justify-between">
             <span className="font-bold text-base">

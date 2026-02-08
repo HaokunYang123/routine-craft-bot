@@ -2,6 +2,9 @@
 
 ## Completed
 
+### Student Dashboard Grid Rework (2026-02-08)
+- Reworked student dashboard grid: Coach's Notes now full width row, My Groups and Today's Tasks share top row
+
 ### Student Dashboard Layout Refresh (2026-02-08)
 - Improved student dashboard layout: wider container, responsive grid, spacious card sizing
 
