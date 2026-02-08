@@ -2,6 +2,9 @@
 
 ## Completed
 
+### Student Dashboard Layout Refresh (2026-02-08)
+- Improved student dashboard layout: wider container, responsive grid, spacious card sizing
+
 ### Parent Dashboard Build + RLS Access Update (2026-02-08)
 - Built full Parent Dashboard: link child flow, child switcher, Schedule tab, Notes tab
 - Added RLS migration for parent read access to task_instances, notes, profiles, parent_links, parent_children

@@ -582,7 +582,7 @@ export default function StudentHome() {
   const dayName = formatDate(new Date(), "EEEE");
 
   return (
-    <div className="p-4 md:p-6 max-w-2xl mx-auto space-y-6">
+    <div className="mx-auto max-w-7xl space-y-8 px-4 py-4 md:px-6 md:py-6 lg:px-8">
       {/* Header */}
       <header className="pt-2">
         <div className="flex items-center justify-between">
@@ -604,10 +604,10 @@ export default function StudentHome() {
       </header>
 
       <Card className="border-l-4 border-l-amber-500 bg-card shadow-md rounded-lg border border-border">
-        <CardHeader className="pb-2">
+        <CardHeader className="p-5 pb-2 md:p-6 md:pb-3">
           <CardTitle className="font-bold text-base">Parent Access Code</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-3 p-5 pt-0 md:p-6 md:pt-0">
           <div className="flex items-center justify-between gap-3">
             <span
               className={cn(
@@ -639,11 +639,11 @@ export default function StudentHome() {
         </CardContent>
       </Card>
 
-      {/* Three-Column Layout: My Groups | Tasks to Do | Coach's Notes */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+      {/* Responsive Layout: My Groups | Coach's Notes | Today's Tasks */}
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-12">
         {/* My Groups Card */}
-        <Card className="border-l-4 border-l-blue-500 bg-card shadow-md rounded-lg border border-border">
-          <CardHeader className="pb-2">
+        <Card className="min-h-[300px] border-l-4 border-l-blue-500 bg-card shadow-md rounded-lg border border-border md:col-span-1 lg:col-span-3">
+          <CardHeader className="p-5 pb-2 md:p-6 md:pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="font-bold text-base">
               My Groups
@@ -664,7 +664,7 @@ export default function StudentHome() {
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-4 p-5 pt-0 md:p-6 md:pt-0">
           {/* Join Form */}
           {showJoinForm && (
             <form onSubmit={handleJoinGroup} className="p-3 bg-muted/30 rounded-lg border border-border space-y-3">
@@ -746,8 +746,8 @@ export default function StudentHome() {
       </Card>
 
       {/* Coach's Notes - Always visible */}
-      <Card className="border-l-4 border-l-amber-500 bg-card shadow-md rounded-lg border border-border">
-        <CardHeader className="pb-2">
+      <Card className="min-h-[300px] border-l-4 border-l-amber-500 bg-card shadow-md rounded-lg border border-border md:col-span-1 lg:col-span-3">
+        <CardHeader className="p-5 pb-2 md:p-6 md:pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="font-bold text-base">
               Coach's Notes
@@ -767,7 +767,7 @@ export default function StudentHome() {
             )}
           </div>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-4 p-5 pt-0 md:p-6 md:pt-0">
           {coachNotes.length === 0 ? (
             <div className="text-center py-4">
               <MessageSquare className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
@@ -829,8 +829,8 @@ export default function StudentHome() {
       </Card>
 
       {/* Today's Tasks (uses useTaskRollover for categorization) */}
-      <Card className="border-l-4 border-l-emerald-500 bg-card shadow-md rounded-lg border border-border">
-        <CardHeader className="pb-2">
+      <Card className="min-h-[320px] border-l-4 border-l-emerald-500 bg-card shadow-md rounded-lg border border-border md:col-span-2 lg:col-span-6">
+        <CardHeader className="p-5 pb-2 md:p-6 md:pb-3">
           <CardTitle className="flex items-center justify-between">
             <span className="font-bold text-base">
               Today's Tasks
@@ -840,9 +840,9 @@ export default function StudentHome() {
             </span>
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4 p-5 pt-0 md:p-6 md:pt-0">
           {totalCount > 0 && (
-            <Progress value={progressPercent} className="mb-4 h-2" />
+            <Progress value={progressPercent} className="h-2" />
           )}
 
           {/* Empty state for today's tasks - only show if no today and no overdue */}
@@ -955,16 +955,16 @@ export default function StudentHome() {
 
               {/* Overdue Section - Per CONTEXT.md: Section order is Today -> Overdue -> Yesterday */}
               {overdue.length > 0 && (
-                <div className="border-t pt-4 mt-4">
-                  <div className="bg-red-50/80 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-3">
+                <div className="mt-4 border-t pt-4">
+                  <div className="overflow-hidden rounded-lg border border-red-200 bg-red-50/80 p-4 dark:border-red-800 dark:bg-red-950/40 lg:p-5">
+                  <div className="mb-3 flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-300" />
                     <h3 className="font-semibold text-sm text-red-700 dark:text-red-200">Overdue</h3>
                     <Badge className="text-xs bg-red-600 text-white border-red-600">
                       {overdue.length}
                     </Badge>
                   </div>
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {/* Show first 5 overdue tasks */}
                     {overdue.slice(0, 5).map((task) => {
                       const isExpanded = expandedTasks.has(task.id);
