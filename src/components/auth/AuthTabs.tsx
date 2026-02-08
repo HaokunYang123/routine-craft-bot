@@ -13,6 +13,7 @@ type Role = "coach" | "student" | "parent";
 type AuthView = "tabs" | "forgot_password" | "reset_password";
 type AuthTabsProps = {
   forceResetMode?: boolean;
+  emailConfirmedMessage?: string | null;
 };
 const OAUTH_LOADING_TIMEOUT_MS = 20000;
 const LOGIN_LOCKOUT_MS = 60000;
@@ -25,7 +26,7 @@ function isValidEmail(email: string): boolean {
 }
 
 function normalizeRole(value: string | null | undefined): Role | null {
-  if (value === "coach" || value === "student") {
+  if (value === "coach" || value === "student" || value === "parent") {
     return value;
   }
   return null;
@@ -64,7 +65,7 @@ function mapPasswordResetError(message: string): string {
   return "Could not update your password. Please try again.";
 }
 
-export function AuthTabs({ forceResetMode = false }: AuthTabsProps) {
+export function AuthTabs({ forceResetMode = false, emailConfirmedMessage = null }: AuthTabsProps) {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"signup" | "login">("signup");
@@ -161,6 +162,14 @@ export function AuthTabs({ forceResetMode = false }: AuthTabsProps) {
     setForgotSuccess(null);
     setLoginError(null);
   }, [forceResetMode]);
+
+  useEffect(() => {
+    if (!emailConfirmedMessage) {
+      return;
+    }
+    setAuthView("tabs");
+    setActiveTab("login");
+  }, [emailConfirmedMessage]);
 
   const handleSignUpWithGoogle = async (role: Role) => {
     setLoading(`signup-${role}`);
@@ -361,7 +370,13 @@ export function AuthTabs({ forceResetMode = false }: AuthTabsProps) {
         return;
       }
 
-      navigate(role === "coach" ? "/dashboard" : "/app", { replace: true });
+      if (role === "coach") {
+        navigate("/dashboard", { replace: true });
+      } else if (role === "student") {
+        navigate("/app", { replace: true });
+      } else {
+        navigate("/parent", { replace: true });
+      }
     } catch (err: unknown) {
       const message = err instanceof Error ? mapLoginError(err.message) : "Could not log in. Please try again.";
       const nextAttemptCount = failedLoginAttempts + 1;
@@ -601,6 +616,11 @@ export function AuthTabs({ forceResetMode = false }: AuthTabsProps) {
         <TabsTrigger value="signup" className="text-base">Sign Up</TabsTrigger>
         <TabsTrigger value="login" className="text-base">Log In</TabsTrigger>
       </TabsList>
+      {emailConfirmedMessage && (
+        <p className="mb-4 text-center text-sm text-emerald-600 dark:text-emerald-400">
+          {emailConfirmedMessage}
+        </p>
+      )}
 
       {/* Sign Up Tab */}
       <TabsContent value="signup" className="space-y-6">

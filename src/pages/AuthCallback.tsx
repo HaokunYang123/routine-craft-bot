@@ -44,6 +44,10 @@ function isPkceVerifierMissing(message: string | null | undefined) {
   ) || value.includes("code_verifier") || value.includes("code verifier");
 }
 
+function isEmailConfirmationType(value: string | null | undefined) {
+  return value === "signup" || value === "email";
+}
+
 type TimeoutResult<T> = { timedOut: true } | { timedOut: false; value: T };
 
 async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<TimeoutResult<T>> {
@@ -107,6 +111,12 @@ export default function AuthCallback() {
   const clearPendingAuth = () => {
     localStorage.removeItem("pendingAuthRole");
     localStorage.removeItem("pendingAuthIntent");
+  };
+
+  const redirectToConfirmedLogin = () => {
+    clearPendingAuth();
+    localStorage.removeItem(CODE_STORAGE_KEY);
+    navigate("/login?confirmed=true", { replace: true });
   };
 
   const fetchProfileWithRetries = async (uid: string) => {
@@ -383,6 +393,12 @@ export default function AuthCallback() {
               session = fallbackSession;
               log("session recovered after exchange error", fallbackSession.user.id);
             } else {
+              if (retryPkceVerifierMissing && isEmailConfirmationType(urlType)) {
+                log("email confirmation pkce verifier missing, redirecting to login with confirmed flag");
+                redirectToConfirmedLogin();
+                return;
+              }
+
               exchangeAttemptedRef.current = null;
               if (retryFlowStateNotFound) {
                 setError("Your sign-in link expired or was already used. Please try again.");

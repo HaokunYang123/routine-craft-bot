@@ -20,7 +20,21 @@ const Auth = () => {
   const [authState, setAuthState] = useState<AuthState>("checking");
   const [pollAttempt, setPollAttempt] = useState(0);
   const [userId, setUserId] = useState<string | null>(null);
+  const [emailConfirmedMessage, setEmailConfirmedMessage] = useState<string | null>(null);
   const isPasswordResetMode = searchParams.get("mode") === "reset";
+
+  useEffect(() => {
+    if (searchParams.get("confirmed") !== "true") {
+      return;
+    }
+
+    setEmailConfirmedMessage("Email confirmed! Please log in.");
+
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("confirmed");
+    const query = nextParams.toString();
+    navigate(query ? `/login?${query}` : "/login", { replace: true });
+  }, [navigate, searchParams]);
 
   // Function to fetch profile and check role
   const checkProfileRole = useCallback(async (uid: string): Promise<"coach" | "student" | "parent" | null> => {
@@ -197,11 +211,14 @@ const Auth = () => {
                 <h2 className="text-xl font-semibold text-foreground">Almost There!</h2>
                 <p className="text-sm text-muted-foreground mt-2">
                   Your account was created, but we need to know your role.
-                  Please sign up as a Student or Coach to complete setup.
+                  Please sign up as a Student, Coach, or Parent to complete setup.
                 </p>
               </div>
               <div className="pt-2">
-                <AuthTabs forceResetMode={isPasswordResetMode} />
+                <AuthTabs
+                  forceResetMode={isPasswordResetMode}
+                  emailConfirmedMessage={emailConfirmedMessage}
+                />
               </div>
             </div>
           </div>
@@ -227,7 +244,10 @@ const Auth = () => {
           </div>
 
           {/* Auth Tabs */}
-          <AuthTabs forceResetMode={isPasswordResetMode} />
+          <AuthTabs
+            forceResetMode={isPasswordResetMode}
+            emailConfirmedMessage={emailConfirmedMessage}
+          />
         </div>
 
         {/* Footer */}
