@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { GraduationCap, Loader2, RefreshCw } from "lucide-react";
 import { AuthTabs } from "@/components/auth/AuthTabs";
@@ -16,9 +16,11 @@ const POLL_INTERVAL_MS = 1000;
 
 const Auth = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [authState, setAuthState] = useState<AuthState>("checking");
   const [pollAttempt, setPollAttempt] = useState(0);
   const [userId, setUserId] = useState<string | null>(null);
+  const isPasswordResetMode = searchParams.get("mode") === "reset";
 
   // Function to fetch profile and check role
   const checkProfileRole = useCallback(async (uid: string): Promise<"coach" | "student" | null> => {
@@ -39,6 +41,11 @@ const Auth = () => {
   // Main session check effect
   useEffect(() => {
     const checkSession = async () => {
+      if (isPasswordResetMode) {
+        setAuthState("no_session");
+        return;
+      }
+
       console.log("🔐 Auth: Starting session check...");
 
       const { data: { session }, error } = await supabase.auth.getSession();
@@ -75,7 +82,7 @@ const Auth = () => {
     };
 
     checkSession();
-  }, [navigate, checkProfileRole]);
+  }, [isPasswordResetMode, navigate, checkProfileRole]);
 
   // Polling effect for waiting_for_role state
   useEffect(() => {
@@ -188,7 +195,7 @@ const Auth = () => {
                 </p>
               </div>
               <div className="pt-2">
-                <AuthTabs />
+                <AuthTabs forceResetMode={isPasswordResetMode} />
               </div>
             </div>
           </div>
@@ -214,7 +221,7 @@ const Auth = () => {
           </div>
 
           {/* Auth Tabs */}
-          <AuthTabs />
+          <AuthTabs forceResetMode={isPasswordResetMode} />
         </div>
 
         {/* Footer */}

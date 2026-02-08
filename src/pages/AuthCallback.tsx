@@ -72,6 +72,7 @@ export default function AuthCallback() {
   const urlIntent = searchParams.get("intent");
   const urlRole = searchParams.get("role");
   const urlCode = searchParams.get("code");
+  const urlType = searchParams.get("type");
   const urlError = searchParams.get("error");
   const urlErrorDescription = searchParams.get("error_description");
   const urlErrorCode = searchParams.get("error_code");
@@ -256,7 +257,13 @@ export default function AuthCallback() {
       setErrorDetail(null);
       setSelectedRole(null);
       setState("processing");
-      setStatusMessage("Verifying your sign-in...");
+      setStatusMessage(
+        urlType === "signup"
+          ? "Confirming your email..."
+          : urlType === "recovery"
+            ? "Verifying your reset link..."
+            : "Verifying your sign-in..."
+      );
 
       const storageRole = localStorage.getItem("pendingAuthRole");
       const storageIntent = localStorage.getItem("pendingAuthIntent");
@@ -425,8 +432,16 @@ export default function AuthCallback() {
 
       if (!session) {
         setError("Setup failed: no session");
-        setErrorDetail("No session found after OAuth callback.");
+        setErrorDetail("No session found after auth callback.");
         setState("session_error");
+        return;
+      }
+
+      if (urlType === "recovery") {
+        log("password recovery callback detected", session.user.id);
+        clearPendingAuth();
+        localStorage.removeItem(CODE_STORAGE_KEY);
+        navigate("/login?mode=reset", { replace: true });
         return;
       }
 
@@ -548,7 +563,7 @@ export default function AuthCallback() {
     };
 
     void runCallback();
-  }, [navigate, retryNonce, urlCode, urlIntent, urlRole]);
+  }, [navigate, retryNonce, urlCode, urlIntent, urlRole, urlType]);
 
   const handleRetry = () => {
     setRetryNonce((prev) => prev + 1);
@@ -581,7 +596,7 @@ export default function AuthCallback() {
               <div>
                 <h2 className="text-xl font-semibold text-foreground">Setup failed: no session</h2>
                 <p className="text-sm text-muted-foreground mt-2">
-                  {error ?? "We couldn’t establish a session after OAuth."}
+                  {error ?? "We couldn’t establish a session after sign-in."}
                 </p>
               </div>
               {errorDetail && (

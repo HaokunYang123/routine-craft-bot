@@ -2,6 +2,14 @@
 
 ## Completed
 
+### Email/Password Auth Chunk 2 Forgot Password Flow (2026-02-08)
+- Wired "Forgot password?" in auth login tab to a new reset-request view with email input and send action.
+- Added reset email request via `supabase.auth.resetPasswordForEmail(email, { redirectTo: /auth/callback })`.
+- Added reset password view on auth page for recovery sessions with new password + confirm fields and validation.
+- Added password update via `supabase.auth.updateUser({ password })` and sign-out after successful reset.
+- Updated AuthCallback to detect Supabase recovery callbacks (`type=recovery`) and redirect to `/login?mode=reset` instead of role setup routing.
+- Updated Auth page session gating to allow reset mode to render auth reset UI without auto-redirecting to coach or student dashboards.
+
 ### Shared Gemini Utility (2026-02-06)
 - Created src/lib/gemini.ts: shared Gemini API utility with typed request/response, JSON mode, 15s timeout, single retry on parse failure
 - Updated gemini.ts: use VITE_GEMINI_API_KEY as sole env var (Vite requires VITE_ prefix for client-side access)
@@ -31,6 +39,9 @@
 
 ### Assign Task Modal Mobile Scroll Bug Fix (2026-02-07)
 - Bug fix: AssignTaskModal mobile scroll. Added max-height and overflow-y auto to dialog content, pinned confirm button at bottom so it is always reachable on small screens.
+
+### Email/Password Auth Chunk 1 (2026-02-07)
+- Email/password auth Chunk 1: Added signup form (email, password, confirm password with validation), login form (with inline errors, failed attempt tracking, 60s lockout after 5 failures), email confirmation handling in AuthCallback.tsx, post-login profile check and role-based redirect for email users, pending join token support for QR flow. Google OAuth preserved alongside new forms.
 
 ### Delete Account Feature (2026-02-05)
 - Delete Account: added Supabase Edge Function (`delete-account`) that verifies caller JWT and deletes the authenticated user via `supabase.auth.admin.deleteUser`.

@@ -1,18 +1,96 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, School, GraduationCap, LogIn } from "lucide-react";
 
 type AuthIntent = "signup" | "login";
 type Role = "coach" | "student";
+type AuthView = "tabs" | "forgot_password" | "reset_password";
+type AuthTabsProps = {
+  forceResetMode?: boolean;
+};
 const OAUTH_LOADING_TIMEOUT_MS = 20000;
+const LOGIN_LOCKOUT_MS = 60000;
+const MAX_LOGIN_FAILURES = 5;
+const MIN_PASSWORD_LENGTH = 8;
+const PENDING_JOIN_TOKEN_KEY = "pending_join_token";
 
-export function AuthTabs() {
+function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function normalizeRole(value: string | null | undefined): Role | null {
+  if (value === "coach" || value === "student") {
+    return value;
+  }
+  return null;
+}
+
+function mapSignupError(message: string): string {
+  const lower = message.toLowerCase();
+  if (lower.includes("already registered") || lower.includes("user already")) {
+    return "Email already registered";
+  }
+  if (lower.includes("password")) {
+    return "Password too short";
+  }
+  return "Could not sign up. Please try again.";
+}
+
+function mapLoginError(message: string): string {
+  const lower = message.toLowerCase();
+  if (lower.includes("invalid login credentials")) {
+    return "Invalid login credentials";
+  }
+  if (lower.includes("email not confirmed")) {
+    return "Email not confirmed";
+  }
+  return "Could not log in. Please try again.";
+}
+
+function mapPasswordResetError(message: string): string {
+  const lower = message.toLowerCase();
+  if (lower.includes("password")) {
+    return "Password must be at least 8 characters.";
+  }
+  if (lower.includes("session") || lower.includes("token")) {
+    return "Your reset link is invalid or expired. Please request a new one.";
+  }
+  return "Could not update your password. Please try again.";
+}
+
+export function AuthTabs({ forceResetMode = false }: AuthTabsProps) {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<"signup" | "login">("signup");
+  const [authView, setAuthView] = useState<AuthView>(forceResetMode ? "reset_password" : "tabs");
   const [loading, setLoading] = useState<string | null>(null); // Track which button is loading
   const loadingTimeoutRef = useRef<number | null>(null);
+  const [signupEmail, setSignupEmail] = useState("");
+  const [signupPassword, setSignupPassword] = useState("");
+  const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
+  const [signupError, setSignupError] = useState<string | null>(null);
+  const [signupSuccess, setSignupSuccess] = useState<string | null>(null);
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [failedLoginAttempts, setFailedLoginAttempts] = useState(0);
+  const [loginLockoutUntil, setLoginLockoutUntil] = useState<number | null>(null);
+  const [lockoutSecondsRemaining, setLockoutSecondsRemaining] = useState(0);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotError, setForgotError] = useState<string | null>(null);
+  const [forgotSuccess, setForgotSuccess] = useState<string | null>(null);
+  const [resetPassword, setResetPassword] = useState("");
+  const [resetConfirmPassword, setResetConfirmPassword] = useState("");
+  const [resetError, setResetError] = useState<string | null>(null);
+  const [resetSuccess, setResetSuccess] = useState<string | null>(null);
+
+  const isLoginLocked = loginLockoutUntil !== null && Date.now() < loginLockoutUntil;
 
   const clearLoadingTimeout = () => {
     if (loadingTimeoutRef.current !== null) {
@@ -51,7 +129,39 @@ export function AuthTabs() {
     };
   }, []);
 
-  const handleSignUp = async (role: Role) => {
+  useEffect(() => {
+    if (!loginLockoutUntil) {
+      setLockoutSecondsRemaining(0);
+      return;
+    }
+
+    const tick = () => {
+      const remainingMs = loginLockoutUntil - Date.now();
+      if (remainingMs <= 0) {
+        setLoginLockoutUntil(null);
+        setLockoutSecondsRemaining(0);
+        return;
+      }
+      setLockoutSecondsRemaining(Math.ceil(remainingMs / 1000));
+    };
+
+    tick();
+    const interval = window.setInterval(tick, 1000);
+    return () => window.clearInterval(interval);
+  }, [loginLockoutUntil]);
+
+  useEffect(() => {
+    if (!forceResetMode) {
+      return;
+    }
+    setActiveTab("login");
+    setAuthView("reset_password");
+    setForgotError(null);
+    setForgotSuccess(null);
+    setLoginError(null);
+  }, [forceResetMode]);
+
+  const handleSignUpWithGoogle = async (role: Role) => {
     setLoading(`signup-${role}`);
     startLoadingTimeout();
 
@@ -60,7 +170,7 @@ export function AuthTabs() {
       localStorage.setItem('pendingAuthRole', role);
       localStorage.setItem('pendingAuthIntent', 'signup');
 
-      const redirectTo = `${window.location.origin}/auth/callback?intent=signup&role=coach`;
+      const redirectTo = `${window.location.origin}/auth/callback?intent=signup&role=${role}`;
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
@@ -95,8 +205,8 @@ export function AuthTabs() {
     }
   };
 
-  const handleLogin = async () => {
-    setLoading("login");
+  const handleLoginWithGoogle = async () => {
+    setLoading("login-google");
     startLoadingTimeout();
 
     try {
@@ -130,8 +240,350 @@ export function AuthTabs() {
     }
   };
 
+  const handleEmailSignUp = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (loading !== null) return;
+
+    const email = signupEmail.trim();
+    if (!isValidEmail(email)) {
+      setSignupError("Please enter a valid email address.");
+      return;
+    }
+    if (signupPassword.length < MIN_PASSWORD_LENGTH) {
+      setSignupError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+      return;
+    }
+    if (signupPassword !== signupConfirmPassword) {
+      setSignupError("Passwords do not match.");
+      return;
+    }
+
+    setSignupError(null);
+    setSignupSuccess(null);
+    setLoading("signup-email");
+
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password: signupPassword,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+
+      if (error) {
+        setSignupError(mapSignupError(error.message));
+        return;
+      }
+
+      setSignupSuccess("Check your email to confirm your account. Please check your spam folder too.");
+      setSignupPassword("");
+      setSignupConfirmPassword("");
+    } catch (err: unknown) {
+      setSignupError(err instanceof Error ? err.message : "Could not sign up. Please try again.");
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const handlePasswordLogin = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (loading !== null || isLoginLocked) return;
+
+    const email = loginEmail.trim();
+    if (!isValidEmail(email)) {
+      setLoginError("Please enter a valid email address.");
+      return;
+    }
+    if (!loginPassword) {
+      setLoginError("Please enter your password.");
+      return;
+    }
+
+    setLoginError(null);
+    setLoading("login-email");
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password: loginPassword,
+      });
+
+      if (error || !data.user) {
+        const message = mapLoginError(error?.message || "Could not log in.");
+        const nextAttemptCount = failedLoginAttempts + 1;
+
+        if (nextAttemptCount >= MAX_LOGIN_FAILURES) {
+          setFailedLoginAttempts(0);
+          setLoginLockoutUntil(Date.now() + LOGIN_LOCKOUT_MS);
+          setLoginError(null);
+        } else {
+          setFailedLoginAttempts(nextAttemptCount);
+          setLoginError(message);
+        }
+        return;
+      }
+
+      setFailedLoginAttempts(0);
+      setLoginLockoutUntil(null);
+      setLoginError(null);
+
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("user_id", data.user.id)
+        .maybeSingle();
+
+      const role = normalizeRole(profileData?.role);
+
+      if (profileError || !role) {
+        navigate("/auth/callback?intent=login", { replace: true });
+        return;
+      }
+
+      const pendingJoinToken = sessionStorage.getItem(PENDING_JOIN_TOKEN_KEY);
+      if (pendingJoinToken) {
+        sessionStorage.removeItem(PENDING_JOIN_TOKEN_KEY);
+        navigate(`/join?token=${encodeURIComponent(pendingJoinToken)}`, { replace: true });
+        return;
+      }
+
+      navigate(role === "coach" ? "/dashboard" : "/app", { replace: true });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? mapLoginError(err.message) : "Could not log in. Please try again.";
+      const nextAttemptCount = failedLoginAttempts + 1;
+      if (nextAttemptCount >= MAX_LOGIN_FAILURES) {
+        setFailedLoginAttempts(0);
+        setLoginLockoutUntil(Date.now() + LOGIN_LOCKOUT_MS);
+        setLoginError(null);
+      } else {
+        setFailedLoginAttempts(nextAttemptCount);
+        setLoginError(message);
+      }
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const handleRequestPasswordReset = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (loading !== null) return;
+
+    const email = forgotEmail.trim();
+    if (!isValidEmail(email)) {
+      setForgotError("Please enter a valid email address.");
+      return;
+    }
+
+    setForgotError(null);
+    setForgotSuccess(null);
+    setLoading("forgot-password");
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      });
+
+      if (error) {
+        setForgotError(error.message || "Could not send reset email. Please try again.");
+        return;
+      }
+
+      setForgotSuccess("Check your email for a reset link. Please check your spam folder too.");
+    } catch (err: unknown) {
+      setForgotError(err instanceof Error ? err.message : "Could not send reset email. Please try again.");
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const handleUpdatePassword = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (loading !== null) return;
+
+    if (resetPassword.length < MIN_PASSWORD_LENGTH) {
+      setResetError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+      return;
+    }
+    if (resetPassword !== resetConfirmPassword) {
+      setResetError("Passwords do not match.");
+      return;
+    }
+
+    setResetError(null);
+    setResetSuccess(null);
+    setLoading("reset-password");
+
+    try {
+      const { error } = await supabase.auth.updateUser({ password: resetPassword });
+      if (error) {
+        setResetError(mapPasswordResetError(error.message));
+        return;
+      }
+
+      await supabase.auth.signOut();
+      setResetSuccess("Password updated. Please log in with your new password.");
+      toast({
+        title: "Password updated",
+        description: "Please log in with your new password.",
+      });
+      setResetPassword("");
+      setResetConfirmPassword("");
+      navigate("/login", { replace: true });
+      setAuthView("tabs");
+      setActiveTab("login");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Could not update your password. Please try again.";
+      setResetError(mapPasswordResetError(message));
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const handleOpenForgotPassword = () => {
+    setForgotEmail(loginEmail.trim());
+    setForgotError(null);
+    setForgotSuccess(null);
+    setResetError(null);
+    setResetSuccess(null);
+    setAuthView("forgot_password");
+  };
+
+  const handleBackToLogin = async () => {
+    setForgotError(null);
+    setForgotSuccess(null);
+    setResetError(null);
+    setResetSuccess(null);
+    setResetPassword("");
+    setResetConfirmPassword("");
+    setAuthView("tabs");
+    setActiveTab("login");
+
+    if (forceResetMode) {
+      await supabase.auth.signOut();
+      navigate("/login", { replace: true });
+    }
+  };
+
+  const googleSignupDisabled = loading !== null;
+  const googleLoginDisabled = loading !== null;
+  const emailSignupDisabled = loading !== null;
+  const emailLoginDisabled = loading !== null || isLoginLocked;
+  const forgotPasswordDisabled = loading !== null;
+  const resetPasswordDisabled = loading !== null;
+
+  if (authView === "forgot_password") {
+    return (
+      <div className="space-y-6">
+        <div className="text-center">
+          <h2 className="text-lg font-medium text-foreground">Reset your password</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Enter your email and we will send you a reset link.
+          </p>
+        </div>
+
+        <form className="space-y-4" onSubmit={handleRequestPasswordReset}>
+          <div className="space-y-2">
+            <Label htmlFor="forgot-email">Email</Label>
+            <Input
+              id="forgot-email"
+              type="email"
+              value={forgotEmail}
+              onChange={(event) => setForgotEmail(event.target.value)}
+              placeholder="you@example.com"
+              autoComplete="email"
+              className="w-full"
+              disabled={forgotPasswordDisabled}
+            />
+          </div>
+
+          {forgotError && <p className="text-sm text-destructive">{forgotError}</p>}
+          {forgotSuccess && <p className="text-sm text-emerald-600 dark:text-emerald-400">{forgotSuccess}</p>}
+
+          <Button type="submit" className="w-full" disabled={forgotPasswordDisabled}>
+            {loading === "forgot-password" ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Sending reset link...
+              </>
+            ) : (
+              "Send reset link"
+            )}
+          </Button>
+        </form>
+
+        <Button variant="ghost" className="w-full" onClick={() => void handleBackToLogin()} disabled={forgotPasswordDisabled}>
+          Back to login
+        </Button>
+      </div>
+    );
+  }
+
+  if (authView === "reset_password") {
+    return (
+      <div className="space-y-6">
+        <div className="text-center">
+          <h2 className="text-lg font-medium text-foreground">Set a new password</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Enter and confirm your new password to finish reset.
+          </p>
+        </div>
+
+        <form className="space-y-4" onSubmit={handleUpdatePassword}>
+          <div className="space-y-2">
+            <Label htmlFor="reset-password">New Password</Label>
+            <Input
+              id="reset-password"
+              type="password"
+              value={resetPassword}
+              onChange={(event) => setResetPassword(event.target.value)}
+              placeholder="Enter a new password"
+              autoComplete="new-password"
+              className="w-full"
+              disabled={resetPasswordDisabled}
+            />
+            <p className="text-xs text-muted-foreground">
+              Password must be at least {MIN_PASSWORD_LENGTH} characters.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="reset-confirm-password">Confirm Password</Label>
+            <Input
+              id="reset-confirm-password"
+              type="password"
+              value={resetConfirmPassword}
+              onChange={(event) => setResetConfirmPassword(event.target.value)}
+              placeholder="Confirm your new password"
+              autoComplete="new-password"
+              className="w-full"
+              disabled={resetPasswordDisabled}
+            />
+          </div>
+
+          {resetError && <p className="text-sm text-destructive">{resetError}</p>}
+          {resetSuccess && <p className="text-sm text-emerald-600 dark:text-emerald-400">{resetSuccess}</p>}
+
+          <Button type="submit" className="w-full" disabled={resetPasswordDisabled}>
+            {loading === "reset-password" ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Updating password...
+              </>
+            ) : (
+              "Update password"
+            )}
+          </Button>
+        </form>
+
+        <Button variant="ghost" className="w-full" onClick={() => void handleBackToLogin()} disabled={resetPasswordDisabled}>
+          Back to login
+        </Button>
+      </div>
+    );
+  }
+
   return (
-    <Tabs defaultValue="signup" className="w-full">
+    <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "signup" | "login")} className="w-full">
       <TabsList className="grid w-full grid-cols-2 mb-6">
         <TabsTrigger value="signup" className="text-base">Sign Up</TabsTrigger>
         <TabsTrigger value="login" className="text-base">Log In</TabsTrigger>
@@ -141,16 +593,87 @@ export function AuthTabs() {
       <TabsContent value="signup" className="space-y-6">
         <div className="text-center">
           <h2 className="text-lg font-medium text-foreground">Create your account</h2>
-          <p className="text-sm text-muted-foreground mt-1">Choose your role to get started</p>
+          <p className="text-sm text-muted-foreground mt-1">Sign up with email and password</p>
         </div>
 
+        <form className="space-y-4" onSubmit={handleEmailSignUp}>
+          <div className="space-y-2">
+            <Label htmlFor="signup-email">Email</Label>
+            <Input
+              id="signup-email"
+              type="email"
+              value={signupEmail}
+              onChange={(event) => setSignupEmail(event.target.value)}
+              placeholder="you@example.com"
+              autoComplete="email"
+              className="w-full"
+              disabled={emailSignupDisabled}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="signup-password">Password</Label>
+            <Input
+              id="signup-password"
+              type="password"
+              value={signupPassword}
+              onChange={(event) => setSignupPassword(event.target.value)}
+              placeholder="Create a password"
+              autoComplete="new-password"
+              className="w-full"
+              disabled={emailSignupDisabled}
+            />
+            <p className="text-xs text-muted-foreground">
+              Password must be at least {MIN_PASSWORD_LENGTH} characters.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="signup-confirm-password">Confirm Password</Label>
+            <Input
+              id="signup-confirm-password"
+              type="password"
+              value={signupConfirmPassword}
+              onChange={(event) => setSignupConfirmPassword(event.target.value)}
+              placeholder="Confirm your password"
+              autoComplete="new-password"
+              className="w-full"
+              disabled={emailSignupDisabled}
+            />
+          </div>
+
+          {signupError && <p className="text-sm text-destructive">{signupError}</p>}
+          {signupSuccess && <p className="text-sm text-emerald-600 dark:text-emerald-400">{signupSuccess}</p>}
+
+          <Button type="submit" className="w-full" disabled={emailSignupDisabled}>
+            {loading === "signup-email" ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Signing Up...
+              </>
+            ) : (
+              "Sign Up"
+            )}
+          </Button>
+        </form>
+
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t border-border" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-card px-2 text-muted-foreground">Or</span>
+          </div>
+        </div>
+
+        <div className="text-center">
+          <p className="text-sm text-muted-foreground">Continue with Google</p>
+        </div>
         <div className="grid grid-cols-2 gap-4">
           {/* Sign Up as Coach */}
           <Button
             variant="outline"
             className="h-36 flex flex-col items-center justify-center gap-3 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950 transition-colors"
-            onClick={() => handleSignUp("coach")}
-            disabled={loading !== null}
+            onClick={() => handleSignUpWithGoogle("coach")}
+            disabled={googleSignupDisabled}
           >
             {loading === "signup-coach" ? (
               <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
@@ -171,8 +694,8 @@ export function AuthTabs() {
           <Button
             variant="outline"
             className="h-36 flex flex-col items-center justify-center gap-3 hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-950 transition-colors"
-            onClick={() => handleSignUp("student")}
-            disabled={loading !== null}
+            onClick={() => handleSignUpWithGoogle("student")}
+            disabled={googleSignupDisabled}
           >
             {loading === "signup-student" ? (
               <Loader2 className="w-8 h-8 animate-spin text-green-600" />
@@ -199,16 +722,81 @@ export function AuthTabs() {
       <TabsContent value="login" className="space-y-6">
         <div className="text-center">
           <h2 className="text-lg font-medium text-foreground">Welcome back</h2>
-          <p className="text-sm text-muted-foreground mt-1">Sign in to your existing account</p>
+          <p className="text-sm text-muted-foreground mt-1">Log in with email and password</p>
+        </div>
+
+        <form className="space-y-4" onSubmit={handlePasswordLogin}>
+          <div className="space-y-2">
+            <Label htmlFor="login-email">Email</Label>
+            <Input
+              id="login-email"
+              type="email"
+              value={loginEmail}
+              onChange={(event) => setLoginEmail(event.target.value)}
+              placeholder="you@example.com"
+              autoComplete="email"
+              className="w-full"
+              disabled={emailLoginDisabled}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="login-password">Password</Label>
+            <Input
+              id="login-password"
+              type="password"
+              value={loginPassword}
+              onChange={(event) => setLoginPassword(event.target.value)}
+              placeholder="Enter your password"
+              autoComplete="current-password"
+              className="w-full"
+              disabled={emailLoginDisabled}
+            />
+            <button
+              type="button"
+              onClick={handleOpenForgotPassword}
+              className="text-xs text-primary hover:underline"
+              disabled={loading !== null}
+            >
+              Forgot password?
+            </button>
+          </div>
+
+          {loginError && <p className="text-sm text-destructive">{loginError}</p>}
+          {isLoginLocked && (
+            <p className="text-sm text-destructive">
+              Too many failed attempts. Please wait a few minutes.
+              {lockoutSecondsRemaining > 0 ? ` (${lockoutSecondsRemaining}s)` : ""}
+            </p>
+          )}
+
+          <Button type="submit" className="w-full" disabled={emailLoginDisabled}>
+            {loading === "login-email" ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Logging In...
+              </>
+            ) : (
+              "Log In"
+            )}
+          </Button>
+        </form>
+
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t border-border" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-card px-2 text-muted-foreground">Or</span>
+          </div>
         </div>
 
         <Button
           variant="outline"
           className="w-full h-14 gap-3 text-base"
-          onClick={handleLogin}
-          disabled={loading !== null}
+          onClick={handleLoginWithGoogle}
+          disabled={googleLoginDisabled}
         >
-          {loading === "login" ? (
+          {loading === "login-google" ? (
             <Loader2 className="w-5 h-5 animate-spin" />
           ) : (
             <>
