@@ -23,7 +23,7 @@ const Auth = () => {
   const isPasswordResetMode = searchParams.get("mode") === "reset";
 
   // Function to fetch profile and check role
-  const checkProfileRole = useCallback(async (uid: string): Promise<"coach" | "student" | null> => {
+  const checkProfileRole = useCallback(async (uid: string): Promise<"coach" | "student" | "parent" | null> => {
     const { data: profile, error } = await supabase
       .from("profiles")
       .select("role")
@@ -35,7 +35,7 @@ const Auth = () => {
       return null;
     }
 
-    return profile?.role as "coach" | "student" | null;
+    return profile?.role as "coach" | "student" | "parent" | null;
   }, []);
 
   // Main session check effect
@@ -73,6 +73,9 @@ const Auth = () => {
       } else if (role === "student") {
         console.log("🔐 Auth: Role is student, redirecting...");
         navigate("/app", { replace: true });
+      } else if (role === "parent") {
+        console.log("🔐 Auth: Role is parent, redirecting...");
+        navigate("/parent", { replace: true });
       } else {
         // Role is NULL - user might be mid-setup (AuthCallback running)
         console.log("🔐 Auth: Role is NULL, entering wait state...");
@@ -107,6 +110,9 @@ const Auth = () => {
       } else if (role === "student") {
         console.log("🔐 Auth: Poll found student role, redirecting...");
         navigate("/app", { replace: true });
+      } else if (role === "parent") {
+        console.log("🔐 Auth: Poll found parent role, redirecting...");
+        navigate("/parent", { replace: true });
       } else {
         // Still NULL, try again
         setPollAttempt(prev => prev + 1);

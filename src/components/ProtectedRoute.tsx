@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 
-type UserRole = "coach" | "student";
+type UserRole = "coach" | "student" | "parent";
 
 // Retry configuration for role fetch (handles race condition after signup)
 const MAX_ROLE_RETRIES = 5;
@@ -92,6 +92,8 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
         return <Navigate to="/app" replace />;
       } else if (role === "coach") {
         return <Navigate to="/dashboard" replace />;
+      } else if (role === "parent") {
+        return <Navigate to="/parent" replace />;
       }
     }
   }

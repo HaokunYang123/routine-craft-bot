@@ -2,6 +2,17 @@
 
 ## Completed
 
+### Parent View Chunk 1 (2026-02-08)
+- Parent View Chunk 1: database foundation and auth integration
+- Added parent role to profiles CHECK constraint
+- Created parent_links table with auto generated 6 char codes for students
+- Created parent_children table for parent to student linking
+- Backfilled parent_links for existing students
+- Added RLS policies for parent_links and parent_children
+- Added Parent option to signup role selector
+- Added parent redirect logic in Auth.tsx and AuthCallback.tsx
+- Added placeholder /parent route and ParentDashboard.tsx
+
 ### Email Signup Role Selection and Callback Auto-Role (2026-02-08)
 - Added role selection (Coach/Student) to email signup form
 - Role stored in user metadata during signUp

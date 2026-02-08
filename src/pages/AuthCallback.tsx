@@ -26,7 +26,7 @@ const PROFILE_CREATE_TIMEOUT_MS = 8000;
 const ROLE_UPDATE_TIMEOUT_MS = 8000;
 
 function normalizeRole(value: string | null | undefined): AuthRole | null {
-  if (value === "coach" || value === "student") {
+  if (value === "coach" || value === "student" || value === "parent") {
     return value;
   }
   return null;
@@ -183,7 +183,15 @@ export default function AuthCallback() {
       return;
     }
 
-    navigate(role === "coach" ? "/dashboard" : "/app", { replace: true });
+    if (role === "coach") {
+      navigate("/dashboard", { replace: true });
+      return;
+    }
+    if (role === "student") {
+      navigate("/app", { replace: true });
+      return;
+    }
+    navigate("/parent", { replace: true });
   };
 
   const attemptRoleUpdate = async (role: AuthRole, uid: string) => {
@@ -543,6 +551,12 @@ export default function AuthCallback() {
         return;
       }
 
+      if (urlType === "signup" && signupMetadataRole && currentRole !== signupMetadataRole) {
+        log("signup metadata role differs from profile role, applying metadata role", session.user.id);
+        await attemptRoleUpdate(signupMetadataRole, session.user.id);
+        return;
+      }
+
       const decision = decideNextStep({
         hasSession: true,
         currentRole,
@@ -702,10 +716,16 @@ export default function AuthCallback() {
                 className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm ${
                   selectedRole === "coach"
                     ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
-                    : "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                    : selectedRole === "student"
+                      ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                      : "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300"
                 }`}
               >
-                {selectedRole === "coach" ? "Coach Account" : "Student Account"}
+                {selectedRole === "coach"
+                  ? "Coach Account"
+                  : selectedRole === "student"
+                    ? "Student Account"
+                    : "Parent Account"}
               </div>
             )}
           </div>

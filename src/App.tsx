@@ -30,6 +30,7 @@ import PolygonShowcase from "./pages/PolygonShowcase";
 import AuthCallback from "./pages/AuthCallback";
 import Onboarding from "./pages/Onboarding";
 import JoinGroup from "./pages/JoinGroup";
+import ParentDashboard from "./pages/ParentDashboard";
 
 const queryClient = new QueryClient({
   queryCache: new QueryCache({
@@ -183,6 +184,14 @@ const App = () => (
             >
               <Route index element={<AssigneeDashboard />} />
             </Route>
+            <Route
+              path="/parent"
+              element={
+                <RouteErrorBoundary>
+                  <ParentDashboard />
+                </RouteErrorBoundary>
+              }
+            />
             <Route path="/ui" element={<PolygonShowcase />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

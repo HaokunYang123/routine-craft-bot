@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, School, GraduationCap, LogIn } from "lucide-react";
 
 type AuthIntent = "signup" | "login";
-type Role = "coach" | "student";
+type Role = "coach" | "student" | "parent";
 type AuthView = "tabs" | "forgot_password" | "reset_password";
 type AuthTabsProps = {
   forceResetMode?: boolean;
@@ -247,7 +247,7 @@ export function AuthTabs({ forceResetMode = false }: AuthTabsProps) {
 
     if (!signupRole) {
       setSignupSuccess(null);
-      setSignupError("Please select Coach or Student");
+      setSignupError("Please select Coach, Student, or Parent");
       return;
     }
 
@@ -612,7 +612,7 @@ export function AuthTabs({ forceResetMode = false }: AuthTabsProps) {
         <form className="space-y-4" onSubmit={handleEmailSignUp}>
           <div className="space-y-2">
             <Label>Role</Label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
               <button
                 type="button"
                 onClick={() => {
@@ -642,6 +642,21 @@ export function AuthTabs({ forceResetMode = false }: AuthTabsProps) {
                 disabled={emailSignupDisabled}
               >
                 Student
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSignupRole("parent");
+                  setSignupError(null);
+                }}
+                className={`rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
+                  signupRole === "parent"
+                    ? "border-amber-500 bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
+                    : "border-border bg-background text-foreground hover:bg-muted"
+                }`}
+                disabled={emailSignupDisabled}
+              >
+                Parent
               </button>
             </div>
           </div>

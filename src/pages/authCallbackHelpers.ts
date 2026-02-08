@@ -1,7 +1,7 @@
-export type AuthRole = 'coach' | 'student';
+export type AuthRole = 'coach' | 'student' | 'parent';
 
 function normalizeRole(value: string | null | undefined): AuthRole | null {
-  if (value === 'coach' || value === 'student') {
+  if (value === 'coach' || value === 'student' || value === 'parent') {
     return value;
   }
   return null;
