@@ -16,6 +16,7 @@
 - Fixed PKCE email confirmation fallback: expanded condition to handle missing urlType param in Supabase confirmation URLs
 - Fixed AuthCallback to read role from user_metadata during email confirmation and auto-create profile
 - Added Parent option to role selection fallback page
+- Added Parent Access Code display to student dashboard with copy button
 
 ### Email Signup Role Selection and Callback Auto-Role (2026-02-08)
 - Added role selection (Coach/Student) to email signup form

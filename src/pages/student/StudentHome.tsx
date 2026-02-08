@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Calendar, Clock, CheckCircle2, UserPlus, Users, ChevronDown, ChevronUp, AlertTriangle, MessageSquare, X } from "lucide-react";
+import { Loader2, Calendar, Clock, CheckCircle2, UserPlus, Users, ChevronDown, ChevronUp, AlertTriangle, MessageSquare, X, Copy, Check } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { useTaskRollover } from "@/hooks/useTaskRollover";
@@ -77,6 +77,9 @@ export default function StudentHome() {
   const [showNotes, setShowNotes] = useState(true);
   const [overdueExpanded, setOverdueExpanded] = useState(false);
   const [yesterdayExpanded, setYesterdayExpanded] = useState(false);
+  const [parentAccessCode, setParentAccessCode] = useState<string | null>(null);
+  const [parentCodeLoaded, setParentCodeLoaded] = useState(false);
+  const [parentCodeCopied, setParentCodeCopied] = useState(false);
 
   // Task rollover categorization (TASK-01, TASK-02)
   // Casts local TaskInstance to match hook's expected type (local type extends hook type with UI fields)
@@ -112,6 +115,7 @@ export default function StudentHome() {
     fetchTasks();
     fetchConnectedGroups();
     fetchCoachNotes();
+    fetchParentAccessCode();
   }, [user]);
 
   const markNotesSeen = useCallback(() => {
@@ -159,6 +163,7 @@ export default function StudentHome() {
         fetchTasks();
         fetchConnectedGroups();
         fetchCoachNotes();
+        fetchParentAccessCode();
       }
     };
 
@@ -220,6 +225,46 @@ export default function StudentHome() {
       setConnectedGroups(connectedGroups);
     } catch (error) {
       handleError(error, { component: 'StudentHome', action: 'fetch connected groups', silent: true });
+    }
+  };
+
+  const fetchParentAccessCode = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from("parent_links")
+        .select("link_code")
+        .eq("student_id", user.id)
+        .maybeSingle();
+
+      if (error) throw error;
+      setParentAccessCode(data?.link_code ?? null);
+    } catch (error) {
+      handleError(error, { component: 'StudentHome', action: 'fetch parent access code', silent: true });
+      setParentAccessCode(null);
+    } finally {
+      setParentCodeLoaded(true);
+    }
+  };
+
+  const copyParentAccessCode = async () => {
+    if (!parentAccessCode) return;
+
+    try {
+      await navigator.clipboard.writeText(parentAccessCode);
+      setParentCodeCopied(true);
+      toast({
+        title: "Copied!",
+        description: "Parent access code copied to clipboard.",
+      });
+      setTimeout(() => setParentCodeCopied(false), 1500);
+    } catch {
+      toast({
+        title: "Copy failed",
+        description: "Could not copy the code. Please copy it manually.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -557,6 +602,42 @@ export default function StudentHome() {
           )}
         </div>
       </header>
+
+      <Card className="border-l-4 border-l-amber-500 bg-card shadow-md rounded-lg border border-border">
+        <CardHeader className="pb-2">
+          <CardTitle className="font-bold text-base">Parent Access Code</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <span
+              className={cn(
+                "text-3xl font-bold font-mono tracking-[0.3em]",
+                parentAccessCode ? "text-foreground" : "text-muted-foreground"
+              )}
+            >
+              {parentCodeLoaded ? (parentAccessCode ?? "Code unavailable") : "..."}
+            </span>
+            {parentAccessCode && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => void copyParentAccessCode()}
+                className="shrink-0"
+              >
+                {parentCodeCopied ? (
+                  <Check className="w-4 h-4 text-green-500" />
+                ) : (
+                  <Copy className="w-4 h-4" />
+                )}
+                <span className="ml-2">{parentCodeCopied ? "Copied!" : "Copy"}</span>
+              </Button>
+            )}
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Share this code with your parent so they can monitor your progress.
+          </p>
+        </CardContent>
+      </Card>
 
       {/* Three-Column Layout: My Groups | Tasks to Do | Coach's Notes */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
