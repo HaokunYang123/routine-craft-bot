@@ -2,6 +2,10 @@
 
 ## Completed
 
+### Parent Dashboard Build + RLS Access Update (2026-02-08)
+- Built full Parent Dashboard: link child flow, child switcher, Schedule tab, Notes tab
+- Added RLS migration for parent read access to task_instances, notes, profiles, parent_links, parent_children
+
 ### Parent View Chunk 1 (2026-02-08)
 - Parent View Chunk 1: database foundation and auth integration
 - Added parent role to profiles CHECK constraint
