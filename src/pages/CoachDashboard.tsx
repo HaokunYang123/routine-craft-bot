@@ -1,6 +1,7 @@
-import { useEffect, useState, Profiler } from "react";
+import { useEffect, useState, Profiler, useCallback } from "react";
 import { onRenderCallback } from "@/lib/profiling";
 import { useLocation } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useGroups } from "@/hooks/useGroups";
 import { useAssignments } from "@/hooks/useAssignments";
@@ -24,6 +25,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { PullToRefresh } from "@/components/ui/PullToRefresh";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -48,6 +50,7 @@ const GROUP_COLORS = [
 export default function CoachDashboard() {
   const { user } = useAuth();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const { groups, loading: groupsLoading, createGroup } = useGroups();
   const { getGroupProgress } = useAssignments();
   const { todayDateString, formatDate } = useTimezone();
@@ -85,6 +88,13 @@ export default function CoachDashboard() {
 
   // Live date/time state (updates every minute)
   const [currentDate, setCurrentDate] = useState(new Date());
+
+  const handleRefresh = useCallback(async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.assignments.all }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.groups.all }),
+    ]);
+  }, [queryClient]);
 
   useEffect(() => {
     if (!groupsLoading && groups.length > 0) {
@@ -194,6 +204,7 @@ export default function CoachDashboard() {
   // Profiler wrapper for performance measurement - see PROFILING-REPORT.md
   return (
     <Profiler id="CoachDashboard" onRender={onRenderCallback}>
+    <PullToRefresh onRefresh={handleRefresh}>
     <div className="space-y-8 pb-20">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -360,6 +371,7 @@ export default function CoachDashboard() {
         studentName={selectedStudent?.name || "Student"}
       />
     </div>
+    </PullToRefresh>
     </Profiler>
   );
 }

@@ -19,6 +19,9 @@ import { useSessionDismissal } from "@/hooks/useSessionDismissal";
 import { useExcusedNotification } from "@/hooks/useExcusedNotification";
 import { handleError } from "@/lib/error";
 import { REALTIME_CHANNELS } from "@/lib/realtime/channels";
+import { PullToRefresh } from "@/components/ui/PullToRefresh";
+import { useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/queries/keys";
 
 interface TaskInstance {
   id: string;
@@ -62,6 +65,7 @@ interface CoachNote {
 export default function StudentHome() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { updateTaskStatus } = useAssignments();
   const { todayDateString, yesterdayDateString, formatDate } = useTimezone();
   const [tasks, setTasks] = useState<TaskInstance[]>([]);
@@ -562,11 +566,22 @@ export default function StudentHome() {
     return formatDate(dateStr, "MMM d");
   };
 
+  const handleRefresh = useCallback(async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.assignments.all }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.groups.all }),
+      queryClient.invalidateQueries({ queryKey: ["task_instances"] }),
+      queryClient.invalidateQueries({ queryKey: ["notes"] }),
+    ]);
+  }, [queryClient]);
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-cta-primary" />
-      </div>
+      <PullToRefresh onRefresh={handleRefresh}>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="w-8 h-8 animate-spin text-cta-primary" />
+        </div>
+      </PullToRefresh>
     );
   }
 
@@ -582,6 +597,7 @@ export default function StudentHome() {
   const dayName = formatDate(new Date(), "EEEE");
 
   return (
+    <PullToRefresh onRefresh={handleRefresh}>
     <div className="mx-auto max-w-7xl space-y-8 px-4 py-4 md:px-6 md:py-6 lg:px-8">
       {/* Header */}
       <header className="pt-2">
@@ -1268,5 +1284,6 @@ export default function StudentHome() {
         </Card>
       )}
     </div>
+    </PullToRefresh>
   );
 }

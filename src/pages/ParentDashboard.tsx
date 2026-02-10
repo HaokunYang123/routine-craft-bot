@@ -1,6 +1,7 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { format, isBefore, isValid, parseISO, startOfDay } from "date-fns";
 import { Loader2 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,6 +21,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { PullToRefresh } from "@/components/ui/PullToRefresh";
+import { queryKeys } from "@/lib/queries/keys";
 
 const LINK_CODE_LENGTH = 6;
 const INVALID_CODE_MESSAGE = "Invalid code. Please check with your child.";
@@ -143,6 +146,7 @@ function getStatusMeta(status: string) {
 
 export default function ParentDashboard() {
   const { user, loading: authLoading } = useAuth();
+  const queryClient = useQueryClient();
   const [loadingChildren, setLoadingChildren] = useState(true);
   const [children, setChildren] = useState<LinkedChild[]>([]);
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
@@ -181,6 +185,15 @@ export default function ParentDashboard() {
     () => children.find((child) => child.childId === selectedChildId) ?? null,
     [children, selectedChildId]
   );
+
+  const handleRefresh = useCallback(async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.assignments.all }),
+      queryClient.invalidateQueries({ queryKey: ["task_instances"] }),
+      queryClient.invalidateQueries({ queryKey: ["notes"] }),
+      queryClient.invalidateQueries({ queryKey: ["parent_children"] }),
+    ]);
+  }, [queryClient]);
 
   const loadChildren = useCallback(
     async (preferredChildId?: string) => {
@@ -517,11 +530,13 @@ export default function ParentDashboard() {
   if (authLoading || loadingChildren) {
     return (
       <ProtectedRoute requiredRole="parent">
+        <PullToRefresh onRefresh={handleRefresh}>
         <div className="coach-theme min-h-screen bg-background p-6">
           <div className="flex min-h-[60vh] items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         </div>
+        </PullToRefresh>
       </ProtectedRoute>
     );
   }
@@ -529,17 +544,20 @@ export default function ParentDashboard() {
   if (children.length === 0) {
     return (
       <ProtectedRoute requiredRole="parent">
+        <PullToRefresh onRefresh={handleRefresh}>
         <div className="coach-theme min-h-screen bg-background p-4 md:p-6">
           <div className="mx-auto flex min-h-[70vh] max-w-3xl items-center justify-center">
             {renderLinkCard()}
           </div>
         </div>
+        </PullToRefresh>
       </ProtectedRoute>
     );
   }
 
   return (
     <ProtectedRoute requiredRole="parent">
+      <PullToRefresh onRefresh={handleRefresh}>
       <div className="coach-theme min-h-screen bg-background p-4 md:p-6">
         <div className="mx-auto max-w-5xl space-y-6 pb-10">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -823,6 +841,7 @@ export default function ParentDashboard() {
           </Tabs>
         </div>
       </div>
+      </PullToRefresh>
     </ProtectedRoute>
   );
 }

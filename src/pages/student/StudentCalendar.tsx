@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useAssignments } from "@/hooks/useAssignments";
@@ -31,6 +32,8 @@ import { cn, safeParseISO } from "@/lib/utils";
 import { handleError } from "@/lib/error";
 import { Button } from "@/components/ui/button";
 import { REALTIME_CHANNELS } from "@/lib/realtime/channels";
+import { PullToRefresh } from "@/components/ui/PullToRefresh";
+import { queryKeys } from "@/lib/queries/keys";
 
 interface TaskInstance {
   id: string;
@@ -44,6 +47,7 @@ interface TaskInstance {
 
 export default function StudentCalendar() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { updateTaskStatus } = useAssignments();
   const { formatDate } = useTimezone();
   const [tasks, setTasks] = useState<TaskInstance[]>([]);
@@ -192,15 +196,25 @@ export default function StudentCalendar() {
       ? Math.round((dayStats.completed / dayStats.total) * 100)
       : 0;
 
+  const handleRefresh = useCallback(async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.assignments.all }),
+      queryClient.invalidateQueries({ queryKey: ["task_instances"] }),
+    ]);
+  }, [queryClient]);
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-cta-primary" />
-      </div>
+      <PullToRefresh onRefresh={handleRefresh}>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="w-8 h-8 animate-spin text-cta-primary" />
+        </div>
+      </PullToRefresh>
     );
   }
 
   return (
+    <PullToRefresh onRefresh={handleRefresh}>
     <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-6">
       {/* Header */}
       <header className="pt-2">
@@ -496,5 +510,6 @@ export default function StudentCalendar() {
         </Card>
       </div>
     </div>
+    </PullToRefresh>
   );
 }

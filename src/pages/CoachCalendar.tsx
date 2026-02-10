@@ -8,6 +8,7 @@
  * - getTasksForDate, getCompletionStats, getGroupColorsForDate, hasEvents use useCallback
  */
 import React, { useState, useEffect, useMemo, useCallback, Profiler } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { onRenderCallback } from "@/lib/profiling";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -67,6 +68,7 @@ import { Progress } from "@/components/ui/progress";
 import { cn, safeParseISO } from "@/lib/utils";
 import { CalendarSkeleton } from "@/components/skeletons/CalendarSkeleton";
 import { handleError } from "@/lib/error";
+import { PullToRefresh } from "@/components/ui/PullToRefresh";
 import {
   format,
   startOfWeek,
@@ -227,6 +229,7 @@ export default function CoachCalendar() {
   const { user } = useAuth();
   const { groups, fetchGroups } = useGroups();
   const { formatDate } = useTimezone();
+  const queryClient = useQueryClient();
 
   // Realtime subscription for task completions (REAL-01: coach sees updates)
   // Filter by coach_id for efficient realtime delivery (GAP-01 closure)
@@ -256,6 +259,14 @@ export default function CoachCalendar() {
     if (typeof window === "undefined") return false;
     return window.innerWidth < 768;
   });
+
+  const handleRefresh = useCallback(async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.assignments.all }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.groups.all }),
+      queryClient.invalidateQueries({ queryKey: ["task_instances"] }),
+    ]);
+  }, [queryClient]);
 
   const groupMap = useMemo(() => {
     // Build group map synchronously from groups to avoid stale fetch/mapping
@@ -501,6 +512,7 @@ export default function CoachCalendar() {
   // Profiler wrapper for performance measurement - see PROFILING-REPORT.md
   return (
     <Profiler id="CoachCalendar" onRender={onRenderCallback}>
+    <PullToRefresh onRefresh={handleRefresh}>
     <div className="space-y-6 pb-20">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -682,6 +694,7 @@ export default function CoachCalendar() {
       </Sheet>
       )}
     </div>
+    </PullToRefresh>
     </Profiler>
   );
 }

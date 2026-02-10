@@ -2,6 +2,10 @@
 
 ## Completed
 
+### Pull To Refresh Rollout (2026-02-08)
+- Added PullToRefresh component with mobile pull gesture and desktop refresh button
+- Applied to StudentHome, CoachDashboard, ParentDashboard, CoachCalendar, StudentCalendar
+
 ### Student Dashboard Grid Rework (2026-02-08)
 - Reworked student dashboard grid: Coach's Notes now full width row, My Groups and Today's Tasks share top row
 
