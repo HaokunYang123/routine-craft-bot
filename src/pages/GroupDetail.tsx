@@ -75,6 +75,7 @@ import {
     DialogFooter,
 } from "@/components/ui/dialog";
 import { AssignTaskModal } from "@/components/assignments/AssignTaskModal";
+import { PullToRefresh } from "@/components/ui/PullToRefresh";
 
 interface GroupInfo {
     id: string;
@@ -319,6 +320,31 @@ export default function GroupDetail() {
         if (!user || !groupId) return;
         fetchData();
     }, [user, groupId, fetchData]);
+
+    const handleRefresh = useCallback(async () => {
+        const invalidations: Promise<unknown>[] = [
+            queryClient.invalidateQueries({ queryKey: queryKeys.assignments.all }),
+            queryClient.invalidateQueries({ queryKey: ["task_instances"] }),
+            queryClient.invalidateQueries({ queryKey: ["notes"] }),
+            queryClient.invalidateQueries({ queryKey: ["group_members"] }),
+        ];
+
+        if (groupId) {
+            invalidations.push(
+                queryClient.invalidateQueries({ queryKey: queryKeys.groups.detail(groupId) }),
+                queryClient.invalidateQueries({ queryKey: queryKeys.groups.members(groupId) })
+            );
+        }
+
+        if (user?.id) {
+            invalidations.push(
+                queryClient.invalidateQueries({ queryKey: queryKeys.groups.list(user.id) })
+            );
+        }
+
+        await Promise.all(invalidations);
+        await fetchData();
+    }, [fetchData, groupId, queryClient, user?.id]);
 
     const memberIds = useMemo(
         () => students.map((student) => student.student_id),
@@ -605,22 +631,27 @@ export default function GroupDetail() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center h-64">
-                <Loader2 className="w-8 h-8 animate-spin text-foreground" />
-            </div>
+            <PullToRefresh onRefresh={handleRefresh}>
+                <div className="flex items-center justify-center h-64">
+                    <Loader2 className="w-8 h-8 animate-spin text-foreground" />
+                </div>
+            </PullToRefresh>
         );
     }
 
     if (!group) {
         return (
-            <div className="p-6 text-center">
-                <p>Group not found.</p>
-                <Button onClick={() => navigate("/dashboard")} className="mt-4">Go Back</Button>
-            </div>
+            <PullToRefresh onRefresh={handleRefresh}>
+                <div className="p-6 text-center">
+                    <p>Group not found.</p>
+                    <Button onClick={() => navigate("/dashboard")} className="mt-4">Go Back</Button>
+                </div>
+            </PullToRefresh>
         );
     }
 
     return (
+        <PullToRefresh onRefresh={handleRefresh}>
         <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-6 pb-20">
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -1210,5 +1241,6 @@ export default function GroupDetail() {
                 onAssigned={fetchData}
             />
         </div>
+        </PullToRefresh>
     );
 }

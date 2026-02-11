@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Library, Plus, Sparkles, Clock, Calendar, Trash2, Loader2, Edit, FileEdit, Edit2, Users, Wand2 } from "lucide-react";
 import { TemplatesSkeleton } from "@/components/skeletons/TemplatesSkeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,6 +34,8 @@ import { useTemplates, Template } from "@/hooks/useTemplates";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { minutesToTimeString } from "@/lib/utils";
+import { queryKeys } from "@/lib/queries/keys";
+import { PullToRefresh } from "@/components/ui/PullToRefresh";
 
 type PersonalizeTemplateTask = {
   title: string;
@@ -60,6 +63,7 @@ const EMPTY_PERSONALIZE_TEMPLATE: PersonalizeTemplatePayload = {
 };
 
 export default function Templates() {
+  const queryClient = useQueryClient();
   const { templates, loading, createTemplate, updateTemplate, deleteTemplate, fetchTemplates } = useTemplates();
   const { refineTask } = useAIAssistant();
   const { toast } = useToast();
@@ -81,6 +85,10 @@ export default function Templates() {
   const [personalizeOpen, setPersonalizeOpen] = useState(false);
   const [personalizeTemplate, setPersonalizeTemplate] = useState<PersonalizeTemplatePayload | null>(null);
   const [personalizingTemplateId, setPersonalizingTemplateId] = useState<string | null>(null);
+
+  const handleRefresh = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: queryKeys.templates.all });
+  }, [queryClient]);
 
   const buildPersonalizeTemplate = (template: Template, tasks: PersonalizeTemplateTask[]): PersonalizeTemplatePayload => ({
     name: template.name,
@@ -300,10 +308,15 @@ export default function Templates() {
   };
 
   if (loading) {
-    return <TemplatesSkeleton />;
+    return (
+      <PullToRefresh onRefresh={handleRefresh}>
+        <TemplatesSkeleton />
+      </PullToRefresh>
+    );
   }
 
   return (
+    <PullToRefresh onRefresh={handleRefresh}>
     <div className="space-y-6 pb-20">
       {/* Header */}
       <div>
@@ -733,5 +746,6 @@ export default function Templates() {
         template={personalizeTemplate ?? EMPTY_PERSONALIZE_TEMPLATE}
       />
     </div>
+    </PullToRefresh>
   );
 }

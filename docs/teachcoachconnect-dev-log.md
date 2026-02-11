@@ -2,6 +2,10 @@
 
 ## Completed
 
+### Pull To Refresh Expansion (2026-02-11)
+- Added PullToRefresh to GroupDetail.tsx (invalidates group, tasks, notes, members queries)
+- Added PullToRefresh to Templates.tsx (invalidates templates queries)
+
 ### Pull To Refresh Rollout (2026-02-08)
 - Added PullToRefresh component with mobile pull gesture and desktop refresh button
 - Applied to StudentHome, CoachDashboard, ParentDashboard, CoachCalendar, StudentCalendar
