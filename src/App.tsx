@@ -31,6 +31,7 @@ import AuthCallback from "./pages/AuthCallback";
 import Onboarding from "./pages/Onboarding";
 import JoinGroup from "./pages/JoinGroup";
 import ParentDashboard from "./pages/ParentDashboard";
+import LandingPage from "./pages/LandingPage";
 
 const queryClient = new QueryClient({
   queryCache: new QueryCache({
@@ -112,7 +113,7 @@ const App = () => (
           <Sonner />
           <SessionExpiredHandler />
           <Routes>
-            <Route path="/" element={<Index />} />
+            <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<Index />} />
             <Route path="/login/coach" element={<Index />} />
             <Route path="/login/student" element={<Index />} />

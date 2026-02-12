@@ -2,6 +2,12 @@
 
 ## Completed
 
+### Public Landing Page + Root Route Update (2026-02-11)
+- Created LandingPage.tsx with hero, features, how it works, and auth sections
+- Renders existing AuthTabs component in auth section (no duplicated auth logic)
+- Updated App.tsx routing: "/" shows LandingPage for unauthenticated users, redirects to /app for authenticated users
+- Fully responsive: 3 column desktop grid, stacked mobile layout, hamburger nav on mobile
+
 ### Pull To Refresh Expansion (2026-02-11)
 - Added PullToRefresh to GroupDetail.tsx (invalidates group, tasks, notes, members queries)
 - Added PullToRefresh to Templates.tsx (invalidates templates queries)
