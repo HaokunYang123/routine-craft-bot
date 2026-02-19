@@ -21,7 +21,7 @@ const FEATURES = [
     icon: "family_restroom",
     title: "Parent Visibility",
     description:
-      "Parents link with a simple code and see their child&apos;s schedule and notes. Read only, zero friction.",
+      "Parents link with a simple code and see their child's schedule and notes. Read only, zero friction.",
   },
 ];
 

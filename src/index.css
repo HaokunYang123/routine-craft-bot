@@ -190,6 +190,19 @@
 }
 
 @layer base {
+  .material-icons {
+    font-family: "Material Icons" !important;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    white-space: nowrap;
+    direction: ltr;
+    -webkit-font-feature-settings: "liga";
+    -webkit-font-smoothing: antialiased;
+  }
+
   html, body {
     @apply border-border;
     font-family: 'Nunito', sans-serif;
