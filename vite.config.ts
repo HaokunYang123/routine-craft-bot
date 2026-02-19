@@ -22,6 +22,7 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
+      injectRegister: "auto",
       includeAssets: ["favicon.ico", "apple-touch-icon.png"],
       manifest: {
         name: "TeachCoachConnect",
@@ -53,6 +54,10 @@ export default defineConfig(({ mode }) => ({
         ],
       },
       workbox: {
+        // Force freshly installed SW to activate and control clients immediately.
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
         // Exclude auth routes from service worker to prevent OAuth issues on mobile
         navigateFallbackDenylist: [/^\/auth\/callback/],

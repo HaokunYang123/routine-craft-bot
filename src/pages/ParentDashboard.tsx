@@ -496,8 +496,8 @@ export default function ParentDashboard() {
   const renderLinkCard = (compact = false) => (
     <Card className={compact ? "border-border bg-card/80" : "w-full max-w-lg border-border bg-card/80"}>
       <CardHeader className="space-y-2 text-center">
-        <CardTitle className="text-2xl font-semibold text-foreground">Link Your Child&apos;s Account</CardTitle>
-        <CardDescription>Enter your child&apos;s 6-character code to connect their account.</CardDescription>
+        <CardTitle className="text-2xl font-semibold text-foreground">Link Your Child's Account</CardTitle>
+        <CardDescription>Enter your child's 6-character code to connect their account.</CardDescription>
       </CardHeader>
       <CardContent>
         <form className="space-y-4" onSubmit={handleLinkSubmit}>
@@ -564,7 +564,7 @@ export default function ParentDashboard() {
             <div>
               <h1 className="text-3xl font-semibold text-foreground">Parent Dashboard</h1>
               <p className="mt-1 text-sm text-muted-foreground">
-                Viewing {selectedChild?.displayName ?? "your child"}&apos;s schedule and notes.
+                Viewing {selectedChild?.displayName ?? "your child"}'s schedule and notes.
               </p>
             </div>
             <Button
