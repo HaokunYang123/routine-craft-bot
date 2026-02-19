@@ -612,9 +612,19 @@ export function AuthTabs({ forceResetMode = false, emailConfirmedMessage = null 
 
   return (
     <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "signup" | "login")} className="w-full">
-      <TabsList className="grid w-full grid-cols-2 mb-6">
-        <TabsTrigger value="signup" className="text-base">Sign Up</TabsTrigger>
-        <TabsTrigger value="login" className="text-base">Log In</TabsTrigger>
+      <TabsList className="mb-6 grid h-10 w-full grid-cols-2 overflow-hidden rounded-md p-0">
+        <TabsTrigger
+          value="signup"
+          className="h-full w-full rounded-none text-base first:rounded-l-md last:rounded-r-md"
+        >
+          Sign Up
+        </TabsTrigger>
+        <TabsTrigger
+          value="login"
+          className="h-full w-full rounded-none text-base first:rounded-l-md last:rounded-r-md"
+        >
+          Log In
+        </TabsTrigger>
       </TabsList>
       {emailConfirmedMessage && (
         <p className="mb-4 text-center text-sm text-emerald-600 dark:text-emerald-400">
