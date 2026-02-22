@@ -48,13 +48,11 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
         // Role is NULL - might be race condition after signup
         retryCountRef.current++;
         if (retryCountRef.current < MAX_ROLE_RETRIES) {
-          console.log(`ProtectedRoute: Role not set yet, retry ${retryCountRef.current}/${MAX_ROLE_RETRIES}...`);
           await new Promise(resolve => setTimeout(resolve, ROLE_RETRY_DELAY_MS));
         }
       }
 
       // After all retries, role is still NULL
-      console.log("ProtectedRoute: Role not found after retries");
       setRoleNotFound(true);
       setRoleLoading(false);
     }

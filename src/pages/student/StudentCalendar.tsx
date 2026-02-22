@@ -74,8 +74,7 @@ export default function StudentCalendar() {
           table: 'task_instances',
           filter: `assignee_id=eq.${user.id}`,
         },
-        (payload) => {
-          console.log('[StudentCalendar] Realtime update:', payload.eventType);
+        () => {
           fetchTasks(); // Refetch on any change
         }
       )
@@ -90,7 +89,6 @@ export default function StudentCalendar() {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && user) {
-        console.log('[StudentCalendar] Tab visible, refetching');
         fetchTasks();
       }
     };

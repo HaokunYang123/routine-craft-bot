@@ -151,7 +151,7 @@ export function useGroups() {
           .from("task_instances")
           .delete()
           .in("assignment_id", assignmentIds);
-        if (taskError) console.warn("Could not delete task_instances:", taskError.message);
+        if (taskError) console.error("Could not delete task_instances:", taskError.message);
       }
 
       // 3. Delete all assignments for this group
@@ -159,21 +159,21 @@ export function useGroups() {
         .from("assignments")
         .delete()
         .eq("group_id", data.groupId);
-      if (assignError) console.warn("Could not delete assignments:", assignError.message);
+      if (assignError) console.error("Could not delete assignments:", assignError.message);
 
       // 4. Delete all notes for this group
       const { error: notesError } = await supabase
         .from("notes")
         .delete()
         .eq("group_id", data.groupId);
-      if (notesError) console.warn("Could not delete notes:", notesError.message);
+      if (notesError) console.error("Could not delete notes:", notesError.message);
 
       // 5. Delete all group_members
       const { error: membersError } = await supabase
         .from("group_members")
         .delete()
         .eq("group_id", data.groupId);
-      if (membersError) console.warn("Could not delete group_members:", membersError.message);
+      if (membersError) console.error("Could not delete group_members:", membersError.message);
 
       // 6. Finally delete the group itself
       const { error } = await supabase

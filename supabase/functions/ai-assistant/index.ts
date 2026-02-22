@@ -12,6 +12,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -34,6 +35,45 @@ serve(async (req) => {
   console.log("[AI-Assistant] Request received at:", new Date().toISOString());
 
   try {
+    if (req.method !== "POST") {
+      return new Response(JSON.stringify({ error: "Method not allowed" }), {
+        status: 405,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Missing authorization" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+    if (!supabaseUrl || !supabaseAnonKey) {
+      return new Response(JSON.stringify({ error: "Server configuration error" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    console.log("[AI-Assistant] Authenticated user:", user.id);
+
     const body = await req.json();
     const { action, payload } = body;
 
@@ -104,6 +144,11 @@ Keep under 100 words. No generic praise - use the actual data.`;
       case "student_recap":
         systemPrompt = `Write 2 sentences max: One about what went well, one about what to improve. Be specific with numbers. Example: "Great job completing 8 of 10 tasks! Focus on finishing warm-ups next week."`;
         userPrompt = `${payload.studentName}: ${payload.completedCount}/${payload.totalCount} done (${payload.completionRate}%), ${payload.missedCount} missed.`;
+        break;
+
+      case "chat":
+        systemPrompt = `You are the AI assistant for TeachCoachConnect. Be concise, direct, and practical for coaches and students.`;
+        userPrompt = String(payload.message || "");
         break;
 
       default:

@@ -451,7 +451,7 @@ export default function GroupDetail() {
                     .eq("assignee_id", studentToRemove.student_id);
 
                 if (deleteTasksError) {
-                    console.warn("Could not delete tasks for student:", deleteTasksError.message);
+                    console.error("Could not delete tasks for student:", deleteTasksError.message);
                 }
             }
 
@@ -463,7 +463,7 @@ export default function GroupDetail() {
                 .eq("to_user_id", studentToRemove.student_id);
 
             if (deleteNotesError) {
-                console.warn("Could not delete notes for student:", deleteNotesError.message);
+                console.error("Could not delete notes for student:", deleteNotesError.message);
             }
 
             // 4. Remove from group_members table
@@ -504,12 +504,12 @@ export default function GroupDetail() {
         }
     };
 
-    // Generate the QR code URL - this is the URL students will navigate to when scanning
+    // Generate the QR code URL students navigate to when scanning.
     const getQRCodeUrl = () => {
         if (!group) return "";
-        // Use the app's URL with the QR token for scanning
+        // Use join code in the URL so join flow goes through SECURITY DEFINER RPC, not direct table reads.
         const baseUrl = window.location.origin;
-        return `${baseUrl}/join?token=${group.qr_token}`;
+        return `${baseUrl}/join?code=${encodeURIComponent(group.join_code)}`;
     };
 
     // Sorting Logic

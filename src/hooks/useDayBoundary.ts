@@ -51,12 +51,6 @@ export function useDayBoundary(timezone: string): UseDayBoundaryResult {
 
       // Only update state if day actually changed
       if (newDateString !== previousDateRef.current) {
-        console.log(
-          '[DayBoundary] Day changed:',
-          previousDateRef.current,
-          '->',
-          newDateString
-        );
         previousDateRef.current = newDateString;
         setCurrentDateString(newDateString);
       }

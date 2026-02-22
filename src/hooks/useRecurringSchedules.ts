@@ -45,7 +45,6 @@ async function fetchSchedulesWithEnrichment(userId: string): Promise<RecurringSc
   if (error) {
     // Handle PGRST205 gracefully per D-1003-01 (table might not exist yet)
     if (error.code === "PGRST205" || error.message?.includes("not find")) {
-      console.log("Recurring schedules table not yet created");
       return [];
     }
     throw error;
@@ -164,7 +163,7 @@ export function useRecurringSchedules() {
         .gt("scheduled_date", today);
 
       if (deleteError) {
-        console.warn("Could not delete future tasks for schedule:", deleteError.message);
+        console.error("Could not delete future tasks for schedule:", deleteError.message);
         // Continue anyway - the schedule update is more important
       }
 
@@ -203,7 +202,7 @@ export function useRecurringSchedules() {
         .gte("scheduled_date", today);
 
       if (deleteTasksError) {
-        console.warn("Could not delete pending tasks for schedule:", deleteTasksError.message);
+        console.error("Could not delete pending tasks for schedule:", deleteTasksError.message);
         // Continue anyway - the schedule deletion is more important
       }
 

@@ -1,0 +1,72 @@
+name: Security Checks
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  lint-security:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install ripgrep
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ripgrep
+
+      - name: No console.log in source
+        run: |
+          # Fail if any console.log, console.debug, console.info, or console.trace exists in non-test source
+          if rg -rn "console\.(log|debug|info|trace)" src/ -g '*.ts' -g '*.tsx' --glob '!*.test.*' --glob '!*.spec.*' --glob '!*/__tests__/*' --glob '!*/test/*' | grep -v "node_modules"; then
+            echo "FAIL: Found prohibited console statements in source code"
+            echo "Only console.error and console.warn are allowed"
+            exit 1
+          fi
+          echo "PASS: No prohibited console statements found"
+
+      - name: No service role key in source
+        run: |
+          # Fail if service_role key appears anywhere in source
+          if rg -rn "service_role|SUPABASE_SERVICE_ROLE" src/ -g '*.ts' -g '*.tsx' | grep -v "node_modules"; then
+            echo "FAIL: Found service_role key reference in client source"
+            exit 1
+          fi
+          echo "PASS: No service_role key in source"
+
+      - name: Build check
+        run: |
+          npm ci
+          npm run build
+
+  rls-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # This job requires DATABASE_URL to be set as a GitHub Actions secret pointing to a staging/test database.
+      # If the secret is not configured, this job will fail.
+      # Instructions:
+      # 1. Go to repo Settings → Secrets and variables → Actions
+      # 2. Add DATABASE_URL with value: postgresql://postgres:[PASSWORD]@db.[PROJECT_REF].supabase.co:5432/postgres
+      - name: Install psql client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Run RLS regression suite
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          chmod +x ./scripts/run-rls-tests.sh
+          ./scripts/run-rls-tests.sh

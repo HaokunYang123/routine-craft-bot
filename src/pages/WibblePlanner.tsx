@@ -175,7 +175,7 @@ export default function WibblePlanner() {
         {/* Magic Schedule Button */}
         <MagicScheduleButton
           isEmpty={false}
-          onMagicPlan={() => console.log("Magic plan triggered!")}
+          onMagicPlan={() => {}}
           className="mt-3"
         />
 
@@ -183,7 +183,7 @@ export default function WibblePlanner() {
           {tasks.length === 0 ? (
             <MagicScheduleButton
               isEmpty={true}
-              onMagicPlan={() => console.log("Magic plan triggered from empty state!")}
+              onMagicPlan={() => {}}
             />
           ) : (
             tasks.map((task) => (

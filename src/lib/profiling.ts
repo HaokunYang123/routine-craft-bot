@@ -30,18 +30,13 @@ export function onRenderCallback(
 ): void {
   // Only log in development
   if (process.env.NODE_ENV !== 'development') return;
-
-  // Log all renders for profiling, warn on slow ones
-  if (actualDuration > PERF_THRESHOLD_MS) {
-    console.warn(
-      `[Perf] SLOW: ${id} ${phase} took ${actualDuration.toFixed(2)}ms ` +
-      `(base: ${baseDuration.toFixed(2)}ms)`
-    );
-  } else {
-    console.log(
-      `[Perf] ${id} ${phase}: ${actualDuration.toFixed(2)}ms`
-    );
-  }
+  // Profiling callback intentionally silent in production hygiene mode.
+  void id;
+  void phase;
+  void actualDuration;
+  void baseDuration;
+  void startTime;
+  void commitTime;
 }
 
 /**

@@ -1,7 +1,8 @@
-const GEMINI_API_URL =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+import { supabase, SUPABASE_ANON_KEY, SUPABASE_URL } from "@/integrations/supabase/client";
+
 const REQUEST_TIMEOUT_MS = 45000;
 const JSON_RETRY_SUFFIX = " Respond with valid JSON only, no markdown.";
+const AI_CHAT_PATH = "/functions/v1/ai-chat";
 
 export interface GeminiRequest {
   systemPrompt: string;
@@ -15,23 +16,51 @@ export interface GeminiResponse<T> {
   error: string | null;
 }
 
-interface GeminiApiResponse {
-  candidates?: Array<{
-    content?: {
-      parts?: Array<{
-        text?: string;
-      }>;
-    };
-  }>;
+interface EdgeChatResponse {
+  response?: string;
   error?: {
     message?: string;
   };
+  message?: string;
+  error_description?: string;
 }
 
-const getGeminiApiKey = (): string | null => {
-  const env = import.meta.env as Record<string, string | undefined>;
-  const apiKey = env.VITE_GEMINI_API_KEY;
-  return apiKey?.trim() || null;
+const getEdgeFunctionUrl = (): string | null => {
+  if (!SUPABASE_URL) return null;
+  return `${SUPABASE_URL}${AI_CHAT_PATH}`;
+};
+
+const getAuthHeaders = async (): Promise<{ headers: Record<string, string> | null; error: string | null }> => {
+  try {
+    const { data, error } = await supabase.auth.getSession();
+    if (error) {
+      console.error("[gemini] Failed to get session:", error.message);
+      return { headers: null, error: "Session expired. Please refresh and try again." };
+    }
+
+    const accessToken = data.session?.access_token;
+    if (!accessToken) {
+      return { headers: null, error: "You must be signed in to use AI features." };
+    }
+
+    if (!SUPABASE_ANON_KEY) {
+      return { headers: null, error: "Supabase client key not configured." };
+    }
+
+    return {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+        apikey: SUPABASE_ANON_KEY,
+      },
+      error: null,
+    };
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error("[gemini] Unexpected auth error:", error.message);
+    }
+    return { headers: null, error: "Could not verify session. Please try again." };
+  }
 };
 
 const parseGeminiJson = <T>(rawText: string): GeminiResponse<T> => {
@@ -56,57 +85,71 @@ const parseGeminiJson = <T>(rawText: string): GeminiResponse<T> => {
 };
 
 const requestGemini = async (
-  apiKey: string,
   request: GeminiRequest,
   userMessage: string,
 ): Promise<GeminiResponse<string>> => {
+  const edgeFunctionUrl = getEdgeFunctionUrl();
+  if (!edgeFunctionUrl) {
+    return {
+      success: false,
+      data: null,
+      error: "Supabase URL is not configured.",
+    };
+  }
+
+  const { headers, error: authError } = await getAuthHeaders();
+  if (!headers) {
+    return {
+      success: false,
+      data: null,
+      error: authError || "Authentication failed.",
+    };
+  }
+
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
-    const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+    const response = await fetch(edgeFunctionUrl, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
       signal: controller.signal,
       body: JSON.stringify({
-        systemInstruction: {
-          parts: [{ text: request.systemPrompt }],
-        },
-        contents: [
-          {
-            role: "user",
-            parts: [{ text: userMessage }],
-          },
-        ],
-        generationConfig: {
-          temperature: request.temperature ?? 0.7,
-          response_mime_type: "application/json",
-          responseMimeType: "application/json",
-        },
+        systemPrompt: request.systemPrompt,
+        temperature: request.temperature ?? 0.7,
+        messages: [{ role: "user", content: userMessage }],
       }),
     });
 
-    const payload = (await response.json()) as GeminiApiResponse;
+    let payload: EdgeChatResponse = {};
+    try {
+      payload = (await response.json()) as EdgeChatResponse;
+    } catch {
+      // keep empty payload for fallback error messages
+    }
 
     if (!response.ok) {
-      const statusMessage = payload.error?.message || response.statusText || "Unknown error";
-      console.error("[gemini] Gemini API request failed:", response.status, statusMessage);
+      const statusMessage =
+        payload.error?.message ||
+        payload.message ||
+        payload.error_description ||
+        response.statusText ||
+        "Unknown error";
+      console.error("[gemini] Edge function request failed:", response.status, statusMessage);
       return {
         success: false,
         data: null,
-        error: `Gemini API error (${response.status}): ${statusMessage}`,
+        error: `AI service error (${response.status}): ${statusMessage}`,
       };
     }
 
-    const responseText = payload.candidates?.[0]?.content?.parts?.[0]?.text;
+    const responseText = typeof payload.response === "string" ? payload.response : "";
     if (!responseText) {
-      console.error("[gemini] Gemini response missing candidates text");
+      console.error("[gemini] Edge function response missing content");
       return {
         success: false,
         data: null,
-        error: "Gemini response was empty.",
+        error: "AI response was empty.",
       };
     }
 
@@ -155,17 +198,7 @@ const requestGemini = async (
 };
 
 export async function callGemini<T>(request: GeminiRequest): Promise<GeminiResponse<T>> {
-  const apiKey = getGeminiApiKey();
-  if (!apiKey) {
-    console.error("[gemini] Missing Gemini API key");
-    return {
-      success: false,
-      data: null,
-      error: "Gemini API key not configured",
-    };
-  }
-
-  const firstAttempt = await requestGemini(apiKey, request, request.userMessage);
+  const firstAttempt = await requestGemini(request, request.userMessage);
   if (!firstAttempt.success || !firstAttempt.data) {
     return {
       success: false,
@@ -180,7 +213,7 @@ export async function callGemini<T>(request: GeminiRequest): Promise<GeminiRespo
   }
 
   const retryMessage = `${request.userMessage}${JSON_RETRY_SUFFIX}`;
-  const retryAttempt = await requestGemini(apiKey, request, retryMessage);
+  const retryAttempt = await requestGemini(request, retryMessage);
   if (!retryAttempt.success || !retryAttempt.data) {
     return {
       success: false,

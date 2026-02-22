@@ -109,12 +109,12 @@
 
 ```
 # Supabase Configuration
-VITE_SUPABASE_PROJECT_ID="vjzaayxeoeojuccbriid"
-VITE_SUPABASE_URL="https://vjzaayxeoeojuccbriid.supabase.co"
-VITE_SUPABASE_PUBLISHABLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+VITE_SUPABASE_PROJECT_ID="<set in environment>"
+VITE_SUPABASE_URL="<set in environment>"
+VITE_SUPABASE_PUBLISHABLE_KEY="<set in environment>"
 
 # AI/LLM
-GEMINI_API_KEY="AIzaSyCGSjA4V5jr0m-BhYt13j8Uikaw4WjCJP8"
+GEMINI_API_KEY="<set in environment>"
 ```
 
 **Secrets location:**

@@ -166,14 +166,14 @@ export async function persistRoleToAuthMetadata({
     error: lastErrorMessage,
   };
 
-  console.warn(LOG_PREFIX, "update failed", payload);
+  console.error(LOG_PREFIX, "update failed", payload);
 
   const capture = getTelemetryCapture();
   if (capture) {
     try {
       capture("auth_role_metadata_update_failed", payload);
     } catch (err) {
-      console.warn(LOG_PREFIX, "telemetry capture failed", err);
+      console.error(LOG_PREFIX, "telemetry capture failed", err);
     }
   }
 }

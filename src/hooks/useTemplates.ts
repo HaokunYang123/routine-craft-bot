@@ -49,7 +49,6 @@ async function fetchTemplatesWithTasks(userId: string): Promise<Template[]> {
   // Table doesn't exist yet - return empty (not an error)
   if (templatesError) {
     if (templatesError.code === "PGRST205" || templatesError.message?.includes("not find")) {
-      console.log("Templates table not yet created - run the SQL migration");
       return [];
     }
     throw templatesError;

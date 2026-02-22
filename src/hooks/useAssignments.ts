@@ -87,6 +87,8 @@ interface ExcuseTaskInput {
   studentId: string;
 }
 
+const debugLog = (..._args: unknown[]) => {};
+
 export function useAssignments() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -97,15 +99,15 @@ export function useAssignments() {
 
   const createAssignmentMutation = useMutation({
     mutationFn: async (input: CreateAssignmentInput) => {
-      console.log("[useAssignments] createAssignment called with input:", JSON.stringify(input, null, 2));
-      console.log("[useAssignments] user:", user?.id);
+      debugLog("[useAssignments] createAssignment called with input:", JSON.stringify(input, null, 2));
+      debugLog("[useAssignments] user:", user?.id);
 
       if (!user) {
-        console.log("[useAssignments] No user, throwing error");
+        debugLog("[useAssignments] No user, throwing error");
         throw new Error("No authenticated user");
       }
 
-      console.log("[useAssignments] Starting assignment creation...");
+      debugLog("[useAssignments] Starting assignment creation...");
       // Create the assignment
       const insertData = {
         template_id: input.template_id || null,
@@ -118,7 +120,7 @@ export function useAssignments() {
         end_date: input.end_date || null,
         is_active: true,
       };
-      console.log("[useAssignments] Inserting assignment:", insertData);
+      debugLog("[useAssignments] Inserting assignment:", insertData);
 
       const { data: assignment, error: assignmentError } = await supabase
         .from("assignments")
@@ -126,29 +128,29 @@ export function useAssignments() {
         .select()
         .single();
 
-      console.log("[useAssignments] Assignment insert result - data:", assignment, "error:", assignmentError);
+      debugLog("[useAssignments] Assignment insert result - data:", assignment, "error:", assignmentError);
 
       if (assignmentError) throw assignmentError;
 
       // Get assignees (either from group or individual)
       let assigneeIds: string[] = [];
-      console.log("[useAssignments] Getting assignees - group_id:", input.group_id, "assignee_id:", input.assignee_id);
+      debugLog("[useAssignments] Getting assignees - group_id:", input.group_id, "assignee_id:", input.assignee_id);
 
       if (input.group_id) {
         const { data: members, error: membersError } = await supabase
           .from("group_members")
           .select("user_id")
           .eq("group_id", input.group_id);
-        console.log("[useAssignments] Group members result - data:", members, "error:", membersError);
+        debugLog("[useAssignments] Group members result - data:", members, "error:", membersError);
         assigneeIds = (members || []).map((m) => m.user_id);
       } else if (input.assignee_id) {
         assigneeIds = [input.assignee_id];
       }
 
-      console.log("[useAssignments] assigneeIds:", assigneeIds);
+      debugLog("[useAssignments] assigneeIds:", assigneeIds);
 
       if (assigneeIds.length === 0) {
-        console.log("[useAssignments] No assignees found, returning early");
+        debugLog("[useAssignments] No assignees found, returning early");
         // Show warning but still return assignment (not a hard error)
         toast({
           title: "Warning",
@@ -174,7 +176,7 @@ export function useAssignments() {
           throw templateError;
         }
 
-        console.log("[useAssignments] Template tasks fetched:", templateTasks?.length, "tasks");
+        debugLog("[useAssignments] Template tasks fetched:", templateTasks?.length, "tasks");
 
         // Map tasks and assign sequential day_offset for any null values
         let nextDayOffset = 0;
@@ -189,7 +191,7 @@ export function useAssignments() {
             nextDayOffset = Math.max(nextDayOffset, t.day_offset + 1);
           }
 
-          console.log(`[useAssignments] Task "${t.title}": db_offset=${t.day_offset}, used_offset=${offset}`);
+          debugLog(`[useAssignments] Task "${t.title}": db_offset=${t.day_offset}, used_offset=${offset}`);
 
           return {
             name: t.title,
@@ -200,7 +202,7 @@ export function useAssignments() {
         });
       } else if (input.tasks) {
         // Custom tasks - preserve all fields including scheduled_date, scheduled_time
-        console.log("[useAssignments] Using custom tasks path - input.tasks:", input.tasks);
+        debugLog("[useAssignments] Using custom tasks path - input.tasks:", input.tasks);
         tasks = input.tasks.map((t) => ({
           name: t.name,
           description: t.description,
@@ -209,9 +211,9 @@ export function useAssignments() {
           scheduled_time: t.scheduled_time,
           day_offset: 0,
         }));
-        console.log("[useAssignments] Mapped custom tasks:", tasks);
+        debugLog("[useAssignments] Mapped custom tasks:", tasks);
       } else {
-        console.log("[useAssignments] No template_id and no tasks provided!");
+        debugLog("[useAssignments] No template_id and no tasks provided!");
       }
 
       // Parse start_date properly to avoid timezone issues
@@ -220,14 +222,14 @@ export function useAssignments() {
       const [year, month, day] = input.start_date.split('-').map(Number);
       const startDate = new Date(year, month - 1, day); // month is 0-indexed
 
-      console.log("[useAssignments] Start date parsed:", input.start_date, "->", startDate.toISOString());
+      debugLog("[useAssignments] Start date parsed:", input.start_date, "->", startDate.toISOString());
 
       // For templates, calculate end_date based on max day_offset
       let effectiveEndDate: Date;
       if (input.template_id && tasks.length > 0) {
         const maxOffset = Math.max(...tasks.map(t => t.day_offset));
         effectiveEndDate = addDays(startDate, maxOffset);
-        console.log("[useAssignments] Template max offset:", maxOffset, "-> end date:", format(effectiveEndDate, "yyyy-MM-dd"));
+        debugLog("[useAssignments] Template max offset:", maxOffset, "-> end date:", format(effectiveEndDate, "yyyy-MM-dd"));
       } else if (input.end_date) {
         const [ey, em, ed] = input.end_date.split('-').map(Number);
         effectiveEndDate = new Date(ey, em - 1, ed);
@@ -252,7 +254,7 @@ export function useAssignments() {
 
       if (hasCustomDates && !input.template_id) {
         // Custom tasks with specific dates: Each task uses its own scheduled_date
-        console.log("[useAssignments] Using custom dates path");
+        debugLog("[useAssignments] Using custom dates path");
         for (const assigneeId of assigneeIds) {
           for (const task of tasks) {
             const taskDate = task.scheduled_date || input.start_date;
@@ -271,13 +273,13 @@ export function useAssignments() {
       } else if (input.template_id) {
         // Template-based: ALWAYS use day_offset from each task
         // Each task gets scheduled on startDate + day_offset
-        console.log("[useAssignments] Using template day_offset path for", tasks.length, "tasks");
+        debugLog("[useAssignments] Using template day_offset path for", tasks.length, "tasks");
         for (const assigneeId of assigneeIds) {
           for (const task of tasks) {
             const taskDate = addDays(startDate, task.day_offset);
             const scheduledDateStr = format(taskDate, "yyyy-MM-dd");
 
-            console.log(`[useAssignments] Creating instance: "${task.name}" offset=${task.day_offset} -> ${scheduledDateStr}`);
+            debugLog(`[useAssignments] Creating instance: "${task.name}" offset=${task.day_offset} -> ${scheduledDateStr}`);
 
             taskInstances.push({
               assignment_id: assignment.id,
@@ -293,7 +295,7 @@ export function useAssignments() {
         }
       } else if (input.schedule_type === "once") {
         // Single custom task(s) on start_date
-        console.log("[useAssignments] Using 'once' schedule path");
+        debugLog("[useAssignments] Using 'once' schedule path");
         for (const assigneeId of assigneeIds) {
           for (const task of tasks) {
             taskInstances.push({
@@ -310,7 +312,7 @@ export function useAssignments() {
         }
       } else {
         // Recurring schedule: Use schedule_type to determine dates
-        console.log("[useAssignments] Using recurring schedule path:", input.schedule_type);
+        debugLog("[useAssignments] Using recurring schedule path:", input.schedule_type);
         const scheduledDates = getScheduledDates(
           startDate,
           effectiveEndDate,
@@ -336,21 +338,21 @@ export function useAssignments() {
         }
       }
 
-      console.log("[useAssignments] Total task instances to create:", taskInstances.length);
-      console.log("[useAssignments] Task instances:", JSON.stringify(taskInstances, null, 2));
+      debugLog("[useAssignments] Total task instances to create:", taskInstances.length);
+      debugLog("[useAssignments] Task instances:", JSON.stringify(taskInstances, null, 2));
 
       if (taskInstances.length > 0) {
-        console.log("[useAssignments] Inserting task instances...");
+        debugLog("[useAssignments] Inserting task instances...");
         const { data: insertedInstances, error: instancesError } = await supabase
           .from("task_instances")
           .insert(taskInstances)
           .select();
 
-        console.log("[useAssignments] Task instances insert result - data:", insertedInstances, "error:", instancesError);
+        debugLog("[useAssignments] Task instances insert result - data:", insertedInstances, "error:", instancesError);
 
         if (instancesError) {
           // Rollback: Delete the orphaned assignment header if task creation fails
-          console.log("[useAssignments] Task creation failed, rolling back assignment...");
+          debugLog("[useAssignments] Task creation failed, rolling back assignment...");
           const { error: rollbackError } = await supabase
             .from("assignments")
             .delete()
@@ -363,7 +365,7 @@ export function useAssignments() {
           throw instancesError;
         }
       } else {
-        console.log("[useAssignments] No task instances to create - skipping insert");
+        debugLog("[useAssignments] No task instances to create - skipping insert");
       }
 
       // Store for success toast
@@ -386,7 +388,7 @@ export function useAssignments() {
   // Backward-compatible wrapper: catches errors and returns null
   const createAssignment = useCallback(async (input: CreateAssignmentInput) => {
     if (!user) {
-      console.log("[useAssignments] No user, returning null");
+      debugLog("[useAssignments] No user, returning null");
       return null;
     }
     try {
@@ -549,7 +551,7 @@ export function useAssignments() {
         throw new Error("No authenticated user");
       }
 
-      console.log("[useAssignments] assignGroupTask called with input:", JSON.stringify(input, null, 2));
+      debugLog("[useAssignments] assignGroupTask called with input:", JSON.stringify(input, null, 2));
 
       const scheduleType = input.scheduleType || "once";
 
@@ -570,12 +572,12 @@ export function useAssignments() {
           throw error;
         }
 
-        console.log("[useAssignments] assignGroupTask success, created", data, "task instances");
+        debugLog("[useAssignments] assignGroupTask success, created", data, "task instances");
         return data as number;
       }
 
       // For recurring tasks, handle directly since RPC only supports one-time
-      console.log("[useAssignments] Using recurring schedule path for group task:", scheduleType);
+      debugLog("[useAssignments] Using recurring schedule path for group task:", scheduleType);
 
       // Get group members
       const { data: members, error: membersError } = await supabase
@@ -585,12 +587,12 @@ export function useAssignments() {
 
       if (membersError) throw membersError;
       if (!members || members.length === 0) {
-        console.log("[useAssignments] No members in group, returning 0");
+        debugLog("[useAssignments] No members in group, returning 0");
         return 0;
       }
 
       const assigneeIds = members.map((m) => m.user_id);
-      console.log("[useAssignments] Found", assigneeIds.length, "group members");
+      debugLog("[useAssignments] Found", assigneeIds.length, "group members");
 
       // Parse dates
       const [ay, am, ad] = input.assignDate.split('-').map(Number);
@@ -607,7 +609,7 @@ export function useAssignments() {
         input.scheduleDays || []
       );
 
-      console.log("[useAssignments] Calculated", scheduledDates.length, "scheduled dates for recurring task");
+      debugLog("[useAssignments] Calculated", scheduledDates.length, "scheduled dates for recurring task");
 
       // Create assignment record
       const { data: assignment, error: assignmentError } = await supabase
@@ -660,7 +662,7 @@ export function useAssignments() {
         }
       }
 
-      console.log("[useAssignments] Creating", taskInstances.length, "task instances for recurring group task");
+      debugLog("[useAssignments] Creating", taskInstances.length, "task instances for recurring group task");
 
       if (taskInstances.length > 0) {
         const { error: instancesError } = await supabase
@@ -691,7 +693,7 @@ export function useAssignments() {
   // Backward-compatible wrapper for assignGroupTask
   const assignGroupTask = useCallback(async (input: AssignGroupTaskInput) => {
     if (!user) {
-      console.log("[useAssignments] No user, returning null");
+      debugLog("[useAssignments] No user, returning null");
       return null;
     }
     try {
@@ -735,7 +737,7 @@ export function useAssignments() {
   // Backward-compatible wrapper: returns boolean for success/failure
   const excuseTask = useCallback(async (input: ExcuseTaskInput) => {
     if (!user) {
-      console.log("[useAssignments] No user, returning false");
+      debugLog("[useAssignments] No user, returning false");
       return false;
     }
     try {

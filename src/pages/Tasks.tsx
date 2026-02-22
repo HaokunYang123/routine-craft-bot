@@ -356,13 +356,7 @@ export default function Tasks() {
   };
 
   const handleAssign = async () => {
-    console.log("[Tasks] handleAssign called");
-    console.log("[Tasks] selectedGroup:", selectedGroup);
-    console.log("[Tasks] selectedMember:", selectedMember);
-    console.log("[Tasks] assignmentType:", assignmentType);
-
     if (!selectedGroup) {
-      console.log("[Tasks] No selectedGroup, returning early");
       return;
     }
 
@@ -380,7 +374,6 @@ export default function Tasks() {
     } else {
       // For custom tasks, validate that at least one task has a name
       const validTasks = customTasks.filter((t) => t.name && t.name.trim());
-      console.log("[Tasks] Custom tasks validation - validTasks:", validTasks.length);
       if (validTasks.length === 0) {
         toast({
           title: "No Tasks",
@@ -402,8 +395,6 @@ export default function Tasks() {
         end_time: t.end_time || undefined,
         day_offset: 0,
       }));
-
-    console.log("[Tasks] customTasksToSend:", customTasksToSend);
 
     setSaving(true);
     try {
@@ -430,11 +421,7 @@ export default function Tasks() {
         tasks: !isTemplate ? customTasksToSend : undefined,
       };
 
-      console.log("[Tasks] Calling createAssignment with:", assignmentInput);
-
       const result = await createAssignment(assignmentInput);
-
-      console.log("[Tasks] createAssignment result:", result);
 
       if (result) {
         setAssignDialogOpen(false);

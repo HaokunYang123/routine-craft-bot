@@ -64,9 +64,7 @@ export function useRealtimeSubscription({
           table,
           filter,
         },
-        (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
-          console.log(`[Realtime] ${channelName}:`, payload.eventType, 'new:', payload.new);
-
+        (_payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
           // Invalidate all specified query keys (updates flow through React Query cache)
           queryKeysRef.current.forEach((queryKey) => {
             queryClient.invalidateQueries({ queryKey: queryKey as unknown[] });
@@ -74,12 +72,8 @@ export function useRealtimeSubscription({
         }
       )
       .subscribe((status, err) => {
-        console.log(`[Realtime] ${channelName} status:`, status);
         if (status === 'CHANNEL_ERROR') {
           console.error(`[Realtime] ${channelName} error:`, err);
-        }
-        if (status === 'SUBSCRIBED') {
-          console.log(`[Realtime] ${channelName} subscribed with filter:`, filter || '(none)');
         }
       });
 

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -29,14 +30,47 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, systemPrompt } = await req.json();
+    if (req.method !== "POST") {
+      return new Response(JSON.stringify({ error: "Method not allowed" }), {
+        status: 405,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-    if (!GEMINI_API_KEY) {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Missing authorization" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+    if (!supabaseUrl || !supabaseAnonKey || !GEMINI_API_KEY) {
       throw new Error("AI service is not configured");
     }
 
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    console.log("[ai-chat] Authenticated user:", user.id);
+
+    const { messages, systemPrompt, temperature } = await req.json();
+
     // Build conversation for Gemini
-    const conversationHistory = messages.map((m: { role: string; content: string }) => ({
+    const safeMessages = Array.isArray(messages) ? messages : [];
+    const conversationHistory = safeMessages.map((m: { role: string; content: string }) => ({
       role: m.role === "user" ? "user" : "model",
       parts: [{ text: m.content }],
     }));
@@ -53,7 +87,7 @@ serve(async (req) => {
       body: JSON.stringify({
         contents: conversationHistory,
         generationConfig: {
-          temperature: 0.7,
+          temperature: typeof temperature === "number" ? temperature : 0.7,
           maxOutputTokens: 500,
         },
       }),

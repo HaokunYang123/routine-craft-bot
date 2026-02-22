@@ -45,7 +45,7 @@ const Auth = () => {
       .maybeSingle();
 
     if (error) {
-      console.error("🔐 Auth: Profile fetch error:", error);
+      console.error("Auth profile fetch error:", error);
       return null;
     }
 
@@ -60,39 +60,31 @@ const Auth = () => {
         return;
       }
 
-      console.log("🔐 Auth: Starting session check...");
-
       const { data: { session }, error } = await supabase.auth.getSession();
 
       if (error) {
-        console.error("🔐 Auth: Session error:", error);
+        console.error("Auth session error:", error);
         setAuthState("no_session");
         return;
       }
 
       if (!session) {
-        console.log("🔐 Auth: No session found");
         setAuthState("no_session");
         return;
       }
 
-      console.log("🔐 Auth: Session found for:", session.user.email);
       setUserId(session.user.id);
 
       const role = await checkProfileRole(session.user.id);
 
       if (role === "coach") {
-        console.log("🔐 Auth: Role is coach, redirecting...");
         navigate("/dashboard", { replace: true });
       } else if (role === "student") {
-        console.log("🔐 Auth: Role is student, redirecting...");
         navigate("/app", { replace: true });
       } else if (role === "parent") {
-        console.log("🔐 Auth: Role is parent, redirecting...");
         navigate("/parent", { replace: true });
       } else {
         // Role is NULL - user might be mid-setup (AuthCallback running)
-        console.log("🔐 Auth: Role is NULL, entering wait state...");
         setAuthState("waiting_for_role");
         setPollAttempt(1);
       }
@@ -108,24 +100,18 @@ const Auth = () => {
     }
 
     if (pollAttempt > MAX_POLL_ATTEMPTS) {
-      console.log("🔐 Auth: Max poll attempts reached, showing role setup prompt");
       setAuthState("needs_role_setup");
       return;
     }
-
-    console.log(`🔐 Auth: Polling attempt ${pollAttempt}/${MAX_POLL_ATTEMPTS}...`);
 
     const pollTimer = setTimeout(async () => {
       const role = await checkProfileRole(userId);
 
       if (role === "coach") {
-        console.log("🔐 Auth: Poll found coach role, redirecting...");
         navigate("/dashboard", { replace: true });
       } else if (role === "student") {
-        console.log("🔐 Auth: Poll found student role, redirecting...");
         navigate("/app", { replace: true });
       } else if (role === "parent") {
-        console.log("🔐 Auth: Poll found parent role, redirecting...");
         navigate("/parent", { replace: true });
       } else {
         // Still NULL, try again
@@ -139,7 +125,6 @@ const Auth = () => {
   // Manual retry function
   const handleManualRetry = () => {
     if (!userId) return;
-    console.log("🔐 Auth: Manual retry triggered");
     setPollAttempt(1);
     setAuthState("waiting_for_role");
   };

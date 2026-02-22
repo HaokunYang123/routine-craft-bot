@@ -6,14 +6,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
-const PENDING_JOIN_TOKEN_KEY = "pending_join_token";
+const PENDING_JOIN_CODE_KEY = "pending_join_code";
+const PENDING_JOIN_TOKEN_KEY = "pending_join_token"; // legacy fallback for old token links
 
 type JoinStatus = "loading" | "error";
+type JoinResult = {
+  success?: boolean;
+  message?: string;
+  error?: string;
+  group_name?: string;
+};
 
 export default function JoinGroup() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
+  const code = searchParams.get("code");
   const token = searchParams.get("token");
   const [status, setStatus] = useState<JoinStatus>("loading");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -21,16 +29,17 @@ export default function JoinGroup() {
 
   useEffect(() => {
     const runJoinFlow = async () => {
-      if (!token) {
+      if (!code && !token) {
         setStatus("error");
         setErrorMessage("Invalid join link");
         return;
       }
 
-      if (hasRunRef.current === token) {
+      const joinKey = code ?? token ?? "";
+      if (hasRunRef.current === joinKey) {
         return;
       }
-      hasRunRef.current = token;
+      hasRunRef.current = joinKey;
 
       try {
         const {
@@ -38,37 +47,39 @@ export default function JoinGroup() {
         } = await supabase.auth.getSession();
 
         if (!session?.user) {
-          sessionStorage.setItem(PENDING_JOIN_TOKEN_KEY, token);
+          if (code) {
+            sessionStorage.setItem(PENDING_JOIN_CODE_KEY, code);
+          } else if (token) {
+            sessionStorage.setItem(PENDING_JOIN_TOKEN_KEY, token);
+          }
           navigate("/login?message=sign-in-to-join-your-group", { replace: true });
           return;
         }
 
-        const { data: group, error: groupError } = await supabase
-          .from("groups")
-          .select("id, name")
-          .eq("qr_token", token)
-          .single();
-
-        if (groupError || !group) {
+        if (!code) {
           setStatus("error");
-          setErrorMessage("This join link is invalid or expired");
+          setErrorMessage("This link format is no longer supported. Ask your coach for a new join link.");
           return;
         }
 
-        const { data: existingMembership, error: membershipError } = await supabase
-          .from("group_members")
-          .select("user_id")
-          .eq("user_id", session.user.id)
-          .eq("group_id", group.id)
-          .maybeSingle();
+        const { data, error: joinError } = await supabase.rpc("join_group_by_code", {
+          p_join_code: code.trim().toUpperCase(),
+        });
 
-        if (membershipError) {
+        if (joinError) {
           setStatus("error");
-          setErrorMessage(membershipError.message || "Unable to verify your membership");
+          setErrorMessage(joinError.message || "Unable to join this group");
           return;
         }
 
-        if (existingMembership) {
+        const result = (data ?? {}) as JoinResult;
+        if (!result.success) {
+          setStatus("error");
+          setErrorMessage(result.error || result.message || "Unable to join this group");
+          return;
+        }
+
+        if ((result.message ?? "").toLowerCase().includes("already")) {
           toast({
             title: "Already joined",
             description: "You're already in this group",
@@ -77,28 +88,9 @@ export default function JoinGroup() {
           return;
         }
 
-        const { error: joinError } = await supabase
-          .from("group_members")
-          .insert({ user_id: session.user.id, group_id: group.id });
-
-        if (joinError) {
-          if (joinError.code === "23505") {
-            toast({
-              title: "Already joined",
-              description: "You're already in this group",
-            });
-            navigate("/app", { replace: true });
-            return;
-          }
-
-          setStatus("error");
-          setErrorMessage(joinError.message || "Unable to join this group");
-          return;
-        }
-
         toast({
           title: "Success",
-          description: `Joined ${group.name}!`,
+          description: result.group_name ? `Joined ${result.group_name}!` : "Joined group successfully!",
         });
         navigate("/app", { replace: true });
       } catch (error: unknown) {
@@ -108,7 +100,7 @@ export default function JoinGroup() {
     };
 
     void runJoinFlow();
-  }, [navigate, toast, token]);
+  }, [code, navigate, toast, token]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">

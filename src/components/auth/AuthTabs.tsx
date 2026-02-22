@@ -19,6 +19,7 @@ const OAUTH_LOADING_TIMEOUT_MS = 20000;
 const LOGIN_LOCKOUT_MS = 60000;
 const MAX_LOGIN_FAILURES = 5;
 const MIN_PASSWORD_LENGTH = 8;
+const PENDING_JOIN_CODE_KEY = "pending_join_code";
 const PENDING_JOIN_TOKEN_KEY = "pending_join_token";
 
 function isValidEmail(email: string): boolean {
@@ -190,15 +191,6 @@ export function AuthTabs({ forceResetMode = false, emailConfirmedMessage = null 
         },
       });
 
-      console.log("oauth error:", error);
-      console.log("oauth url:", data?.url);
-      console.log(
-        "storage keys after signIn:",
-        Object.keys(localStorage).filter(
-          (k) => k.includes("sb-") || k.includes("verifier") || k.includes("pkce")
-        )
-      );
-
       if (data?.url) window.location.assign(data.url);
       if (error) throw error;
     } catch (err: unknown) {
@@ -360,6 +352,13 @@ export function AuthTabs({ forceResetMode = false, emailConfirmedMessage = null 
 
       if (profileError || !role) {
         navigate("/auth/callback?intent=login", { replace: true });
+        return;
+      }
+
+      const pendingJoinCode = sessionStorage.getItem(PENDING_JOIN_CODE_KEY);
+      if (pendingJoinCode) {
+        sessionStorage.removeItem(PENDING_JOIN_CODE_KEY);
+        navigate(`/join?code=${encodeURIComponent(pendingJoinCode)}`, { replace: true });
         return;
       }
 

@@ -26,7 +26,7 @@ export function useClassCode() {
                 .rpc("validate_join_code", { code: code.trim().toUpperCase() });
 
             if (rpcError) {
-                throw new Error(rpcError.message);
+                throw new Error("Failed to validate class code");
             }
 
             if (!data || data.length === 0) {
@@ -36,8 +36,7 @@ export function useClassCode() {
 
             return data[0] as ClassSession;
         } catch (err: unknown) {
-            const errorMessage = err instanceof Error ? err.message : "Failed to validate class code";
-            setError(errorMessage);
+            setError("Failed to validate class code");
             return null;
         } finally {
             setLoading(false);
@@ -72,12 +71,12 @@ export function useClassCode() {
                     // Unique constraint violation - already joined
                     return true; // Consider it a success
                 }
-                throw new Error(insertError.message);
+                throw new Error("Failed to join class");
             }
 
             return true;
         } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : "Failed to join class");
+            setError("Failed to join class");
             return false;
         } finally {
             setLoading(false);

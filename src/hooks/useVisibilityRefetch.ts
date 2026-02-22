@@ -22,7 +22,6 @@ export function useVisibilityRefetch(queryKeys: readonly (readonly unknown[])[])
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        console.log('[Visibility] Tab visible, refetching queries');
         // Refetch on tab focus to catch missed updates
         queryKeys.forEach((queryKey) => {
           queryClient.invalidateQueries({ queryKey: queryKey as unknown[] });

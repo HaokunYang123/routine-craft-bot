@@ -6,18 +6,49 @@
  *
  * Prerequisites:
  * - Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables
- * - Or update the values below directly
  */
 
 import { createClient } from "@supabase/supabase-js";
 
-// Configuration - update these or use environment variables
-const SUPABASE_URL = process.env.SUPABASE_URL || "https://vjzaayxeoeojuccbriid.supabase.co";
+const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+const NODE_ENV = process.env.NODE_ENV?.toLowerCase() || "";
+
+if (!SUPABASE_URL) {
+  console.error("Error: SUPABASE_URL is required");
+  console.log("Set SUPABASE_URL before running this script.");
+  process.exit(1);
+}
 
 if (!SUPABASE_SERVICE_KEY) {
   console.error("Error: SUPABASE_SERVICE_ROLE_KEY is required");
-  console.log("Set it via environment variable or update this script directly");
+  console.log("Set SUPABASE_SERVICE_ROLE_KEY before running this script.");
+  process.exit(1);
+}
+
+if (NODE_ENV === "production") {
+  console.error("Refusing to run seed script in production (NODE_ENV=production).");
+  process.exit(1);
+}
+
+const allowedDevIndicators = [
+  "localhost",
+  "127.0.0.1",
+  "dev",
+  "staging",
+  "sandbox",
+  "test",
+  "vjzaayxeoeojuccbriid", // Known non-production Supabase project for this repository
+];
+
+const lowerSupabaseUrl = SUPABASE_URL.toLowerCase();
+const looksLikeSafeTarget = allowedDevIndicators.some((indicator) =>
+  lowerSupabaseUrl.includes(indicator)
+);
+
+if (!looksLikeSafeTarget) {
+  console.error("Refusing to run seed script against an unknown Supabase target.");
+  console.error(`SUPABASE_URL="${SUPABASE_URL}" does not include a dev/staging identifier.`);
   process.exit(1);
 }
 
@@ -28,7 +59,8 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
   },
 });
 
-// Test Data Configuration
+// DEV ONLY: Static credentials below are for local/staging seeding only.
+// Never reuse these values in production.
 const TEST_DATA = {
   coach: {
     email: "test_coach@example.com",

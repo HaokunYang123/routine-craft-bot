@@ -30,8 +30,11 @@ const INVALID_CODE_MESSAGE = "Invalid code. Please check with your child.";
 type ParentTab = "schedule" | "notes";
 type TaskStatus = "pending" | "completed" | "missed" | "excused";
 
-interface ParentLinkRow {
-  student_id: string;
+interface ParentLinkResult {
+  success?: boolean;
+  error?: string;
+  student_id?: string;
+  already_linked?: boolean;
 }
 
 interface ParentChildRow {
@@ -429,33 +432,25 @@ export default function ParentDashboard() {
 
     setLinking(true);
 
-    const { data: linkRow, error: lookupError } = await db
-      .from("parent_links")
-      .select("student_id")
-      .eq("link_code", code)
-      .maybeSingle();
+    const { data: linkResult, error: linkError } = await (supabase as any).rpc(
+      "link_child_by_parent_code",
+      { p_link_code: code }
+    );
 
-    if (lookupError || !linkRow) {
-      setLinkError(INVALID_CODE_MESSAGE);
+    if (linkError) {
+      setLinkError(linkError.message ?? "Could not link this child. Please try again.");
       setLinking(false);
       return;
     }
 
-    const studentId = (linkRow as ParentLinkRow).student_id;
-
-    const { error: insertError } = await db
-      .from("parent_children")
-      .insert({ parent_id: user.id, child_id: studentId });
-
-    if (insertError) {
-      if (insertError.code === "23505") {
-        setLinkError("This child is already linked to your account.");
-      } else {
-        setLinkError(insertError.message ?? "Could not link this child. Please try again.");
-      }
+    const result = (linkResult ?? {}) as ParentLinkResult;
+    if (!result.success || !result.student_id) {
+      setLinkError(result.error ?? INVALID_CODE_MESSAGE);
       setLinking(false);
       return;
     }
+
+    const studentId = result.student_id;
 
     const { data: childProfile } = await supabase
       .from("profiles")
@@ -464,7 +459,10 @@ export default function ParentDashboard() {
       .maybeSingle();
 
     const childName = childProfile?.display_name?.trim() || "your child";
-    setLinkSuccess(`Successfully linked ${childName}.`);
+    const successMessage = result.already_linked
+      ? `${childName} is already linked to your account.`
+      : `Successfully linked ${childName}.`;
+    setLinkSuccess(successMessage);
     setLinkCode("");
     setShowLinkForm(false);
     await loadChildren(studentId);
