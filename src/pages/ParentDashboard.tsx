@@ -1,7 +1,8 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { format, isBefore, isValid, parseISO, startOfDay } from "date-fns";
-import { Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -150,6 +151,7 @@ function getStatusMeta(status: string) {
 export default function ParentDashboard() {
   const { user, loading: authLoading } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [loadingChildren, setLoadingChildren] = useState(true);
   const [children, setChildren] = useState<LinkedChild[]>([]);
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
@@ -544,6 +546,17 @@ export default function ParentDashboard() {
       <ProtectedRoute requiredRole="parent">
         <PullToRefresh onRefresh={handleRefresh}>
         <div className="coach-theme min-h-screen bg-background p-4 md:p-6">
+          <div className="mx-auto max-w-3xl">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => navigate("/")}
+              className="mb-4 -ml-2 inline-flex items-center gap-2 text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
+          </div>
           <div className="mx-auto flex min-h-[70vh] max-w-3xl items-center justify-center">
             {renderLinkCard()}
           </div>
