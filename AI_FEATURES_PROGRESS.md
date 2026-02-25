@@ -22,3 +22,24 @@ Atomic rate limiter shipped via Postgres upsert with coach-only enforcement in d
 
 ### Concerns
 - `personalize` allowlist keeps a `modifier` fallback for backward compatibility with any older clients that still send it.
+
+## Chunk 5: Weekly Summary Enhancements + Polish/Recap Verification
+
+**Summary:** Added a weekly summary date range picker using native HTML date inputs (default today minus 7 days through today), with validation for required dates, start/end ordering, and a 90-day max window. Added a tone toggle (Encouraging/Direct/Detailed) and wired `start_date`, `end_date`, and `tone` through the frontend payload and `ai-chat` weekly_summary allowlist/sanitization/prompt builder. Verified Polish and Student Recap call chains remain intact after the chunked AI pipeline restructuring.
+
+**Verification:**
+
+| Check | Status |
+|-------|--------|
+| Date range picker renders with defaults | ✅ (default state seeded from `getSevenDayRange()`) |
+| Tone toggle renders with Encouraging selected | ✅ |
+| Generate disabled without valid inputs | ✅ (group required + dateRangeError gate) |
+| Edge function accepts new weekly_summary fields | ✅ (`ALLOWED_FIELDS` + sanitizer updated) |
+| Tone instruction injected into prompt | ✅ (tone-specific system instruction branches) |
+| Raw stats fallback intact | ✅ (existing fallback path preserved) |
+| Polish call chain verified | ✅ (action/allowlist/schema/prompt builder all present) |
+| Recap call chain verified | ✅ (action/allowlist/schema/prompt builder all present) |
+| npm run lint | ⚠️ existing unrelated lint error in `src/pages/ParentDashboard.tsx:437` (`no-explicit-any`); no new Chunk 5 lint errors detected |
+| npm run build | ✅ |
+
+**Concerns:** Existing pre-existing lint error in `src/pages/ParentDashboard.tsx` causes `npm run lint` to exit non-zero.

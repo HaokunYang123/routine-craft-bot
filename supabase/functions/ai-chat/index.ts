@@ -38,7 +38,7 @@ const ALLOWED_FIELDS: Record<SupportedAction, readonly string[]> = {
     "additionalNotes",
     "modifier",
   ],
-  weekly_summary: ["groupName", "summaryData"],
+  weekly_summary: ["groupName", "summaryData", "start_date", "end_date", "tone"],
   polish: ["roughText"],
   student_recap: [
     "studentName",
@@ -200,6 +200,9 @@ type WeeklyStudentResultPayload = {
 
 type WeeklySummaryPayload = {
   groupName: string;
+  start_date: string;
+  end_date: string;
+  tone: "encouraging" | "direct" | "detailed";
   summaryData: {
     studentResults: WeeklyStudentResultPayload[];
     dateRange: {
@@ -266,11 +269,49 @@ const normalizeNullableString = (value: unknown, maxLength = 4000): string | nul
 };
 
 const TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
+const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 const normalizeNullableTime = (value: unknown): string | null => {
   const parsed = normalizeString(value, "", 5);
   if (!parsed) return null;
   return TIME_PATTERN.test(parsed) ? parsed : null;
+};
+
+const formatIsoDate = (date: Date): string => {
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const parseIsoDate = (value: string): Date | null => {
+  if (!ISO_DATE_PATTERN.test(value)) return null;
+  const parsed = new Date(`${value}T00:00:00Z`);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed;
+};
+
+const getDefaultWeeklySummaryRange = (): { start: string; end: string } => {
+  const today = new Date();
+  const end = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+  const start = new Date(end);
+  start.setUTCDate(end.getUTCDate() - 7);
+  return {
+    start: formatIsoDate(start),
+    end: formatIsoDate(end),
+  };
+};
+
+const normalizeIsoDate = (value: unknown, fallback: string): string => {
+  const parsed = normalizeString(value, "", 32);
+  return ISO_DATE_PATTERN.test(parsed) ? parsed : fallback;
+};
+
+const normalizeWeeklySummaryTone = (value: unknown): "encouraging" | "direct" | "detailed" => {
+  const parsed = normalizeString(value, "encouraging", 32).toLowerCase();
+  if (parsed === "direct") return "direct";
+  if (parsed === "detailed") return "detailed";
+  return "encouraging";
 };
 
 const pickAllowedTopLevelFields = (action: SupportedAction, payload: unknown): JsonRecord => {
@@ -359,14 +400,28 @@ const sanitizeWeeklySummaryPayload = (payload: unknown): WeeklySummaryPayload =>
   const safe = pickAllowedTopLevelFields("weekly_summary", payload);
   const summaryData = asRecord(safe.summaryData);
   const dateRange = asRecord(summaryData.dateRange);
+  const defaultRange = getDefaultWeeklySummaryRange();
+  const fallbackStart = normalizeIsoDate(dateRange.start, defaultRange.start);
+  const fallbackEnd = normalizeIsoDate(dateRange.end, defaultRange.end);
+  let start = normalizeIsoDate(safe.start_date, fallbackStart);
+  let end = normalizeIsoDate(safe.end_date, fallbackEnd);
+  const startDate = parseIsoDate(start);
+  const endDate = parseIsoDate(end);
+  if (!startDate || !endDate || startDate > endDate) {
+    start = defaultRange.start;
+    end = defaultRange.end;
+  }
   const rawStudentResults = Array.isArray(summaryData.studentResults) ? summaryData.studentResults : [];
 
   return {
     groupName: normalizeString(safe.groupName, "Group", 160),
+    start_date: start,
+    end_date: end,
+    tone: normalizeWeeklySummaryTone(safe.tone),
     summaryData: {
       dateRange: {
-        start: normalizeString(dateRange.start, "", 32),
-        end: normalizeString(dateRange.end, "", 32),
+        start,
+        end,
       },
       studentResults: rawStudentResults.slice(0, 200).map((entry, index) => {
         const row = asRecord(entry);
@@ -517,6 +572,11 @@ ${JSON.stringify(typed.template, null, 2)}`,
 
   if (action === "weekly_summary") {
     const typed = payload as WeeklySummaryPayload;
+    const toneInstruction = typed.tone === "direct"
+      ? "Use a direct tone: factual, concise, no fluff, and clearly call out what needs attention."
+      : typed.tone === "detailed"
+      ? "Use a detailed tone: provide comprehensive observations with concrete per-student trends and specific numbers."
+      : "Use an encouraging tone: warm and positive framing, celebrate wins, and be gentle but clear about gaps.";
     return {
       systemPrompt: `You are summarizing a coaching group's weekly task completion data.
 Return ONLY valid JSON matching this exact schema:
@@ -531,13 +591,18 @@ Return ONLY valid JSON matching this exact schema:
   }
 }
 Rules:
-- summary must be 2 to 3 sentences with an encouraging, coach-friendly tone.
+- summary must be 2 to 3 sentences in the requested coach tone.
 - highlights should include notable achievements or streaks (maximum 3 items).
 - concerns should include students falling behind or patterns to watch (maximum 3 items). Use [] if there are no concerns.
 - stats must include aggregate totalTasks, completionRate (percentage), and topPerformer.
 - If data is empty or all zeros, return a summary noting no activity recorded and suggest checking in with students.
+- ${toneInstruction}
 - Do not include markdown or extra explanation outside the JSON.`,
-      userMessage: `Group Name: ${typed.groupName}\nWeekly Summary Data:\n${JSON.stringify(typed.summaryData, null, 2)}`,
+      userMessage: `Group Name: ${typed.groupName}
+Date Range: ${typed.start_date} to ${typed.end_date}
+Requested Tone: ${typed.tone}
+Weekly Summary Data:
+${JSON.stringify(typed.summaryData, null, 2)}`,
     };
   }
 

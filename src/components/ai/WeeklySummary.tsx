@@ -36,6 +36,8 @@ type DateRange = {
   end: string;
 };
 
+type SummaryTone = "encouraging" | "direct" | "detailed";
+
 type RawStats = {
   totalTasks: number;
   completionRate: number;
@@ -72,6 +74,13 @@ type SummaryResult = {
 };
 
 const NO_GROUP_SELECTED = "none";
+const MAX_RANGE_DAYS = 90;
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const TONE_OPTIONS: Array<{ label: string; value: SummaryTone }> = [
+  { label: "Encouraging", value: "encouraging" },
+  { label: "Direct", value: "direct" },
+  { label: "Detailed", value: "detailed" },
+];
 
 const formatLocalDate = (date: Date): string => {
   const year = date.getFullYear();
@@ -89,6 +98,13 @@ const getSevenDayRange = (): DateRange => {
     start: formatLocalDate(sevenDaysAgo),
     end: formatLocalDate(today),
   };
+};
+
+const parseDateInput = (value: string): Date | null => {
+  if (!DATE_PATTERN.test(value)) return null;
+  const parsed = new Date(`${value}T00:00:00Z`);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed;
 };
 
 const parseString = (value: unknown): string => {
@@ -131,11 +147,15 @@ const normalizeSummaryResponse = (
 
 export function WeeklySummary() {
   const { user } = useAuth();
+  const defaultDateRange = useMemo(getSevenDayRange, []);
 
   const [groups, setGroups] = useState<GroupOption[]>([]);
   const [groupsLoading, setGroupsLoading] = useState(true);
   const [groupsError, setGroupsError] = useState<string | null>(null);
   const [selectedGroupId, setSelectedGroupId] = useState<string>(NO_GROUP_SELECTED);
+  const [startDate, setStartDate] = useState<string>(defaultDateRange.start);
+  const [endDate, setEndDate] = useState<string>(defaultDateRange.end);
+  const [tone, setTone] = useState<SummaryTone>("encouraging");
 
   const [viewState, setViewState] = useState<ViewState>("default");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -191,8 +211,18 @@ export function WeeklySummary() {
     }
   };
 
-  const fetchAndAggregate = async (groupId: string): Promise<AggregatedSummary> => {
-    const dateRange = getSevenDayRange();
+  const dateRangeError = useMemo(() => {
+    if (!startDate || !endDate) return "Start date and end date are required.";
+    const parsedStart = parseDateInput(startDate);
+    const parsedEnd = parseDateInput(endDate);
+    if (!parsedStart || !parsedEnd) return "Dates must use YYYY-MM-DD format.";
+    if (parsedStart > parsedEnd) return "Start date must be before or equal to end date.";
+    const diffDays = Math.floor((parsedEnd.getTime() - parsedStart.getTime()) / 86_400_000) + 1;
+    if (diffDays > MAX_RANGE_DAYS) return "Date range cannot exceed 90 days.";
+    return null;
+  }, [startDate, endDate]);
+
+  const fetchAndAggregate = async (groupId: string, dateRange: DateRange): Promise<AggregatedSummary> => {
 
     const { data: memberRows, error: membersError } = await supabase
       .from("group_members")
@@ -312,7 +342,7 @@ export function WeeklySummary() {
   };
 
   const handleGenerate = async () => {
-    if (!selectedGroupId || selectedGroupId === NO_GROUP_SELECTED) return;
+    if (!selectedGroupId || selectedGroupId === NO_GROUP_SELECTED || dateRangeError) return;
 
     setViewState("generating");
     setErrorMessage(null);
@@ -321,7 +351,7 @@ export function WeeklySummary() {
 
     let aggregatedData: AggregatedSummary;
     try {
-      aggregatedData = await fetchAndAggregate(selectedGroupId);
+      aggregatedData = await fetchAndAggregate(selectedGroupId, { start: startDate, end: endDate });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Could not load summary data";
       setErrorMessage(message);
@@ -342,6 +372,9 @@ export function WeeklySummary() {
         action: "weekly_summary",
         payload: {
           groupName: selectedGroupName,
+          start_date: startDate,
+          end_date: endDate,
+          tone,
           summaryData: {
             studentResults: aggregatedData.studentResults,
             dateRange: aggregatedData.dateRange,
@@ -368,7 +401,11 @@ export function WeeklySummary() {
   };
 
   const isGenerateDisabled =
-    groupsLoading || selectedGroupId === NO_GROUP_SELECTED || groups.length === 0 || isCoolingDown;
+    groupsLoading ||
+    selectedGroupId === NO_GROUP_SELECTED ||
+    groups.length === 0 ||
+    isCoolingDown ||
+    Boolean(dateRangeError);
 
   const displayedStats = summaryResult?.stats ?? rawStats;
 
@@ -406,6 +443,55 @@ export function WeeklySummary() {
               {!groupsLoading && !groupsError && groups.length === 0 && (
                 <p className="text-sm text-muted-foreground">No groups available yet.</p>
               )}
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="weekly-summary-start-date">Start Date</Label>
+                <input
+                  id="weekly-summary-start-date"
+                  type="date"
+                  value={startDate}
+                  onChange={(event) => setStartDate(event.target.value)}
+                  className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="weekly-summary-end-date">End Date</Label>
+                <input
+                  id="weekly-summary-end-date"
+                  type="date"
+                  value={endDate}
+                  onChange={(event) => setEndDate(event.target.value)}
+                  className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground"
+                />
+              </div>
+            </div>
+
+            {dateRangeError && (
+              <p className="text-sm text-destructive">{dateRangeError}</p>
+            )}
+
+            <div className="space-y-2">
+              <Label>Tone</Label>
+              <div className="flex flex-wrap gap-2">
+                {TONE_OPTIONS.map((option) => {
+                  const isSelected = tone === option.value;
+                  return (
+                    <Button
+                      key={option.value}
+                      type="button"
+                      variant="outline"
+                      onClick={() => setTone(option.value)}
+                      className={isSelected
+                        ? "border-cta-primary/60 bg-cta-primary/15 text-foreground"
+                        : "border-border bg-card text-muted-foreground hover:text-foreground"}
+                    >
+                      {option.label}
+                    </Button>
+                  );
+                })}
+              </div>
             </div>
 
             <Button
@@ -447,7 +533,7 @@ export function WeeklySummary() {
         {viewState === "empty" && (
           <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-3">
             <p className="text-sm text-muted-foreground">
-              No activity recorded in the last 7 days for this group.
+              No activity recorded from {startDate} to {endDate} for this group.
             </p>
             <Button variant="outline" onClick={() => resetViewState(true)}>
               Generate Another
