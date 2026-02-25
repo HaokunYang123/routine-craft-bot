@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Loader2, Sparkles, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PolishButton } from "@/components/ui/PolishButton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { useRateLimitCooldown } from "@/hooks/useRateLimitCooldown";
@@ -85,6 +87,11 @@ interface PersistedTask {
 }
 
 const TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
+const DIFFICULTY_OPTIONS = ["Simplify", "Keep Same", "Make Harder"] as const;
+const PACING_OPTIONS = ["Slower", "Standard", "Accelerated"] as const;
+const LEARNING_STYLE_OPTIONS = ["Visual", "Hands-on", "Reading/Writing", "Auditory"] as const;
+const DEFAULT_DIFFICULTY = "Keep Same";
+const DEFAULT_PACING = "Standard";
 let generatedTaskCounter = 0;
 
 const createTaskId = (): string => {
@@ -269,7 +276,11 @@ export function PersonalizeDialog({ open, onOpenChange, template }: PersonalizeD
   const { toast } = useToast();
 
   const [builderState, setBuilderState] = useState<BuilderState>("input");
-  const [modifier, setModifier] = useState("");
+  const [difficulty, setDifficulty] = useState<string>(DEFAULT_DIFFICULTY);
+  const [pacing, setPacing] = useState<string>(DEFAULT_PACING);
+  const [learningStyle, setLearningStyle] = useState<string[]>([]);
+  const [accommodations, setAccommodations] = useState("");
+  const [additionalNotes, setAdditionalNotes] = useState("");
   const [templateDraft, setTemplateDraft] = useState<TemplateDraft | null>(null);
   const [aiNote, setAiNote] = useState<string | null>(null);
   const [generationError, setGenerationError] = useState<string | null>(null);
@@ -283,7 +294,11 @@ export function PersonalizeDialog({ open, onOpenChange, template }: PersonalizeD
   useEffect(() => {
     if (!open) {
       setBuilderState("input");
-      setModifier("");
+      setDifficulty(DEFAULT_DIFFICULTY);
+      setPacing(DEFAULT_PACING);
+      setLearningStyle([]);
+      setAccommodations("");
+      setAdditionalNotes("");
       setTemplateDraft(null);
       setAiNote(null);
       setGenerationError(null);
@@ -322,9 +337,6 @@ export function PersonalizeDialog({ open, onOpenChange, template }: PersonalizeD
   }, [templateDraft]);
 
   const handleGeneratePersonalization = async () => {
-    const trimmedModifier = modifier.trim();
-    if (!trimmedModifier) return;
-
     setBuilderState("generating");
     setGenerationError(null);
     setSaveError(null);
@@ -336,7 +348,11 @@ export function PersonalizeDialog({ open, onOpenChange, template }: PersonalizeD
         action: "personalize",
         payload: {
           template: promptTemplate,
-          modifier: trimmedModifier,
+          difficulty,
+          pacing,
+          learningStyle,
+          accommodations: accommodations.trim() || null,
+          additionalNotes: additionalNotes.trim() || null,
         },
       });
 
@@ -435,9 +451,22 @@ export function PersonalizeDialog({ open, onOpenChange, template }: PersonalizeD
 
   const handleResetPreview = () => {
     setBuilderState("input");
+    setDifficulty(DEFAULT_DIFFICULTY);
+    setPacing(DEFAULT_PACING);
+    setLearningStyle([]);
+    setAccommodations("");
+    setAdditionalNotes("");
     setTemplateDraft(null);
     setAiNote(null);
     setSaveError(null);
+  };
+
+  const toggleLearningStyle = (style: string) => {
+    setLearningStyle((prev) => (
+      prev.includes(style)
+        ? prev.filter((item) => item !== style)
+        : [...prev, style]
+    ));
   };
 
   const handleSaveTemplate = async () => {
@@ -578,7 +607,7 @@ export function PersonalizeDialog({ open, onOpenChange, template }: PersonalizeD
         <div className="space-y-6 py-2">
           <Card className="border-cta-primary/30 bg-cta-primary/5">
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg text-foreground">Modifier Input</CardTitle>
+              <CardTitle className="text-lg text-foreground">Personalization Options</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -591,22 +620,117 @@ export function PersonalizeDialog({ open, onOpenChange, template }: PersonalizeD
                 />
               </div>
 
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="personalize-difficulty">Difficulty Adjustment</Label>
+                  <Select
+                    value={difficulty}
+                    onValueChange={setDifficulty}
+                    disabled={isGenerating || isSaving || isCoolingDown}
+                  >
+                    <SelectTrigger id="personalize-difficulty" className="bg-card border-border">
+                      <SelectValue placeholder="Select difficulty adjustment" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DIFFICULTY_OPTIONS.map((option) => (
+                        <SelectItem key={option} value={option}>
+                          {option}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="personalize-pacing">Pacing</Label>
+                  <Select
+                    value={pacing}
+                    onValueChange={setPacing}
+                    disabled={isGenerating || isSaving || isCoolingDown}
+                  >
+                    <SelectTrigger id="personalize-pacing" className="bg-card border-border">
+                      <SelectValue placeholder="Select pacing" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PACING_OPTIONS.map((option) => (
+                        <SelectItem key={option} value={option}>
+                          {option}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
               <div className="space-y-2">
-                <Label htmlFor="personalize-modifier">How should this plan change?</Label>
+                <Label>Learning Style</Label>
+                <div className="flex flex-wrap gap-2">
+                  {LEARNING_STYLE_OPTIONS.map((style) => {
+                    const isSelected = learningStyle.includes(style);
+                    return (
+                      <button
+                        key={style}
+                        type="button"
+                        onClick={() => toggleLearningStyle(style)}
+                        disabled={isGenerating || isSaving || isCoolingDown}
+                        className={isSelected
+                          ? "rounded-md border border-cta-primary/60 bg-cta-primary/15 px-3 py-1.5 text-sm text-foreground"
+                          : "rounded-md border border-border bg-card px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground"
+                        }
+                      >
+                        {style}
+                      </button>
+                    );
+                  })}
+                </div>
+                {learningStyle.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {learningStyle.map((style) => (
+                      <Badge key={style} variant="secondary" className="flex items-center gap-1">
+                        <span>{style}</span>
+                        <button
+                          type="button"
+                          aria-label={`Remove ${style}`}
+                          onClick={() => toggleLearningStyle(style)}
+                          disabled={isGenerating || isSaving || isCoolingDown}
+                          className="inline-flex h-4 w-4 items-center justify-center rounded hover:bg-black/10"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="personalize-accommodations">Accommodations (optional)</Label>
                 <Input
-                  id="personalize-modifier"
-                  value={modifier}
-                  onChange={(event) => setModifier(event.target.value)}
+                  id="personalize-accommodations"
+                  value={accommodations}
+                  onChange={(event) => setAccommodations(event.target.value)}
                   disabled={isGenerating || isSaving || isCoolingDown}
-                  placeholder="e.g. make harder for advanced athletes, reduce to 2 days per week, add a warm up before each session"
+                  placeholder="e.g. extra time, simplified language"
                   className="bg-card border-border"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="personalize-additional-notes">Additional Notes (optional)</Label>
+                <Textarea
+                  id="personalize-additional-notes"
+                  value={additionalNotes}
+                  onChange={(event) => setAdditionalNotes(event.target.value)}
+                  disabled={isGenerating || isSaving || isCoolingDown}
+                  placeholder="Any other guidance for this personalization"
+                  className="min-h-[90px] bg-card border-border"
                 />
               </div>
 
               <Button
                 type="button"
                 onClick={handleGeneratePersonalization}
-                disabled={!modifier.trim() || isGenerating || isSaving || isCoolingDown}
+                disabled={isGenerating || isSaving || isCoolingDown}
                 className="bg-cta-primary hover:bg-cta-hover text-white"
               >
                 {isGenerating ? (

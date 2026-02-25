@@ -29,7 +29,15 @@ const SUPPORTED_ACTION_SET = new Set<SupportedAction>(SUPPORTED_ACTIONS);
 
 const ALLOWED_FIELDS: Record<SupportedAction, readonly string[]> = {
   generate_plan: ["subject", "ageGroup", "skillLevel", "focusAreas", "duration"],
-  personalize: ["template", "modifier"],
+  personalize: [
+    "template",
+    "difficulty",
+    "pacing",
+    "learningStyle",
+    "accommodations",
+    "additionalNotes",
+    "modifier",
+  ],
   weekly_summary: ["groupName", "summaryData"],
   polish: ["roughText"],
   student_recap: [
@@ -174,7 +182,11 @@ type GeneratePlanPayload = {
 
 type PersonalizePayload = {
   template: PlanTemplatePayload;
-  modifier: string;
+  difficulty: string;
+  pacing: string;
+  learningStyle: string[];
+  accommodations: string | null;
+  additionalNotes: string | null;
 };
 
 type WeeklyStudentResultPayload = {
@@ -314,9 +326,25 @@ const sanitizeGeneratePlanPayload = (payload: unknown): GeneratePlanPayload => {
 const sanitizePersonalizePayload = (payload: unknown): PersonalizePayload => {
   const safe = pickAllowedTopLevelFields("personalize", payload);
   const template = asRecord(safe.template);
+  const rawLearningStyle = Array.isArray(safe.learningStyle) ? safe.learningStyle : [];
+  const difficulty = normalizeString(safe.difficulty, "Keep Same", 40);
+  const pacing = normalizeString(safe.pacing, "Standard", 40);
+  const allowedDifficulty = new Set(["Simplify", "Keep Same", "Make Harder"]);
+  const allowedPacing = new Set(["Slower", "Standard", "Accelerated"]);
+  const allowedLearningStyle = new Set(["Visual", "Hands-on", "Reading/Writing", "Auditory"]);
+  const parsedDifficulty = allowedDifficulty.has(difficulty) ? difficulty : "Keep Same";
+  const parsedPacing = allowedPacing.has(pacing) ? pacing : "Standard";
+  const fallbackNotes = normalizeNullableString(safe.modifier, 1600);
 
   return {
-    modifier: normalizeString(safe.modifier, "Keep the plan structure and improve clarity.", 3000),
+    difficulty: parsedDifficulty,
+    pacing: parsedPacing,
+    learningStyle: rawLearningStyle
+      .slice(0, 8)
+      .map((entry) => normalizeString(entry, "", 80))
+      .filter((entry) => allowedLearningStyle.has(entry)),
+    accommodations: normalizeNullableString(safe.accommodations, 500),
+    additionalNotes: normalizeNullableString(safe.additionalNotes, 1600) ?? fallbackNotes,
     template: {
       name: normalizeString(template.name, "Template", 160),
       description: normalizeNullableString(template.description, 2000),
@@ -445,6 +473,9 @@ Rules:
 
   if (action === "personalize") {
     const typed = payload as PersonalizePayload;
+    const learningStyleLine = typed.learningStyle.length > 0 ? typed.learningStyle.join(", ") : "None selected";
+    const accommodationsLine = typed.accommodations || "None";
+    const additionalNotesLine = typed.additionalNotes || "None";
     return {
       systemPrompt: `You are modifying an existing coaching plan based on the coach's request.
 Return ONLY valid JSON matching this exact schema:
@@ -468,11 +499,19 @@ Return ONLY valid JSON matching this exact schema:
 Rules:
 - Keep the response in the same coaching template structure used for AI Template Builder.
 - "ai_note" is optional. Omit it or set it to null when not needed.
-- If the modifier is valid and coaching-related, modify the template accordingly.
-- If the modifier is vague but still usable (for example "make it better" or "change it up"), make reasonable coaching improvements.
-- If the modifier is unrelated to coaching or nonsensical (for example "what's the weather" or "asdfghjkl"), return the original template unchanged and set "ai_note" to a friendly message explaining that the input did not relate to the plan. Include 2-3 concrete example modifiers the coach could try.
+- Adapt to the coach's selected difficulty, pacing, learning style, accommodations, and additional notes.
+- If options imply minimal changes (Keep Same + Standard + no styles/notes), keep the plan structure mostly intact and improve clarity only where helpful.
+- If notes are unrelated or nonsensical, keep the template unchanged and set "ai_note" to a friendly message with 2-3 concrete examples of useful personalization guidance.
 - Never return an error. Always return valid JSON with the template structure.`,
-      userMessage: `TEMPLATE_JSON:\n${JSON.stringify(typed.template, null, 2)}\n\nMODIFIER_REQUEST:\n${typed.modifier}`,
+      userMessage: `PERSONALIZATION_OPTIONS:
+- Difficulty Adjustment: ${typed.difficulty}
+- Pacing: ${typed.pacing}
+- Learning Style: ${learningStyleLine}
+- Accommodations: ${accommodationsLine}
+- Additional Notes: ${additionalNotesLine}
+
+TEMPLATE_JSON:
+${JSON.stringify(typed.template, null, 2)}`,
     };
   }
 
