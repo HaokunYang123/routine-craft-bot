@@ -5,9 +5,12 @@ const JSON_RETRY_SUFFIX = " Respond with valid JSON only, no markdown.";
 const AI_CHAT_PATH = "/functions/v1/ai-chat";
 
 export interface GeminiRequest {
-  systemPrompt: string;
-  userMessage: string;
+  action: string;
+  payload?: unknown;
   temperature?: number;
+  // Legacy fields retained for compatibility if older callers still pass prompt text.
+  systemPrompt?: string;
+  userMessage?: string;
 }
 
 export interface GeminiResponse<T> {
@@ -18,11 +21,36 @@ export interface GeminiResponse<T> {
 
 interface EdgeChatResponse {
   response?: string;
-  error?: {
-    message?: string;
-  };
+  retry_after_seconds?: number;
+  remaining?: number;
+  limit?: number;
+  error?:
+    | string
+    | {
+      message?: string;
+    };
   message?: string;
   error_description?: string;
+}
+
+interface RateLimitPayload {
+  retry_after_seconds: number;
+  remaining: number;
+  limit: number;
+}
+
+export class RateLimitError extends Error {
+  retryAfterSeconds: number;
+  remaining: number;
+  limit: number;
+
+  constructor(data: RateLimitPayload) {
+    super("Rate limit exceeded");
+    this.name = "RateLimitError";
+    this.retryAfterSeconds = data.retry_after_seconds;
+    this.remaining = data.remaining;
+    this.limit = data.limit;
+  }
 }
 
 const getEdgeFunctionUrl = (): string | null => {
@@ -86,7 +114,7 @@ const parseGeminiJson = <T>(rawText: string): GeminiResponse<T> => {
 
 const requestGemini = async (
   request: GeminiRequest,
-  userMessage: string,
+  overrideUserMessage?: string,
 ): Promise<GeminiResponse<string>> => {
   const edgeFunctionUrl = getEdgeFunctionUrl();
   if (!edgeFunctionUrl) {
@@ -110,15 +138,27 @@ const requestGemini = async (
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
+    const requestBody: Record<string, unknown> = {
+      action: request.action,
+      payload: request.payload,
+      temperature: request.temperature ?? 0.7,
+    };
+
+    if (typeof request.systemPrompt === "string") {
+      requestBody.systemPrompt = request.systemPrompt;
+    }
+
+    if (typeof overrideUserMessage === "string") {
+      requestBody.userMessage = overrideUserMessage;
+    } else if (typeof request.userMessage === "string") {
+      requestBody.userMessage = request.userMessage;
+    }
+
     const response = await fetch(edgeFunctionUrl, {
       method: "POST",
       headers,
       signal: controller.signal,
-      body: JSON.stringify({
-        systemPrompt: request.systemPrompt,
-        temperature: request.temperature ?? 0.7,
-        messages: [{ role: "user", content: userMessage }],
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     let payload: EdgeChatResponse = {};
@@ -128,9 +168,26 @@ const requestGemini = async (
       // keep empty payload for fallback error messages
     }
 
+    if (response.status === 429) {
+      const retryAfterFromHeader = Number(response.headers.get("Retry-After") || 0);
+      const retryAfter = Number(payload.retry_after_seconds ?? retryAfterFromHeader);
+      const remaining = Number(payload.remaining ?? 0);
+      const limit = Number(payload.limit ?? 0);
+
+      throw new RateLimitError({
+        retry_after_seconds: Number.isFinite(retryAfter) ? Math.max(0, Math.ceil(retryAfter)) : 0,
+        remaining: Number.isFinite(remaining) ? Math.max(0, Math.floor(remaining)) : 0,
+        limit: Number.isFinite(limit) ? Math.max(0, Math.floor(limit)) : 0,
+      });
+    }
+
     if (!response.ok) {
+      const errorMessage =
+        typeof payload.error === "string"
+          ? payload.error
+          : payload.error?.message;
       const statusMessage =
-        payload.error?.message ||
+        errorMessage ||
         payload.message ||
         payload.error_description ||
         response.statusText ||
@@ -159,6 +216,10 @@ const requestGemini = async (
       error: null,
     };
   } catch (error) {
+    if (error instanceof RateLimitError) {
+      throw error;
+    }
+
     if (error instanceof Error && error.name === "AbortError") {
       console.error("[gemini] Gemini request timed out");
       return {
@@ -198,7 +259,7 @@ const requestGemini = async (
 };
 
 export async function callGemini<T>(request: GeminiRequest): Promise<GeminiResponse<T>> {
-  const firstAttempt = await requestGemini(request, request.userMessage);
+  const firstAttempt = await requestGemini(request);
   if (!firstAttempt.success || !firstAttempt.data) {
     return {
       success: false,
@@ -210,6 +271,14 @@ export async function callGemini<T>(request: GeminiRequest): Promise<GeminiRespo
   const parsedFirstAttempt = parseGeminiJson<T>(firstAttempt.data);
   if (parsedFirstAttempt.success) {
     return parsedFirstAttempt;
+  }
+
+  if (typeof request.userMessage !== "string") {
+    return {
+      success: false,
+      data: null,
+      error: "Gemini returned invalid JSON.",
+    };
   }
 
   const retryMessage = `${request.userMessage}${JSON_RETRY_SUFFIX}`;

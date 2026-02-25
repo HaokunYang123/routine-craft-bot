@@ -9,10 +9,10 @@ import { Label } from "@/components/ui/label";
 import { PolishButton } from "@/components/ui/PolishButton";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
+import { useRateLimitCooldown } from "@/hooks/useRateLimitCooldown";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { callGemini } from "@/lib/gemini";
-import { buildPersonalizePrompt } from "@/lib/personalizePrompt";
+import { RateLimitError, callGemini } from "@/lib/gemini";
 import { queryKeys } from "@/lib/queries/keys";
 
 type BuilderState = "input" | "generating" | "preview" | "saving";
@@ -274,6 +274,7 @@ export function PersonalizeDialog({ open, onOpenChange, template }: PersonalizeD
   const [aiNote, setAiNote] = useState<string | null>(null);
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const { isCoolingDown, startCooldown, cooldownLabel } = useRateLimitCooldown();
 
   const isGenerating = builderState === "generating";
   const isSaving = builderState === "saving";
@@ -330,19 +331,35 @@ export function PersonalizeDialog({ open, onOpenChange, template }: PersonalizeD
     setAiNote(null);
 
     const promptTemplate = toPromptTemplate(template);
-    const prompt = buildPersonalizePrompt(promptTemplate, trimmedModifier);
-    const result = await callGemini<PersonalizeModelResponse>(prompt);
+    try {
+      const result = await callGemini<PersonalizeModelResponse>({
+        action: "personalize",
+        payload: {
+          template: promptTemplate,
+          modifier: trimmedModifier,
+        },
+      });
 
-    if (!result.success || !result.data) {
-      setGenerationError(result.error || "Failed to personalize this plan.");
+      if (!result.success || !result.data) {
+        setGenerationError(result.error || "Failed to personalize this plan.");
+        setBuilderState("input");
+        return;
+      }
+
+      const normalized = normalizePersonalizeResponse(result.data, promptTemplate);
+      setTemplateDraft(normalized.template);
+      setAiNote(normalized.aiNote);
+      setBuilderState("preview");
+    } catch (error) {
+      if (error instanceof RateLimitError) {
+        startCooldown(error.retryAfterSeconds);
+        setBuilderState("input");
+        return;
+      }
+
+      setGenerationError(error instanceof Error ? error.message : "Failed to personalize this plan.");
       setBuilderState("input");
-      return;
     }
-
-    const normalized = normalizePersonalizeResponse(result.data, promptTemplate);
-    setTemplateDraft(normalized.template);
-    setAiNote(normalized.aiNote);
-    setBuilderState("preview");
   };
 
   const handleTemplateTextChange = (field: "name" | "description", value: string) => {
@@ -580,7 +597,7 @@ export function PersonalizeDialog({ open, onOpenChange, template }: PersonalizeD
                   id="personalize-modifier"
                   value={modifier}
                   onChange={(event) => setModifier(event.target.value)}
-                  disabled={isGenerating || isSaving}
+                  disabled={isGenerating || isSaving || isCoolingDown}
                   placeholder="e.g. make harder for advanced athletes, reduce to 2 days per week, add a warm up before each session"
                   className="bg-card border-border"
                 />
@@ -589,7 +606,7 @@ export function PersonalizeDialog({ open, onOpenChange, template }: PersonalizeD
               <Button
                 type="button"
                 onClick={handleGeneratePersonalization}
-                disabled={!modifier.trim() || isGenerating || isSaving}
+                disabled={!modifier.trim() || isGenerating || isSaving || isCoolingDown}
                 className="bg-cta-primary hover:bg-cta-hover text-white"
               >
                 {isGenerating ? (
@@ -597,10 +614,18 @@ export function PersonalizeDialog({ open, onOpenChange, template }: PersonalizeD
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Generating...
                   </>
+                ) : isCoolingDown ? (
+                  "Cooldown active"
                 ) : (
                   "Generate"
                 )}
               </Button>
+
+              {isCoolingDown && (
+                <p className="text-sm text-muted-foreground">
+                  Limit reached. Try again in {cooldownLabel}.
+                </p>
+              )}
 
               {generationError && builderState === "input" && (
                 <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3">

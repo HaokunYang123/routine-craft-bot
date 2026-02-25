@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { callGemini } from "@/lib/gemini";
-import { buildPolishPrompt } from "@/lib/polishPrompt";
+import { useRateLimitCooldown } from "@/hooks/useRateLimitCooldown";
+import { RateLimitError, callGemini } from "@/lib/gemini";
 
 interface PolishButtonProps {
   value: string;
@@ -20,6 +20,7 @@ export function PolishButton({ value, onChange }: PolishButtonProps) {
   const [error, setError] = useState<string | null>(null);
   const [originalValue, setOriginalValue] = useState<string | null>(null);
   const undoTimeoutRef = useRef<number | null>(null);
+  const { isCoolingDown, startCooldown, cooldownLabel } = useRateLimitCooldown();
 
   const clearUndoTimeout = () => {
     if (undoTimeoutRef.current !== null) {
@@ -40,7 +41,7 @@ export function PolishButton({ value, onChange }: PolishButtonProps) {
     event.preventDefault();
 
     const trimmedValue = value.trim();
-    if (!trimmedValue || isPolishing) return;
+    if (!trimmedValue || isPolishing || isCoolingDown) return;
 
     setError(null);
     setIsPolishing(true);
@@ -48,7 +49,12 @@ export function PolishButton({ value, onChange }: PolishButtonProps) {
     const currentValue = value;
 
     try {
-      const result = await callGemini<PolishResponse>(buildPolishPrompt(trimmedValue));
+      const result = await callGemini<PolishResponse>({
+        action: "polish",
+        payload: {
+          roughText: trimmedValue,
+        },
+      });
       const polishedValue = typeof result.data?.polished === "string" ? result.data.polished.trim() : "";
 
       if (!result.success || !polishedValue) {
@@ -63,7 +69,13 @@ export function PolishButton({ value, onChange }: PolishButtonProps) {
         setOriginalValue(null);
         undoTimeoutRef.current = null;
       }, UNDO_TIMEOUT_MS);
-    } catch {
+    } catch (error) {
+      if (error instanceof RateLimitError) {
+        startCooldown(error.retryAfterSeconds);
+        setError(null);
+        return;
+      }
+
       setError("Could not polish text, try again");
     } finally {
       setIsPolishing(false);
@@ -88,7 +100,7 @@ export function PolishButton({ value, onChange }: PolishButtonProps) {
           variant="ghost"
           size="sm"
           onClick={handlePolish}
-          disabled={!value.trim() || isPolishing}
+          disabled={!value.trim() || isPolishing || isCoolingDown}
           className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
         >
           {isPolishing ? (
@@ -113,6 +125,11 @@ export function PolishButton({ value, onChange }: PolishButtonProps) {
       </div>
 
       {error && <p className="text-xs text-destructive">{error}</p>}
+      {isCoolingDown && (
+        <p className="text-xs text-muted-foreground">
+          Limit reached. Try again in {cooldownLabel}.
+        </p>
+      )}
     </div>
   );
 }

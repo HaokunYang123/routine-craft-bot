@@ -11,9 +11,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
+import { useRateLimitCooldown } from "@/hooks/useRateLimitCooldown";
 import { supabase } from "@/integrations/supabase/client";
-import { callGemini } from "@/lib/gemini";
-import { buildSummaryPrompt } from "@/lib/summaryPrompt";
+import { RateLimitError, callGemini } from "@/lib/gemini";
 
 type ViewState = "default" | "generating" | "result" | "fallback" | "error" | "empty";
 
@@ -143,6 +143,7 @@ export function WeeklySummary() {
   const [summaryResult, setSummaryResult] = useState<SummaryResult | null>(null);
   const [rawStats, setRawStats] = useState<RawStats | null>(null);
   const [studentBreakdown, setStudentBreakdown] = useState<StudentResult[]>([]);
+  const { isCoolingDown, startCooldown, cooldownLabel } = useRateLimitCooldown();
 
   useEffect(() => {
     if (!user) {
@@ -337,11 +338,16 @@ export function WeeklySummary() {
     }
 
     try {
-      const prompt = buildSummaryPrompt(selectedGroupName, {
-        studentResults: aggregatedData.studentResults,
-        dateRange: aggregatedData.dateRange,
+      const result = await callGemini<SummaryModelResponse>({
+        action: "weekly_summary",
+        payload: {
+          groupName: selectedGroupName,
+          summaryData: {
+            studentResults: aggregatedData.studentResults,
+            dateRange: aggregatedData.dateRange,
+          },
+        },
       });
-      const result = await callGemini<SummaryModelResponse>(prompt);
 
       if (!result.success || !result.data) {
         throw new Error(result.error || "AI summary unavailable");
@@ -349,14 +355,20 @@ export function WeeklySummary() {
 
       setSummaryResult(normalizeSummaryResponse(result.data, aggregatedData.rawStats));
       setViewState("result");
-    } catch {
+    } catch (error) {
+      if (error instanceof RateLimitError) {
+        startCooldown(error.retryAfterSeconds);
+        setViewState("default");
+        return;
+      }
+
       setAiUnavailableNote("AI summary unavailable, showing raw stats");
       setViewState("fallback");
     }
   };
 
   const isGenerateDisabled =
-    groupsLoading || selectedGroupId === NO_GROUP_SELECTED || groups.length === 0;
+    groupsLoading || selectedGroupId === NO_GROUP_SELECTED || groups.length === 0 || isCoolingDown;
 
   const displayedStats = summaryResult?.stats ?? rawStats;
 
@@ -402,8 +414,14 @@ export function WeeklySummary() {
               className="bg-cta-primary hover:bg-cta-hover text-white"
             >
               <Sparkles className="w-4 h-4 mr-2" />
-              Generate Summary
+              {isCoolingDown ? "Cooldown active" : "Generate Summary"}
             </Button>
+
+            {isCoolingDown && (
+              <p className="text-sm text-muted-foreground">
+                Limit reached. Try again in {cooldownLabel}.
+              </p>
+            )}
           </>
         )}
 

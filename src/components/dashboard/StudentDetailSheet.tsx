@@ -26,8 +26,9 @@ import {
 } from "lucide-react";
 import { format, parseISO, subDays, isAfter } from "date-fns";
 import { cn, safeFormatDate } from "@/lib/utils";
-import { useToast } from "@/hooks/use-toast";
+import { useRateLimitCooldown } from "@/hooks/useRateLimitCooldown";
 import { handleError } from "@/lib/error";
+import { RateLimitError, callGemini } from "@/lib/gemini";
 import { useAssignments } from "@/hooks/useAssignments";
 
 interface TaskInstance {
@@ -49,6 +50,16 @@ interface TaskInstance {
   updated_by?: string | null;
 }
 
+interface StudentRecapResponse {
+  recap?: unknown;
+  summary?: unknown;
+}
+
+const parseModelText = (value: unknown): string => {
+  if (typeof value !== "string") return "";
+  return value.trim();
+};
+
 interface StudentDetailSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -64,8 +75,8 @@ export function StudentDetailSheet({
   studentName,
   groupId,
 }: StudentDetailSheetProps) {
-  const { toast } = useToast();
   const { excuseTask, isExcusingTask } = useAssignments();
+  const { isCoolingDown, startCooldown, cooldownLabel } = useRateLimitCooldown();
   const [loading, setLoading] = useState(true);
   const [tasks, setTasks] = useState<TaskInstance[]>([]);
   const [activeTab, setActiveTab] = useState<"active" | "past">("active");
@@ -116,27 +127,38 @@ export function StudentDetailSheet({
       const total = pastTasks.length;
       const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
 
-      const { data, error } = await supabase.functions.invoke("ai-assistant", {
-        body: {
-          action: "student_recap",
-          payload: {
-            studentName,
-            completedCount: completed,
-            missedCount: missed,
-            totalCount: total,
-            completionRate: rate,
-            recentTasks: pastTasks.slice(0, 10).map((t) => ({
-              name: t.name,
-              status: t.status,
-              date: t.scheduled_date,
-            })),
-          },
+      const result = await callGemini<StudentRecapResponse>({
+        action: "student_recap",
+        payload: {
+          studentName,
+          completedCount: completed,
+          missedCount: missed,
+          totalCount: total,
+          completionRate: rate,
+          recentTasks: pastTasks.slice(0, 10).map((t) => ({
+            name: t.name,
+            status: t.status,
+            date: t.scheduled_date,
+          })),
         },
       });
 
-      if (error) throw error;
-      setAiSummary(data.result || "Unable to generate summary.");
+      if (!result.success || !result.data) {
+        throw new Error(result.error || "Unable to generate summary.");
+      }
+
+      const recapText = parseModelText(result.data.recap) || parseModelText(result.data.summary);
+      if (!recapText) {
+        throw new Error("Unable to generate summary.");
+      }
+
+      setAiSummary(recapText);
     } catch (error) {
+      if (error instanceof RateLimitError) {
+        startCooldown(error.retryAfterSeconds);
+        return;
+      }
+
       handleError(error, { component: 'StudentDetailSheet', action: 'generate AI summary' });
     } finally {
       setGeneratingSummary(false);
@@ -306,15 +328,22 @@ export function StudentDetailSheet({
                       size="sm"
                       className="w-full"
                       onClick={generateAISummary}
-                      disabled={generatingSummary || pastTasks.length === 0}
+                      disabled={generatingSummary || pastTasks.length === 0 || isCoolingDown}
                     >
                       {generatingSummary ? (
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       ) : (
                         <Sparkles className="w-4 h-4 mr-2" />
                       )}
-                      Show AI Recap of {studentName}'s Week
+                      {isCoolingDown
+                        ? `Limit reached. Try again in ${cooldownLabel}`
+                        : `Show AI Recap of ${studentName}'s Week`}
                     </Button>
+                  )}
+                  {isCoolingDown && !aiSummary && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Limit reached. Try again in {cooldownLabel}.
+                    </p>
                   )}
                 </div>
 

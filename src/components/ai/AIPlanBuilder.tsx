@@ -1,18 +1,20 @@
-import { useEffect, useMemo, useState } from "react";
+import { type KeyboardEvent, useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Loader2, Sparkles, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PolishButton } from "@/components/ui/PolishButton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
+import { useRateLimitCooldown } from "@/hooks/useRateLimitCooldown";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { callGemini } from "@/lib/gemini";
+import { RateLimitError, callGemini } from "@/lib/gemini";
 import { queryKeys } from "@/lib/queries/keys";
-import { buildTemplatePrompt } from "@/lib/templatePrompt";
 
 interface LegacyGeneratedTask {
   title: string;
@@ -73,6 +75,11 @@ interface PersistedTask {
 }
 
 const TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
+const DEFAULT_AGE_GROUP = "Middle School";
+const DEFAULT_SKILL_LEVEL = "Beginner";
+const DEFAULT_DURATION = "4";
+const AGE_GROUP_OPTIONS = ["Elementary", "Middle School", "High School", "Adult"] as const;
+const SKILL_LEVEL_OPTIONS = ["Beginner", "Intermediate", "Advanced"] as const;
 let generatedTaskCounter = 0;
 
 const createTaskId = (): string => {
@@ -191,11 +198,17 @@ export function AIPlanBuilder(props: AIPlanBuilderProps) {
   const { toast } = useToast();
 
   const [builderState, setBuilderState] = useState<BuilderState>("input");
-  const [userRequest, setUserRequest] = useState("");
+  const [subject, setSubject] = useState("");
+  const [ageGroup, setAgeGroup] = useState<string>(DEFAULT_AGE_GROUP);
+  const [skillLevel, setSkillLevel] = useState<string>(DEFAULT_SKILL_LEVEL);
+  const [duration, setDuration] = useState<string>(DEFAULT_DURATION);
+  const [focusAreaInput, setFocusAreaInput] = useState("");
+  const [focusAreas, setFocusAreas] = useState<string[]>([]);
   const [templateDraft, setTemplateDraft] = useState<TemplateDraft | null>(null);
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [hasUnsavedTemplate, setHasUnsavedTemplate] = useState(false);
+  const { isCoolingDown, startCooldown, cooldownLabel } = useRateLimitCooldown();
 
   const isGenerating = builderState === "generating";
   const isSaving = builderState === "saving";
@@ -258,7 +271,12 @@ export function AIPlanBuilder(props: AIPlanBuilderProps) {
 
   const resetToInput = () => {
     setBuilderState("input");
-    setUserRequest("");
+    setSubject("");
+    setAgeGroup(DEFAULT_AGE_GROUP);
+    setSkillLevel(DEFAULT_SKILL_LEVEL);
+    setDuration(DEFAULT_DURATION);
+    setFocusAreaInput("");
+    setFocusAreas([]);
     setTemplateDraft(null);
     setGenerationError(null);
     setSaveError(null);
@@ -271,33 +289,101 @@ export function AIPlanBuilder(props: AIPlanBuilderProps) {
     setSaveError(null);
   };
 
+  const commitFocusAreaTokens = (rawValue: string) => {
+    const tokens = rawValue
+      .split(",")
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0);
+
+    if (tokens.length === 0) {
+      return;
+    }
+
+    setFocusAreas((prev) => {
+      const next = [...prev];
+      const existing = new Set(prev.map((item) => item.toLowerCase()));
+      tokens.forEach((token) => {
+        if (existing.has(token.toLowerCase()) || next.length >= 12) return;
+        next.push(token);
+        existing.add(token.toLowerCase());
+      });
+      return next;
+    });
+  };
+
+  const handleFocusAreaKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter" || event.key === ",") {
+      event.preventDefault();
+      if (!focusAreaInput.trim()) return;
+      commitFocusAreaTokens(focusAreaInput);
+      setFocusAreaInput("");
+      return;
+    }
+
+    if (event.key === "Backspace" && !focusAreaInput.trim()) {
+      setFocusAreas((prev) => prev.slice(0, -1));
+    }
+  };
+
+  const handleFocusAreaBlur = () => {
+    if (!focusAreaInput.trim()) return;
+    commitFocusAreaTokens(focusAreaInput);
+    setFocusAreaInput("");
+  };
+
+  const removeFocusArea = (value: string) => {
+    setFocusAreas((prev) => prev.filter((item) => item !== value));
+  };
+
   const handleGeneratePlan = async () => {
-    const trimmedInput = userRequest.trim();
-    if (!trimmedInput) return;
+    const trimmedSubject = subject.trim();
+    if (!trimmedSubject) {
+      setGenerationError("Subject/Topic is required.");
+      return;
+    }
 
     setBuilderState("generating");
     setGenerationError(null);
     setSaveError(null);
 
-    const prompt = buildTemplatePrompt(trimmedInput);
-    const result = await callGemini<TemplateModelResponse>(prompt);
+    try {
+      const result = await callGemini<TemplateModelResponse>({
+        action: "generate_plan",
+        payload: {
+          subject: trimmedSubject,
+          ageGroup,
+          skillLevel,
+          focusAreas,
+          duration: Number.parseInt(duration, 10) || Number.parseInt(DEFAULT_DURATION, 10),
+        },
+      });
 
-    if (!result.success || !result.data) {
-      setGenerationError(result.error || "Failed to generate a plan.");
+      if (!result.success || !result.data) {
+        setGenerationError(result.error || "Failed to generate a plan.");
+        setBuilderState("input");
+        return;
+      }
+
+      const normalizedTemplate = normalizeTemplateResponse(result.data);
+      if (!normalizedTemplate) {
+        setGenerationError("AI response was missing required plan fields.");
+        setBuilderState("input");
+        return;
+      }
+
+      setTemplateDraft(normalizedTemplate);
+      setHasUnsavedTemplate(true);
+      setBuilderState("preview");
+    } catch (error) {
+      if (error instanceof RateLimitError) {
+        startCooldown(error.retryAfterSeconds);
+        setBuilderState("input");
+        return;
+      }
+
+      setGenerationError(error instanceof Error ? error.message : "Failed to generate a plan.");
       setBuilderState("input");
-      return;
     }
-
-    const normalizedTemplate = normalizeTemplateResponse(result.data);
-    if (!normalizedTemplate) {
-      setGenerationError("AI response was missing required plan fields.");
-      setBuilderState("input");
-      return;
-    }
-
-    setTemplateDraft(normalizedTemplate);
-    setHasUnsavedTemplate(true);
-    setBuilderState("preview");
   };
 
   const handleTemplateFieldChange = (field: "name" | "description", value: string) => {
@@ -497,21 +583,106 @@ export function AIPlanBuilder(props: AIPlanBuilderProps) {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="ai-template-input">Describe your plan</Label>
-            <Textarea
-              id="ai-template-input"
-              value={userRequest}
-              onChange={(event) => setUserRequest(event.target.value)}
-              disabled={isGenerating}
-              placeholder="e.g. Make a 4-week beginner plan, 3 days per week, focused on basketball fundamentals"
-              className="min-h-[120px] bg-card border-border"
+            <Label htmlFor="ai-plan-subject">Subject/Topic</Label>
+            <Input
+              id="ai-plan-subject"
+              value={subject}
+              onChange={(event) => setSubject(event.target.value)}
+              disabled={isGenerating || isCoolingDown}
+              placeholder="e.g. Basketball fundamentals"
+              className="bg-card border-border"
             />
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="ai-plan-age-group">Age Group</Label>
+              <Select value={ageGroup} onValueChange={setAgeGroup} disabled={isGenerating || isCoolingDown}>
+                <SelectTrigger id="ai-plan-age-group" className="bg-card border-border">
+                  <SelectValue placeholder="Select age group" />
+                </SelectTrigger>
+                <SelectContent>
+                  {AGE_GROUP_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="ai-plan-skill-level">Skill Level</Label>
+              <Select value={skillLevel} onValueChange={setSkillLevel} disabled={isGenerating || isCoolingDown}>
+                <SelectTrigger id="ai-plan-skill-level" className="bg-card border-border">
+                  <SelectValue placeholder="Select level" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SKILL_LEVEL_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="ai-plan-duration">Duration (weeks)</Label>
+              <Select value={duration} onValueChange={setDuration} disabled={isGenerating || isCoolingDown}>
+                <SelectTrigger id="ai-plan-duration" className="bg-card border-border">
+                  <SelectValue placeholder="Select duration" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 12 }, (_, index) => {
+                    const value = String(index + 1);
+                    return (
+                      <SelectItem key={value} value={value}>
+                        {value}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="ai-plan-focus-areas">Focus Areas (optional)</Label>
+            <Input
+              id="ai-plan-focus-areas"
+              value={focusAreaInput}
+              onChange={(event) => setFocusAreaInput(event.target.value)}
+              onKeyDown={handleFocusAreaKeyDown}
+              onBlur={handleFocusAreaBlur}
+              disabled={isGenerating || isCoolingDown}
+              placeholder="Type a focus area, then press Enter or comma"
+              className="bg-card border-border"
+            />
+            {focusAreas.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {focusAreas.map((focus) => (
+                  <Badge key={focus} variant="secondary" className="flex items-center gap-1">
+                    <span>{focus}</span>
+                    <button
+                      type="button"
+                      aria-label={`Remove ${focus}`}
+                      onClick={() => removeFocusArea(focus)}
+                      disabled={isGenerating || isCoolingDown}
+                      className="inline-flex h-4 w-4 items-center justify-center rounded hover:bg-black/10"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
           </div>
 
           <Button
             type="button"
             onClick={handleGeneratePlan}
-            disabled={!userRequest.trim() || isGenerating}
+            disabled={!subject.trim() || isGenerating || isCoolingDown}
             className="bg-cta-primary hover:bg-cta-hover text-white"
           >
             {isGenerating ? (
@@ -519,10 +690,18 @@ export function AIPlanBuilder(props: AIPlanBuilderProps) {
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Generating...
               </>
+            ) : isCoolingDown ? (
+              "Cooldown active"
             ) : (
               "Generate Plan"
             )}
           </Button>
+
+          {isCoolingDown && (
+            <p className="text-sm text-muted-foreground">
+              Limit reached. Try again in {cooldownLabel}.
+            </p>
+          )}
 
           {generationError && builderState === "input" && (
             <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3">
