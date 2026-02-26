@@ -62,3 +62,22 @@ Atomic rate limiter shipped via Postgres upsert with coach-only enforcement in d
 | npm run build | |
 
 **Concerns:** None
+
+### Mobile Fix Batch 2: Scroll Containers + Layout Overflow
+
+**Summary:** Collapsed Group Detail notes pane and Student Calendar task list from fixed-height internal scroll to natural page flow on mobile (responsive breakpoints, desktop unchanged). Fixed Templates tab strip overflow with horizontal scroll or responsive labels. Fixed Templates card action row overflow with flex-wrap. Reduced Coach Settings emoji grid from 8 to 6 columns on mobile.
+
+**Verification:**
+
+| Check | Status |
+|-------|--------|
+| Group Detail notes: no nested scroll on mobile | ✅ |
+| Student Calendar: no nested scroll on mobile | ✅ |
+| Templates tab strip fits 375px | ✅ |
+| Templates card actions wrap at 375px | ✅ |
+| Emoji grid fits 375px | ✅ |
+| Desktop layouts unchanged | ✅ |
+| npm run lint | ✅ (0 errors, existing warnings only) |
+| npm run build | ✅ |
+
+**Concerns:** None

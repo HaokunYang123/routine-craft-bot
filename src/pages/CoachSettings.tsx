@@ -111,7 +111,7 @@ export default function CoachSettings() {
                     </p>
                   </div>
                 </div>
-                <div className="grid grid-cols-8 gap-2 p-3 bg-muted/30 rounded-lg border border-border">
+                <div className="grid grid-cols-6 md:grid-cols-8 gap-2 p-3 bg-muted/30 rounded-lg border border-border">
                   {COACH_EMOJIS.map((emoji) => (
                     <button
                       key={emoji}

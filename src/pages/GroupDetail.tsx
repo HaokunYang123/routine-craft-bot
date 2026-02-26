@@ -1126,14 +1126,14 @@ export default function GroupDetail() {
                 </TabsContent>
 
                 <TabsContent value="notes" className="space-y-6">
-                    <Card className="h-[500px] flex flex-col">
+                    <Card className="h-auto md:h-[500px] flex flex-col">
                         <CardHeader className="pb-3 border-b">
                             <CardTitle className="flex items-center gap-2">
                                 <MessageSquare className="w-5 h-5" />
                                 Notes
                             </CardTitle>
                         </CardHeader>
-                        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                        <div className="flex-1 overflow-y-visible md:overflow-y-auto p-4 space-y-4">
                             {notes.length === 0 ? (
                                 <p className="text-center text-sm text-muted-foreground py-10">
                                     No notes yet. Post an announcement or reminder.

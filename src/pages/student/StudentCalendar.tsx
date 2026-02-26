@@ -397,7 +397,7 @@ export default function StudentCalendar() {
                 </p>
               </div>
             ) : (
-              <ScrollArea className="h-[280px] pr-4">
+              <ScrollArea className="h-auto md:h-[280px] pr-4">
                 <div className="space-y-2">
                   {tasksForDate.map((task, index) => (
                     <div

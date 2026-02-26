@@ -328,24 +328,24 @@ export default function Templates() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={handleTabChange}>
-        <TabsList className="bg-muted/30">
+        <TabsList className="w-full max-w-full justify-start overflow-x-auto bg-muted/30 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           <TabsTrigger
             value="ai"
-            className="data-[state=active]:bg-cta-primary data-[state=active]:text-white"
+            className="shrink-0 data-[state=active]:bg-cta-primary data-[state=active]:text-white"
           >
             <Sparkles className="w-4 h-4 mr-2" />
             AI Builder
           </TabsTrigger>
           <TabsTrigger
             value="manual"
-            className="data-[state=active]:bg-cta-primary data-[state=active]:text-white"
+            className="shrink-0 data-[state=active]:bg-cta-primary data-[state=active]:text-white"
           >
             <FileEdit className="w-4 h-4 mr-2" />
             Manual Builder
           </TabsTrigger>
           <TabsTrigger
             value="library"
-            className="data-[state=active]:bg-cta-primary data-[state=active]:text-white"
+            className="shrink-0 data-[state=active]:bg-cta-primary data-[state=active]:text-white"
           >
             <Library className="w-4 h-4 mr-2" />
             Library ({templates.length})
@@ -459,11 +459,11 @@ export default function Templates() {
                           days
                         </div>
                       )}
-                      <div className="pt-2 flex gap-2">
+                      <div className="pt-2 flex flex-wrap gap-2">
                         <Button
                           variant="outline"
                           size="sm"
-                          className="flex-1 border-btn-secondary/30 text-btn-secondary hover:bg-btn-secondary/10"
+                          className="flex-1 min-w-[110px] border-btn-secondary/30 text-btn-secondary hover:bg-btn-secondary/10"
                           onClick={() => setPreviewTemplate(template)}
                         >
                           Preview
@@ -480,7 +480,8 @@ export default function Templates() {
                           ) : (
                             <Sparkles className="w-4 h-4 mr-1" />
                           )}
-                          Personalize with AI
+                          <span className="hidden sm:inline">Personalize with AI</span>
+                          <span className="sm:hidden">Personalize</span>
                         </Button>
                         <Button
                           variant="outline"
