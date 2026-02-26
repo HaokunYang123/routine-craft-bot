@@ -89,31 +89,7 @@ export default function CoachDashboard() {
   // Live date/time state (updates every minute)
   const [currentDate, setCurrentDate] = useState(new Date());
 
-  const handleRefresh = useCallback(async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: queryKeys.assignments.all }),
-      queryClient.invalidateQueries({ queryKey: queryKeys.groups.all }),
-    ]);
-  }, [queryClient]);
-
-  useEffect(() => {
-    if (!groupsLoading && groups.length > 0) {
-      loadGroupStats();
-    } else if (!groupsLoading) {
-      setLoading(false);
-    }
-  }, [groups, groupsLoading]);
-
-  // Update date header every minute (prevents frozen date display)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentDate(new Date());
-    }, 60000); // Update every minute
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const loadGroupStats = async () => {
+  const loadGroupStats = useCallback(async () => {
     setLoading(true);
     // Use user's local date for "today" queries (TIME-03)
     const today = todayDateString;
@@ -152,7 +128,37 @@ export default function CoachDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [getGroupProgress, groups, todayDateString]);
+
+  const handleRefresh = useCallback(async () => {
+    try {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.assignments.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.groups.all }),
+      ]);
+      await loadGroupStats();
+    } catch (error) {
+      handleError(error, { component: "CoachDashboard", action: "pull to refresh", silent: true });
+    }
+  }, [loadGroupStats, queryClient]);
+
+  useEffect(() => {
+    if (!groupsLoading && groups.length > 0) {
+      void loadGroupStats();
+    } else if (!groupsLoading) {
+      setGroupsWithStats([]);
+      setLoading(false);
+    }
+  }, [groups.length, groupsLoading, loadGroupStats]);
+
+  // Update date header every minute (prevents frozen date display)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentDate(new Date());
+    }, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, []);
 
   const handleCreateGroup = async (e: React.FormEvent) => {
     e.preventDefault();

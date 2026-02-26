@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { PullToRefresh } from "@/components/ui/PullToRefresh";
 import { queryKeys } from "@/lib/queries/keys";
+import { handleError } from "@/lib/error";
 
 const LINK_CODE_LENGTH = 6;
 const INVALID_CODE_MESSAGE = "Invalid code. Please check with your child.";
@@ -198,15 +199,6 @@ export default function ParentDashboard() {
     [children, selectedChildId]
   );
 
-  const handleRefresh = useCallback(async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: queryKeys.assignments.all }),
-      queryClient.invalidateQueries({ queryKey: ["task_instances"] }),
-      queryClient.invalidateQueries({ queryKey: ["notes"] }),
-      queryClient.invalidateQueries({ queryKey: ["parent_children"] }),
-    ]);
-  }, [queryClient]);
-
   const loadChildren = useCallback(
     async (preferredChildId?: string) => {
       if (!user) {
@@ -373,6 +365,27 @@ export default function ParentDashboard() {
 
     setLoadingContent(false);
   }, []);
+
+  const handleRefresh = useCallback(async () => {
+    const activeChildId = selectedChildId;
+
+    try {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.assignments.all }),
+        queryClient.invalidateQueries({ queryKey: ["task_instances"] }),
+        queryClient.invalidateQueries({ queryKey: ["notes"] }),
+        queryClient.invalidateQueries({ queryKey: ["parent_children"] }),
+      ]);
+
+      await loadChildren(activeChildId ?? undefined);
+
+      if (activeChildId) {
+        await loadSelectedChildContent(activeChildId);
+      }
+    } catch (error) {
+      handleError(error, { component: "ParentDashboard", action: "pull to refresh", silent: true });
+    }
+  }, [loadChildren, loadSelectedChildContent, queryClient, selectedChildId]);
 
   useEffect(() => {
     if (authLoading) return;

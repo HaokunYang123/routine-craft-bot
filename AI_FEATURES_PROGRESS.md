@@ -44,4 +44,21 @@ Atomic rate limiter shipped via Postgres upsert with coach-only enforcement in d
 
 **Concerns:** Existing pre-existing lint error in `src/pages/ParentDashboard.tsx` causes `npm run lint` to exit non-zero.
 
+### Mobile Fix Batch 1: Critical Fixes + Pull-to-Refresh
 
+**Summary:** Removed viewport zoom restrictions (maximum-scale, user-scalable=no) from index.html for WCAG compliance. Added max-h-[85vh] overflow-y-auto to DialogContent base class so long dialogs scroll on small screens. Fixed Parent Dashboard PTR to call imperative data loaders (loadChildren, loadSelectedChildContent) instead of only invalidating query keys. Fixed Coach Dashboard PTR to ensure group card data refreshes reliably on pull gesture.
+
+**Verification:**
+
+| Check | Status |
+|-------|--------|
+| Viewport zoom restriction removed | |
+| Dialogs scroll on small screens | |
+| Short dialogs unaffected | |
+| Parent Dashboard PTR refreshes data | |
+| Coach Dashboard PTR refreshes data | |
+| PTR error handling (no stuck spinner) | |
+| npm run lint | |
+| npm run build | |
+
+**Concerns:** None
