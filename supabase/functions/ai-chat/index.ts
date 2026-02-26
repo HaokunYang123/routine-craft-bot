@@ -36,7 +36,6 @@ const ALLOWED_FIELDS: Record<SupportedAction, readonly string[]> = {
     "learningStyle",
     "accommodations",
     "additionalNotes",
-    "modifier",
   ],
   weekly_summary: ["groupName", "summaryData", "start_date", "end_date", "tone"],
   polish: ["roughText"],
@@ -375,7 +374,6 @@ const sanitizePersonalizePayload = (payload: unknown): PersonalizePayload => {
   const allowedLearningStyle = new Set(["Visual", "Hands-on", "Reading/Writing", "Auditory"]);
   const parsedDifficulty = allowedDifficulty.has(difficulty) ? difficulty : "Keep Same";
   const parsedPacing = allowedPacing.has(pacing) ? pacing : "Standard";
-  const fallbackNotes = normalizeNullableString(safe.modifier, 1600);
 
   return {
     difficulty: parsedDifficulty,
@@ -385,7 +383,7 @@ const sanitizePersonalizePayload = (payload: unknown): PersonalizePayload => {
       .map((entry) => normalizeString(entry, "", 80))
       .filter((entry) => allowedLearningStyle.has(entry)),
     accommodations: normalizeNullableString(safe.accommodations, 500),
-    additionalNotes: normalizeNullableString(safe.additionalNotes, 1600) ?? fallbackNotes,
+    additionalNotes: normalizeNullableString(safe.additionalNotes, 1600),
     template: {
       name: normalizeString(template.name, "Template", 160),
       description: normalizeNullableString(template.description, 2000),

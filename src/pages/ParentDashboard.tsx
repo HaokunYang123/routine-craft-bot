@@ -186,6 +186,13 @@ export default function ParentDashboard() {
     };
   };
 
+  const parentRpc = supabase as unknown as {
+    rpc: (
+      fn: "link_child_by_parent_code",
+      args: { p_link_code: string }
+    ) => Promise<{ data: ParentLinkResult | null; error: { message?: string } | null }>;
+  };
+
   const selectedChild = useMemo(
     () => children.find((child) => child.childId === selectedChildId) ?? null,
     [children, selectedChildId]
@@ -434,7 +441,7 @@ export default function ParentDashboard() {
 
     setLinking(true);
 
-    const { data: linkResult, error: linkError } = await (supabase as any).rpc(
+    const { data: linkResult, error: linkError } = await parentRpc.rpc(
       "link_child_by_parent_code",
       { p_link_code: code }
     );

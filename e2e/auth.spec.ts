@@ -131,8 +131,8 @@ test.describe('Authentication Flow', () => {
       }
 
       // Verify coach sign-up button exists
-      const coachButton = page.getByRole('button', { name: /coach/i });
-      await expect(coachButton).toBeVisible();
+      const coachButton = page.getByRole('button', { name: /^Coach/i });
+      await expect(coachButton.first()).toBeVisible();
 
       // Simulate OAuth callback with coach session
       await injectSession(context, 'coach');

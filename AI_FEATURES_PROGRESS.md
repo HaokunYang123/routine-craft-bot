@@ -43,3 +43,5 @@ Atomic rate limiter shipped via Postgres upsert with coach-only enforcement in d
 | npm run build | ✅ |
 
 **Concerns:** Existing pre-existing lint error in `src/pages/ParentDashboard.tsx` causes `npm run lint` to exit non-zero.
+
+
