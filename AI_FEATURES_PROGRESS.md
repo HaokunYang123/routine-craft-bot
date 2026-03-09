@@ -23,6 +23,30 @@ Atomic rate limiter shipped via Postgres upsert with coach-only enforcement in d
 ### Concerns
 - `personalize` allowlist keeps a `modifier` fallback for backward compatibility with any older clients that still send it.
 
+## Analytics Prompt 2: RPC Aggregation + Platform Health Tab
+
+**Date:** 2026-03-09
+**Status:** Complete
+
+### What was built
+- 5 SECURITY DEFINER RPC functions for platform health metrics
+- `useAdminAnalytics.ts` hook for data fetching
+- Platform Health tab with live Recharts visualizations (stat cards, line chart, pie chart, stacked bar chart, churn table)
+
+### Verification
+| Check | Result |
+|-------|--------|
+| RPCs return data for admin | ✅ Verified via Supabase MCP for signup curve, active users, role distribution, and churn candidates; AI usage trend function verified and returned empty in current dataset |
+| RPCs return empty for non-admin | ✅ Verified via Supabase MCP with authenticated non-admin JWT claims (`admin_active_users()` returned 0 rows) |
+| No PUBLIC/anon grants | ✅ Verified via `information_schema.role_routine_grants` and direct `SET ROLE anon` permission check |
+| lint passes | ✅ `npm run lint` passed with existing repo warnings only; no new errors |
+| build passes | ✅ `npm run build` succeeded |
+| Charts render | Skipped per instruction: no browser-based UI verification |
+| Mobile responsive | Skipped per instruction: no browser-based UI verification |
+
+### Concerns
+- Browser-based rendering and mobile layout verification were intentionally skipped per instruction, so chart rendering was validated through build success and code inspection rather than a live UI session.
+
 ## Chunk 5: Weekly Summary Enhancements + Polish/Recap Verification
 
 **Summary:** Added a weekly summary date range picker using native HTML date inputs (default today minus 7 days through today), with validation for required dates, start/end ordering, and a 90-day max window. Added a tone toggle (Encouraging/Direct/Detailed) and wired `start_date`, `end_date`, and `tone` through the frontend payload and `ai-chat` weekly_summary allowlist/sanitization/prompt builder. Verified Polish and Student Recap call chains remain intact after the chunked AI pipeline restructuring.

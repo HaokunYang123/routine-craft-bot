@@ -860,6 +860,45 @@ export type Database = {
     }
     Functions: {
       accept_invite: { Args: { p_join_code: string }; Returns: Json }
+      admin_active_users: {
+        Args: never
+        Returns: {
+          dau: number
+          mau: number
+          wau: number
+        }[]
+      }
+      admin_ai_usage_trend: {
+        Args: never
+        Returns: {
+          action: string
+          period: string
+          usage_count: number
+        }[]
+      }
+      admin_churn_candidates: {
+        Args: never
+        Returns: {
+          days_inactive: number
+          email: string
+          last_sign_in: string
+          user_id: string
+        }[]
+      }
+      admin_role_distribution: {
+        Args: never
+        Returns: {
+          role: string
+          user_count: number
+        }[]
+      }
+      admin_signup_curve: {
+        Args: { p_interval?: string }
+        Returns: {
+          period: string
+          signup_count: number
+        }[]
+      }
       assign_task_to_group:
         | {
             Args: {
