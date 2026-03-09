@@ -32,6 +32,7 @@ import Onboarding from "./pages/Onboarding";
 import JoinGroup from "./pages/JoinGroup";
 import ParentDashboard from "./pages/ParentDashboard";
 import LandingPage from "./pages/LandingPage";
+import AdminAnalytics from "./pages/AdminAnalytics";
 
 const queryClient = new QueryClient({
   queryCache: new QueryCache({
@@ -148,6 +149,16 @@ const App = () => (
               }
             >
               <Route path=":groupId" element={<GroupDetail />} />
+            </Route>
+            <Route
+              path="/admin"
+              element={
+                <RouteErrorBoundary>
+                  <DashboardLayout key="admin" />
+                </RouteErrorBoundary>
+              }
+            >
+              <Route path="analytics" element={<AdminAnalytics />} />
             </Route>
             {/* Assigner Dashboard Route */}
             <Route

@@ -12,6 +12,7 @@ export interface Profile {
   email: string | null;
   avatar_url: string | null;
   role: string | null;
+  is_admin?: boolean;
   timezone: string | null;
   created_at: string;
   updated_at: string;

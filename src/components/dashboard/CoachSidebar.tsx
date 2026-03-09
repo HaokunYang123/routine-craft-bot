@@ -1,4 +1,5 @@
 import {
+  BarChart3,
   LayoutDashboard,
   Calendar,
   Library,
@@ -25,6 +26,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
 // Main nav items
@@ -37,7 +39,7 @@ const navItems = [
 export function CoachSidebar() {
   const location = useLocation();
   const { user, signOut } = useAuth();
-  const { displayName, avatarDisplay, loading: profileLoading } = useProfile();
+  const { profile, displayName, avatarDisplay, loading: profileLoading } = useProfile();
   const { state, toggleSidebar, isMobile, setOpenMobile } = useSidebar();
   const collapsed = state === "collapsed";
 
@@ -122,6 +124,32 @@ export function CoachSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="p-4 border-t border-sidebar-border space-y-3">
+        {profile?.is_admin && (
+          <>
+            <Separator className="bg-sidebar-border" />
+            <SidebarMenuButton
+              asChild
+              isActive={location.pathname === "/admin/analytics"}
+              tooltip={collapsed ? "Analytics" : undefined}
+              className={cn(
+                "rounded-lg transition-all duration-200",
+                "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                location.pathname === "/admin/analytics" &&
+                  "bg-cta-primary text-white hover:bg-cta-hover hover:text-white"
+              )}
+            >
+              <NavLink
+                to="/admin/analytics"
+                className="flex items-center gap-3 px-3 py-2"
+                onClick={handleNavClick}
+              >
+                <BarChart3 className="w-5 h-5 shrink-0" />
+                {!collapsed && <span className="font-medium">Analytics</span>}
+              </NavLink>
+            </SidebarMenuButton>
+          </>
+        )}
+
         {/* User Badge - Clickable to Settings */}
         <NavLink
           to="/dashboard/settings"

@@ -81,3 +81,24 @@ Atomic rate limiter shipped via Postgres upsert with coach-only enforcement in d
 | npm run build | ✅ |
 
 **Concerns:** None
+
+### Analytics Prompt 1: Schema + Access Control + Admin Route
+
+**Summary:** Added `is_admin` boolean flag to profiles table with protection against client-side modification. Created `activity_events` append-only table for coach action telemetry with admin-only SELECT, authenticated INSERT via SECURITY DEFINER RPC, and no UPDATE/DELETE. Added `/admin/analytics` route with admin auth guard, role-based redirect for non-admins, placeholder tab layout, and admin-only sidebar navigation link.
+
+**Verification:**
+
+| Check | Status |
+|-------|--------|
+| is_admin column exists and protected | ✅ |
+| activity_events table, indexes, RLS | ✅ |
+| log_activity_event RPC works | ✅ |
+| activity_events SELECT admin-only | ✅ |
+| /admin/analytics renders for admin | ✅ (implemented and built; requires manual `is_admin` SQL flip to exercise live) |
+| Non-admin redirected | ✅ |
+| Sidebar link admin-only | ✅ |
+| No regressions | ✅ |
+| npm run lint | ✅ (0 errors, existing warnings only) |
+| npm run build | ✅ |
+
+**Concerns:** Admin-specific UI was not manually exercised in a browser session because no user was marked `is_admin` during this task, by design.
