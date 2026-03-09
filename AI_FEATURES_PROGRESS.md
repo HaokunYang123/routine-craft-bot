@@ -34,7 +34,8 @@ Atomic rate limiter shipped via Postgres upsert with coach-only enforcement in d
 - Platform Health tab with live Recharts visualizations (stat cards, line chart, pie chart, stacked bar chart, churn table)
 
 ### Verification
-| Check | Result |
+| Check | Result
+ |
 |-------|--------|
 | RPCs return data for admin | ✅ Verified via Supabase MCP for signup curve, active users, role distribution, and churn candidates; AI usage trend function verified and returned empty in current dataset |
 | RPCs return empty for non-admin | ✅ Verified via Supabase MCP with authenticated non-admin JWT claims (`admin_active_users()` returned 0 rows) |
@@ -126,3 +127,28 @@ Atomic rate limiter shipped via Postgres upsert with coach-only enforcement in d
 | npm run build | ✅ |
 
 **Concerns:** Admin-specific UI was not manually exercised in a browser session because no user was marked `is_admin` during this task, by design.
+
+## Analytics Prompt 3: Coach Behavior + Student Outcomes Tabs
+
+**Date:** 2026-03-09
+**Status:** Complete
+
+### What was built
+- 4 Coach Behavior RPC functions (`admin_ai_usage_by_action`, `admin_template_creation_trend`, `admin_avg_groups_per_coach`, `admin_most_active_coaches`)
+- 5 Student Outcomes RPC functions (`admin_platform_completion_rate`, `admin_completion_by_group`, `admin_top_groups`, `admin_at_risk_students`, `admin_completion_trend`)
+- Coach Behavior tab: horizontal bar chart, line chart, stat card, ranked table
+- Student Outcomes tab: stat cards, line chart, bar chart, top groups table, at-risk table
+
+### Verification
+| Check | Result |
+|-------|--------|
+| 9 RPCs created with SECURITY DEFINER | ✅ Verified via `pg_proc` (`prosecdef = true` for all 9 functions) |
+| No PUBLIC/anon grants | ✅ Verified via `information_schema.role_routine_grants` (`public_or_anon_has_execute = false` for all 9 functions) |
+| Non-admin returns empty | ✅ Verified by simulating authenticated non-admin JWT claims; all 9 RPCs returned 0 rows |
+| lint passes | ✅ `npm run lint` completed with existing repo warnings only; no errors |
+| build passes | ✅ `npm run build` succeeded |
+| Coach Behavior tab sections | ✅ Code inspection confirms 4 live sections |
+| Student Outcomes tab sections | ✅ Code inspection confirms 5 live sections |
+
+### Concerns
+- `npm run lint` initially failed when run concurrently with `npm run build` because ESLint tried to read a transient Vite timestamp module while the build was still generating it. Rerunning lint by itself passed with only existing warnings.

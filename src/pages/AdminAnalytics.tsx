@@ -31,16 +31,31 @@ const ANALYTICS_TABS = [
   {
     value: "coach-behavior",
     label: "Coach Behavior",
-    description: "Coach workflows and assignment patterns will land here.",
+    description: "AI usage, template creation, and coach activity across the platform.",
   },
   {
     value: "student-outcomes",
     label: "Student Outcomes",
-    description: "Completion and progress trends will land here.",
+    description: "Completion trends, top groups, and students needing attention.",
   },
 ] as const;
 
 const CHART_COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
+const ANALYTICS_COLORS = {
+  blue: "#3b82f6",
+  emerald: "#10b981",
+  amber: "#f59e0b",
+  teal: "#14b8a6",
+  indigo: "#6366f1",
+  rose: "#f43f5e",
+  slate: "#64748b",
+} as const;
+const TOOLTIP_CONTENT_STYLE = {
+  backgroundColor: "hsl(var(--background))",
+  borderColor: "hsl(var(--border))",
+};
+
+type AdminAnalyticsData = ReturnType<typeof useAdminAnalytics>;
 
 function getDashboardPathForRole(role: string | null | undefined) {
   if (role === "student") {
@@ -85,9 +100,11 @@ function formatRoleLabel(role: string) {
   return role.charAt(0).toUpperCase() + role.slice(1);
 }
 
-function buildAiUsageChartData(
-  points: ReturnType<typeof useAdminAnalytics>["aiUsageTrend"],
-) {
+function formatPercent(value: number | null | undefined) {
+  return `${Number(value ?? 0).toFixed(1)}%`;
+}
+
+function buildAiUsageChartData(points: AdminAnalyticsData["aiUsageTrend"]) {
   const rows = new Map<string, Record<string, number | string>>();
 
   points.forEach((point) => {
@@ -105,43 +122,87 @@ function buildAiUsageChartData(
   });
 }
 
-function AnalyticsPlaceholder({
-  title,
+function addPeriodLabel<T extends { period: string }>(points: T[]) {
+  return points.map((point) => ({
+    ...point,
+    periodLabel: formatChartDate(point.period),
+  }));
+}
+
+function AnalyticsEmptyState({
+  title = "No data available",
   description,
 }: {
-  title: string;
+  title?: string;
   description: string;
 }) {
   return (
+    <div className="rounded-xl border border-dashed border-border/80 bg-background/40 px-6 py-10 text-sm text-muted-foreground">
+      <p className="font-medium text-foreground">{title}</p>
+      <p className="mt-2">{description}</p>
+    </div>
+  );
+}
+
+function AnalyticsErrorBanner({ error }: { error: string }) {
+  return (
+    <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />
+      <p>{error}</p>
+    </div>
+  );
+}
+
+function MetricCard({
+  title,
+  value,
+  description,
+  icon: Icon,
+  color,
+}: {
+  title: string;
+  value: string;
+  description: string;
+  icon: typeof BarChart3;
+  color: string;
+}) {
+  return (
     <Card className="border-border/80 bg-card/80">
-      <CardHeader>
-        <CardTitle className="text-xl">{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="rounded-xl border border-dashed border-border/80 bg-background/40 px-6 py-10 text-sm text-muted-foreground">
-          Data coming soon
+      <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
+        <div>
+          <CardDescription>{title}</CardDescription>
+          <CardTitle className="mt-2 text-4xl font-semibold tracking-tight">{value}</CardTitle>
         </div>
+        <Icon className={`h-5 w-5 ${color}`} />
+      </CardHeader>
+      <CardContent className="pt-0">
+        <p className="text-sm text-muted-foreground">{description}</p>
       </CardContent>
     </Card>
   );
 }
 
-function PlatformHealthLoading() {
+function AnalyticsLoading({
+  statCards = 3,
+  charts = 2,
+}: {
+  statCards?: number;
+  charts?: number;
+}) {
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-3">
-        {[0, 1, 2].map((index) => (
+      <div className={`grid gap-4 ${statCards > 1 ? "md:grid-cols-3" : ""}`}>
+        {Array.from({ length: statCards }).map((_, index) => (
           <Card key={index} className="border-border/80 bg-card/80">
             <CardHeader className="space-y-3 pb-3">
               <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-9 w-16" />
+              <Skeleton className="h-9 w-24" />
             </CardHeader>
           </Card>
         ))}
       </div>
 
-      {[0, 1, 2].map((index) => (
+      {Array.from({ length: charts }).map((_, index) => (
         <Card key={index} className="border-border/80 bg-card/80">
           <CardHeader className="space-y-3">
             <Skeleton className="h-6 w-40" />
@@ -156,9 +217,9 @@ function PlatformHealthLoading() {
   );
 }
 
-function PlatformHealthPanel() {
+function PlatformHealthPanel({ analytics }: { analytics: AdminAnalyticsData }) {
   const { signupCurve, activeUsers, roleDistribution, churnCandidates, aiUsageTrend, loading, error } =
-    useAdminAnalytics();
+    analytics;
 
   const hasAnyData =
     activeUsers !== null ||
@@ -176,7 +237,7 @@ function PlatformHealthPanel() {
   const aiUsageChartData = buildAiUsageChartData(aiUsageTrend);
 
   if (loading) {
-    return <PlatformHealthLoading />;
+    return <AnalyticsLoading statCards={3} charts={3} />;
   }
 
   if (!hasAnyData && !error) {
@@ -196,51 +257,40 @@ function PlatformHealthPanel() {
 
   return (
     <div className="space-y-6">
-      {error && (
-        <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />
-          <p>{error}</p>
-        </div>
-      )}
+      {error && <AnalyticsErrorBanner error={error} />}
 
       <div className="grid gap-4 md:grid-cols-3">
         {[
           {
             title: "DAU",
-            value: activeUsers?.dau ?? 0,
+            value: (activeUsers?.dau ?? 0).toLocaleString(),
             description: "Signed in within 1 day",
             icon: BarChart3,
             color: "text-blue-400",
           },
           {
             title: "WAU",
-            value: activeUsers?.wau ?? 0,
+            value: (activeUsers?.wau ?? 0).toLocaleString(),
             description: "Signed in within 7 days",
             icon: Users,
             color: "text-emerald-400",
           },
           {
             title: "MAU",
-            value: activeUsers?.mau ?? 0,
+            value: (activeUsers?.mau ?? 0).toLocaleString(),
             description: "Signed in within 30 days",
             icon: UserX,
             color: "text-amber-400",
           },
         ].map((item) => (
-          <Card key={item.title} className="border-border/80 bg-card/80">
-            <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
-              <div>
-                <CardDescription>{item.title}</CardDescription>
-                <CardTitle className="mt-2 text-4xl font-semibold tracking-tight">
-                  {item.value.toLocaleString()}
-                </CardTitle>
-              </div>
-              <item.icon className={`h-5 w-5 ${item.color}`} />
-            </CardHeader>
-            <CardContent className="pt-0">
-              <p className="text-sm text-muted-foreground">{item.description}</p>
-            </CardContent>
-          </Card>
+          <MetricCard
+            key={item.title}
+            title={item.title}
+            value={item.value}
+            description={item.description}
+            icon={item.icon}
+            color={item.color}
+          />
         ))}
       </div>
 
@@ -260,28 +310,23 @@ function PlatformHealthPanel() {
                   <Tooltip
                     labelFormatter={(value) => formatChartDate(String(value))}
                     formatter={(value) => [value, "Signups"]}
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--background))",
-                      borderColor: "hsl(var(--border))",
-                    }}
+                    contentStyle={TOOLTIP_CONTENT_STYLE}
                   />
                   <Legend />
                   <Line
                     type="monotone"
                     dataKey="signup_count"
                     name="Signups"
-                    stroke="#3b82f6"
+                    stroke={ANALYTICS_COLORS.blue}
                     strokeWidth={3}
-                    dot={{ r: 4, fill: "#3b82f6" }}
+                    dot={{ r: 4, fill: ANALYTICS_COLORS.blue }}
                     activeDot={{ r: 6 }}
                   />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           ) : (
-            <div className="rounded-xl border border-dashed border-border/80 bg-background/40 px-6 py-10 text-sm text-muted-foreground">
-              No data available
-            </div>
+            <AnalyticsEmptyState description="Platform signup data has not been recorded yet." />
           )}
         </CardContent>
       </Card>
@@ -313,21 +358,13 @@ function PlatformHealthPanel() {
                         />
                       ))}
                     </Pie>
-                    <Tooltip
-                      formatter={(value) => [value, "Users"]}
-                      contentStyle={{
-                        backgroundColor: "hsl(var(--background))",
-                        borderColor: "hsl(var(--border))",
-                      }}
-                    />
+                    <Tooltip formatter={(value) => [value, "Users"]} contentStyle={TOOLTIP_CONTENT_STYLE} />
                     <Legend />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
             ) : (
-              <div className="rounded-xl border border-dashed border-border/80 bg-background/40 px-6 py-10 text-sm text-muted-foreground">
-                No data available
-              </div>
+              <AnalyticsEmptyState description="Role distribution will appear once profile data is available." />
             )}
           </CardContent>
         </Card>
@@ -345,12 +382,7 @@ function PlatformHealthPanel() {
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.2)" />
                     <XAxis dataKey="periodLabel" stroke="#94a3b8" />
                     <YAxis allowDecimals={false} stroke="#94a3b8" />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "hsl(var(--background))",
-                        borderColor: "hsl(var(--border))",
-                      }}
-                    />
+                    <Tooltip contentStyle={TOOLTIP_CONTENT_STYLE} />
                     <Legend />
                     {aiUsageActions.map((action, index) => (
                       <Bar
@@ -365,9 +397,7 @@ function PlatformHealthPanel() {
                 </ResponsiveContainer>
               </div>
             ) : (
-              <div className="rounded-xl border border-dashed border-border/80 bg-background/40 px-6 py-10 text-sm text-muted-foreground">
-                No data available
-              </div>
+              <AnalyticsEmptyState description="AI usage events have not been logged yet." />
             )}
           </CardContent>
         </Card>
@@ -399,9 +429,7 @@ function PlatformHealthPanel() {
               </TableBody>
             </Table>
           ) : (
-            <div className="rounded-xl border border-dashed border-border/80 bg-background/40 px-6 py-10 text-sm text-muted-foreground">
-              No churn candidates found
-            </div>
+            <AnalyticsEmptyState description="No churn candidates were found in the current dataset." />
           )}
         </CardContent>
       </Card>
@@ -409,8 +437,391 @@ function PlatformHealthPanel() {
   );
 }
 
+function CoachBehaviorPanel({ analytics }: { analytics: AdminAnalyticsData }) {
+  const {
+    aiUsageByAction,
+    templateCreationTrend,
+    avgGroupsPerCoach,
+    mostActiveCoaches,
+    loading,
+    error,
+  } = analytics;
+
+  const templateCreationTrendData = addPeriodLabel(templateCreationTrend);
+  const hasAnyData =
+    aiUsageByAction.length > 0 ||
+    templateCreationTrend.length > 0 ||
+    avgGroupsPerCoach !== null ||
+    mostActiveCoaches.length > 0;
+
+  if (loading) {
+    return <AnalyticsLoading statCards={1} charts={3} />;
+  }
+
+  if (!hasAnyData && !error) {
+    return (
+      <Card className="border-border/80 bg-card/80">
+        <CardHeader>
+          <CardTitle className="text-xl">Coach Behavior</CardTitle>
+          <CardDescription>Coach workflow metrics will appear here once activity is recorded.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AnalyticsEmptyState description="No coach behavior data is available in this environment yet." />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {error && <AnalyticsErrorBanner error={error} />}
+
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
+        <Card className="border-border/80 bg-card/80">
+          <CardHeader>
+            <CardTitle className="text-xl">AI Usage by Action</CardTitle>
+            <CardDescription>Total AI usage volume split by coach action type.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {aiUsageByAction.length > 0 ? (
+              <div className="h-[320px] w-full">
+                <ResponsiveContainer width="100%" height={320}>
+                  <BarChart data={aiUsageByAction} layout="vertical" margin={{ left: 16 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.2)" />
+                    <XAxis type="number" allowDecimals={false} stroke="#94a3b8" />
+                    <YAxis
+                      type="category"
+                      dataKey="action"
+                      width={120}
+                      stroke="#94a3b8"
+                    />
+                    <Tooltip formatter={(value) => [value, "Calls"]} contentStyle={TOOLTIP_CONTENT_STYLE} />
+                    <Bar
+                      dataKey="usage_count"
+                      name="Calls"
+                      fill={ANALYTICS_COLORS.teal}
+                      radius={[0, 4, 4, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <AnalyticsEmptyState description="No AI usage actions have been recorded yet." />
+            )}
+          </CardContent>
+        </Card>
+
+        <MetricCard
+          title="Average Groups per Coach"
+          value={(avgGroupsPerCoach?.avg_groups ?? 0).toFixed(1)}
+          description="Total groups divided by the number of coach accounts."
+          icon={Users}
+          color="text-indigo-400"
+        />
+      </div>
+
+      <Card className="border-border/80 bg-card/80">
+        <CardHeader>
+          <CardTitle className="text-xl">Template Creation Trend</CardTitle>
+          <CardDescription>Weekly template creation volume across all coaches.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {templateCreationTrendData.length > 0 ? (
+            <div className="h-[300px] w-full">
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={templateCreationTrendData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.2)" />
+                  <XAxis dataKey="periodLabel" stroke="#94a3b8" />
+                  <YAxis allowDecimals={false} stroke="#94a3b8" />
+                  <Tooltip
+                    labelFormatter={(_, payload) => {
+                      const point = payload?.[0]?.payload as { period?: string } | undefined;
+                      return point?.period ? formatChartDate(point.period) : "";
+                    }}
+                    formatter={(value) => [value, "Templates"]}
+                    contentStyle={TOOLTIP_CONTENT_STYLE}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="template_count"
+                    name="Templates"
+                    stroke={ANALYTICS_COLORS.indigo}
+                    strokeWidth={3}
+                    dot={{ r: 4, fill: ANALYTICS_COLORS.indigo }}
+                    activeDot={{ r: 6 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <AnalyticsEmptyState description="Template creation history will appear once templates exist." />
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/80 bg-card/80">
+        <CardHeader>
+          <CardTitle className="text-xl">Most Active Coaches</CardTitle>
+          <CardDescription>Top coaches ranked by templates, groups, and AI usage combined.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {mostActiveCoaches.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Templates</TableHead>
+                  <TableHead>Groups</TableHead>
+                  <TableHead>AI Calls</TableHead>
+                  <TableHead>Total Activity</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {mostActiveCoaches.map((coach) => (
+                  <TableRow key={coach.user_id}>
+                    <TableCell className="font-medium text-foreground">{coach.email}</TableCell>
+                    <TableCell>{coach.templates_created}</TableCell>
+                    <TableCell>{coach.groups_created}</TableCell>
+                    <TableCell>{coach.ai_calls}</TableCell>
+                    <TableCell>{coach.total_activity}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <AnalyticsEmptyState description="No coach activity records were found for the leaderboard." />
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function StudentOutcomesPanel({ analytics }: { analytics: AdminAnalyticsData }) {
+  const {
+    platformCompletionRate,
+    completionTrend,
+    completionByGroup,
+    topGroups,
+    atRiskStudents,
+    loading,
+    error,
+  } = analytics;
+
+  const completionTrendData = addPeriodLabel(completionTrend);
+  const hasAnyData =
+    platformCompletionRate !== null ||
+    completionTrend.length > 0 ||
+    completionByGroup.length > 0 ||
+    topGroups.length > 0 ||
+    atRiskStudents.length > 0;
+
+  if (loading) {
+    return <AnalyticsLoading statCards={3} charts={4} />;
+  }
+
+  if (!hasAnyData && !error) {
+    return (
+      <Card className="border-border/80 bg-card/80">
+        <CardHeader>
+          <CardTitle className="text-xl">Student Outcomes</CardTitle>
+          <CardDescription>Completion metrics will appear here once task data is available.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AnalyticsEmptyState description="No student outcome data is available in this environment yet." />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {error && <AnalyticsErrorBanner error={error} />}
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <MetricCard
+          title="Total Tasks"
+          value={(platformCompletionRate?.total_tasks ?? 0).toLocaleString()}
+          description="All task instances on the platform."
+          icon={BarChart3}
+          color="text-slate-400"
+        />
+        <MetricCard
+          title="Completed Tasks"
+          value={(platformCompletionRate?.completed_tasks ?? 0).toLocaleString()}
+          description="Task instances marked completed."
+          icon={Users}
+          color="text-emerald-400"
+        />
+        <MetricCard
+          title="Completion Rate"
+          value={formatPercent(platformCompletionRate?.completion_rate)}
+          description="Platform-wide completion percentage."
+          icon={UserX}
+          color="text-rose-400"
+        />
+      </div>
+
+      <Card className="border-border/80 bg-card/80">
+        <CardHeader>
+          <CardTitle className="text-xl">Completion Trend</CardTitle>
+          <CardDescription>Weekly completion rate across the platform.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {completionTrendData.length > 0 ? (
+            <div className="h-[300px] w-full">
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={completionTrendData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.2)" />
+                  <XAxis dataKey="periodLabel" stroke="#94a3b8" />
+                  <YAxis
+                    domain={[0, 100]}
+                    tickFormatter={(value) => `${value}%`}
+                    stroke="#94a3b8"
+                  />
+                  <Tooltip
+                    labelFormatter={(_, payload) => {
+                      const point = payload?.[0]?.payload as { period?: string } | undefined;
+                      return point?.period ? formatChartDate(point.period) : "";
+                    }}
+                    formatter={(value) => [formatPercent(Number(value)), "Completion Rate"]}
+                    contentStyle={TOOLTIP_CONTENT_STYLE}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="completion_rate"
+                    name="Completion Rate"
+                    stroke={ANALYTICS_COLORS.rose}
+                    strokeWidth={3}
+                    dot={{ r: 4, fill: ANALYTICS_COLORS.rose }}
+                    activeDot={{ r: 6 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <AnalyticsEmptyState description="Weekly completion history will appear once tasks are created." />
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/80 bg-card/80">
+        <CardHeader>
+          <CardTitle className="text-xl">Completion by Group</CardTitle>
+          <CardDescription>Completion rate for each group with assigned tasks.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {completionByGroup.length > 0 ? (
+            <div className="h-[320px] w-full">
+              <ResponsiveContainer width="100%" height={320}>
+                <BarChart data={completionByGroup}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.2)" />
+                  <XAxis dataKey="group_name" stroke="#94a3b8" />
+                  <YAxis
+                    domain={[0, 100]}
+                    tickFormatter={(value) => `${value}%`}
+                    stroke="#94a3b8"
+                  />
+                  <Tooltip
+                    formatter={(value) => [formatPercent(Number(value)), "Completion Rate"]}
+                    contentStyle={TOOLTIP_CONTENT_STYLE}
+                  />
+                  <Bar
+                    dataKey="completion_rate"
+                    name="Completion Rate"
+                    fill={ANALYTICS_COLORS.teal}
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <AnalyticsEmptyState description="Group completion metrics will appear once group assignments exist." />
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+        <Card className="border-border/80 bg-card/80">
+          <CardHeader>
+            <CardTitle className="text-xl">Top Groups</CardTitle>
+            <CardDescription>Best completion rates among groups with at least 5 tasks.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {topGroups.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Group Name</TableHead>
+                    <TableHead>Completion Rate</TableHead>
+                    <TableHead>Total Tasks</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {topGroups.map((group) => (
+                    <TableRow key={group.group_id}>
+                      <TableCell className="font-medium text-foreground">{group.group_name}</TableCell>
+                      <TableCell>{formatPercent(group.completion_rate)}</TableCell>
+                      <TableCell>{group.total_tasks}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <AnalyticsEmptyState description="No groups currently meet the 5-task minimum." />
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/80 bg-card/80">
+          <CardHeader>
+            <CardTitle className="text-xl">At-Risk Students</CardTitle>
+            <CardDescription>Students below 50% completion over the last 14 days.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {atRiskStudents.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Total Tasks</TableHead>
+                    <TableHead>Completed</TableHead>
+                    <TableHead>Completion Rate</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {atRiskStudents.map((student) => {
+                    const isCritical = student.completion_rate < 25;
+
+                    return (
+                      <TableRow
+                        key={student.user_id}
+                        className={isCritical ? "bg-rose-500/10 text-rose-100" : undefined}
+                      >
+                        <TableCell className="font-medium">{student.email}</TableCell>
+                        <TableCell>{student.total_tasks}</TableCell>
+                        <TableCell>{student.completed_tasks}</TableCell>
+                        <TableCell className={isCritical ? "text-rose-200" : undefined}>
+                          {formatPercent(student.completion_rate)}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            ) : (
+              <AnalyticsEmptyState description="No at-risk students were found in the last 14 days." />
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminAnalytics() {
   const { profile, loading } = useProfile();
+  const analytics = useAdminAnalytics();
 
   if (loading) {
     return (
@@ -429,7 +840,7 @@ export default function AdminAnalytics() {
       <div className="space-y-2">
         <h1 className="text-3xl font-semibold text-foreground">Analytics</h1>
         <p className="text-sm text-muted-foreground">
-          Live product health for the admin dashboard, with coach and student drill-downs to follow.
+          Live product health for the admin dashboard, including coach behavior and student outcomes.
         </p>
       </div>
 
@@ -446,15 +857,17 @@ export default function AdminAnalytics() {
           ))}
         </TabsList>
 
-        {ANALYTICS_TABS.map((tab) => (
-          <TabsContent key={tab.value} value={tab.value}>
-            {tab.value === "platform-health" ? (
-              <PlatformHealthPanel />
-            ) : (
-              <AnalyticsPlaceholder title={tab.label} description={tab.description} />
-            )}
-          </TabsContent>
-        ))}
+        <TabsContent value="platform-health">
+          <PlatformHealthPanel analytics={analytics} />
+        </TabsContent>
+
+        <TabsContent value="coach-behavior">
+          <CoachBehaviorPanel analytics={analytics} />
+        </TabsContent>
+
+        <TabsContent value="student-outcomes">
+          <StudentOutcomesPanel analytics={analytics} />
+        </TabsContent>
       </Tabs>
     </div>
   );

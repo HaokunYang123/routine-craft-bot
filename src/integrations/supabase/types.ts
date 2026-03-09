@@ -868,12 +868,35 @@ export type Database = {
           wau: number
         }[]
       }
+      admin_ai_usage_by_action: {
+        Args: never
+        Returns: {
+          action: string
+          usage_count: number
+        }[]
+      }
       admin_ai_usage_trend: {
         Args: never
         Returns: {
           action: string
           period: string
           usage_count: number
+        }[]
+      }
+      admin_at_risk_students: {
+        Args: never
+        Returns: {
+          completed_tasks: number
+          completion_rate: number
+          email: string
+          total_tasks: number
+          user_id: string
+        }[]
+      }
+      admin_avg_groups_per_coach: {
+        Args: never
+        Returns: {
+          avg_groups: number
         }[]
       }
       admin_churn_candidates: {
@@ -883,6 +906,44 @@ export type Database = {
           email: string
           last_sign_in: string
           user_id: string
+        }[]
+      }
+      admin_completion_by_group: {
+        Args: never
+        Returns: {
+          completed_tasks: number
+          completion_rate: number
+          group_id: string
+          group_name: string
+          total_tasks: number
+        }[]
+      }
+      admin_completion_trend: {
+        Args: never
+        Returns: {
+          completed_tasks: number
+          completion_rate: number
+          period: string
+          total_tasks: number
+        }[]
+      }
+      admin_most_active_coaches: {
+        Args: { p_limit?: number }
+        Returns: {
+          ai_calls: number
+          email: string
+          groups_created: number
+          templates_created: number
+          total_activity: number
+          user_id: string
+        }[]
+      }
+      admin_platform_completion_rate: {
+        Args: never
+        Returns: {
+          completed_tasks: number
+          completion_rate: number
+          total_tasks: number
         }[]
       }
       admin_role_distribution: {
@@ -897,6 +958,22 @@ export type Database = {
         Returns: {
           period: string
           signup_count: number
+        }[]
+      }
+      admin_template_creation_trend: {
+        Args: never
+        Returns: {
+          period: string
+          template_count: number
+        }[]
+      }
+      admin_top_groups: {
+        Args: { p_limit?: number }
+        Returns: {
+          completion_rate: number
+          group_id: string
+          group_name: string
+          total_tasks: number
         }[]
       }
       assign_task_to_group:
