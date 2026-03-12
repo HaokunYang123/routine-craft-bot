@@ -22,8 +22,10 @@ export function validateClientEnv(): void {
     if (!value) return;
     if (!hasPrivilegedMarker(value)) return;
 
-    console.warn(
-      `[env-check] ${name} appears to contain a privileged key. Do not expose service or secret keys via VITE_ variables.`,
-    );
+    if (import.meta.env.DEV) {
+      throw new Error(`FATAL: Privileged key detected in client env var: ${name}`);
+    }
+
+    console.error(`SECURITY: Privileged key detected in client env var: ${name}`);
   });
 }
