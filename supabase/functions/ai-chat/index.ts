@@ -21,7 +21,7 @@ const getCorsHeaders = (origin: string) => {
 const MAX_BODY_BYTES = 50_000;
 
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent";
+const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 
 type SupportedAction =
   | "generate_plan"
