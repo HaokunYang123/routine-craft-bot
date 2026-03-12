@@ -12,8 +12,8 @@ export interface Group {
   icon: string | null;
   coach_id: string;
   created_at: string | null;
-  join_code: string;
-  qr_token: string | null;
+  join_code?: string;
+  qr_token?: string | null;
   member_count?: number;
 }
 
@@ -29,7 +29,7 @@ export interface GroupMember {
 async function fetchGroupsWithCounts(userId: string): Promise<Group[]> {
   const { data, error } = await supabase
     .from("groups")
-    .select("*")
+    .select("id, name, color, icon, coach_id, created_at")
     .eq("coach_id", userId)
     .order("created_at", { ascending: false });
 
