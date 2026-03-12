@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export type SignupCurvePoint = {
@@ -130,6 +130,7 @@ type AdminAnalyticsState = {
   retentionCohorts: RetentionCohortPoint[];
   recentActivity: RecentActivityEvent[];
   loading: boolean;
+  isRefreshing: boolean;
   error: string | null;
 };
 
@@ -151,6 +152,7 @@ const INITIAL_STATE: AdminAnalyticsState = {
   retentionCohorts: [],
   recentActivity: [],
   loading: true,
+  isRefreshing: false,
   error: null,
 };
 
@@ -169,174 +171,195 @@ function getRpcRows<T>(result: RpcRowsResult<T>, fallbackMessage: string, errors
 
 export function useAdminAnalytics(startDate: string | null, endDate: string | null) {
   const [state, setState] = useState<AdminAnalyticsState>(INITIAL_STATE);
+  const isMountedRef = useRef(true);
+  const requestIdRef = useRef(0);
 
-  useEffect(() => {
-    let isActive = true;
+  const fetchAnalytics = useCallback(async (mode: "load" | "refresh" = "load") => {
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
 
-    async function fetchAnalytics() {
-      setState((current) => ({ ...current, loading: true, error: null }));
-      const dateRangeArgs = {
-        p_start_date: startDate ?? undefined,
-        p_end_date: endDate ?? undefined,
-      };
+    setState((current) => ({
+      ...current,
+      loading: mode === "load",
+      isRefreshing: mode === "refresh",
+      error: null,
+    }));
 
-      const [
-        signupCurveResult,
-        activeUsersResult,
-        roleDistributionResult,
-        churnCandidatesResult,
-        aiUsageTrendResult,
-        aiUsageByActionResult,
-        templateCreationTrendResult,
-        avgGroupsPerCoachResult,
-        mostActiveCoachesResult,
-        platformCompletionRateResult,
-        completionByGroupResult,
-        topGroupsResult,
-        atRiskStudentsResult,
-        completionTrendResult,
-        retentionCohortsResult,
-        recentActivityResult,
-      ] = await Promise.allSettled([
-        supabase.rpc("admin_signup_curve", {
-          p_interval: "week",
-          ...dateRangeArgs,
-        }),
-        supabase.rpc("admin_active_users", dateRangeArgs),
-        supabase.rpc("admin_role_distribution", dateRangeArgs),
-        supabase.rpc("admin_churn_candidates", dateRangeArgs),
-        supabase.rpc("admin_ai_usage_trend", dateRangeArgs),
-        supabase.rpc("admin_ai_usage_by_action", dateRangeArgs),
-        supabase.rpc("admin_template_creation_trend", dateRangeArgs),
-        supabase.rpc("admin_avg_groups_per_coach", dateRangeArgs),
-        supabase.rpc("admin_most_active_coaches", dateRangeArgs),
-        supabase.rpc("admin_platform_completion_rate", dateRangeArgs),
-        supabase.rpc("admin_completion_by_group", dateRangeArgs),
-        supabase.rpc("admin_top_groups", dateRangeArgs),
-        supabase.rpc("admin_at_risk_students", dateRangeArgs),
-        supabase.rpc("admin_completion_trend", dateRangeArgs),
-        supabase.rpc("admin_retention_cohorts"),
-        supabase.rpc("admin_recent_activity", {
-          p_limit: 50,
-          ...dateRangeArgs,
-        }),
-      ]);
+    const dateRangeArgs = {
+      p_start_date: startDate ?? undefined,
+      p_end_date: endDate ?? undefined,
+    };
 
-      if (!isActive) {
-        return;
-      }
+    const [
+      signupCurveResult,
+      activeUsersResult,
+      roleDistributionResult,
+      churnCandidatesResult,
+      aiUsageTrendResult,
+      aiUsageByActionResult,
+      templateCreationTrendResult,
+      avgGroupsPerCoachResult,
+      mostActiveCoachesResult,
+      platformCompletionRateResult,
+      completionByGroupResult,
+      topGroupsResult,
+      atRiskStudentsResult,
+      completionTrendResult,
+      retentionCohortsResult,
+      recentActivityResult,
+    ] = await Promise.allSettled([
+      supabase.rpc("admin_signup_curve", {
+        p_interval: "week",
+        ...dateRangeArgs,
+      }),
+      supabase.rpc("admin_active_users", dateRangeArgs),
+      supabase.rpc("admin_role_distribution", dateRangeArgs),
+      supabase.rpc("admin_churn_candidates", dateRangeArgs),
+      supabase.rpc("admin_ai_usage_trend", dateRangeArgs),
+      supabase.rpc("admin_ai_usage_by_action", dateRangeArgs),
+      supabase.rpc("admin_template_creation_trend", dateRangeArgs),
+      supabase.rpc("admin_avg_groups_per_coach", dateRangeArgs),
+      supabase.rpc("admin_most_active_coaches", dateRangeArgs),
+      supabase.rpc("admin_platform_completion_rate", dateRangeArgs),
+      supabase.rpc("admin_completion_by_group", dateRangeArgs),
+      supabase.rpc("admin_top_groups", dateRangeArgs),
+      supabase.rpc("admin_at_risk_students", dateRangeArgs),
+      supabase.rpc("admin_completion_trend", dateRangeArgs),
+      supabase.rpc("admin_retention_cohorts"),
+      supabase.rpc("admin_recent_activity", {
+        p_limit: 50,
+        ...dateRangeArgs,
+      }),
+    ]);
 
-      const errors: string[] = [];
-
-      const signupCurve = getRpcRows(
-        signupCurveResult,
-        "Failed to load signup curve",
-        errors,
-      );
-      const activeUsersRows = getRpcRows(
-        activeUsersResult,
-        "Failed to load active users",
-        errors,
-      );
-      const roleDistribution = getRpcRows(
-        roleDistributionResult,
-        "Failed to load role distribution",
-        errors,
-      );
-      const churnCandidates = getRpcRows(
-        churnCandidatesResult,
-        "Failed to load churn candidates",
-        errors,
-      );
-      const aiUsageTrend = getRpcRows(
-        aiUsageTrendResult,
-        "Failed to load AI usage trend",
-        errors,
-      );
-      const aiUsageByAction = getRpcRows(
-        aiUsageByActionResult,
-        "Failed to load AI usage by action",
-        errors,
-      );
-      const templateCreationTrend = getRpcRows(
-        templateCreationTrendResult,
-        "Failed to load template creation trend",
-        errors,
-      );
-      const avgGroupsPerCoachRows = getRpcRows(
-        avgGroupsPerCoachResult,
-        "Failed to load average groups per coach",
-        errors,
-      );
-      const mostActiveCoaches = getRpcRows(
-        mostActiveCoachesResult,
-        "Failed to load most active coaches",
-        errors,
-      );
-      const platformCompletionRateRows = getRpcRows(
-        platformCompletionRateResult,
-        "Failed to load platform completion rate",
-        errors,
-      );
-      const completionByGroup = getRpcRows(
-        completionByGroupResult,
-        "Failed to load completion by group",
-        errors,
-      );
-      const topGroups = getRpcRows(
-        topGroupsResult,
-        "Failed to load top groups",
-        errors,
-      );
-      const atRiskStudents = getRpcRows(
-        atRiskStudentsResult,
-        "Failed to load at-risk students",
-        errors,
-      );
-      const completionTrend = getRpcRows(
-        completionTrendResult,
-        "Failed to load completion trend",
-        errors,
-      );
-      const retentionCohorts = getRpcRows(
-        retentionCohortsResult,
-        "Failed to load retention cohorts",
-        errors,
-      );
-      const recentActivity = getRpcRows(
-        recentActivityResult,
-        "Failed to load recent activity",
-        errors,
-      );
-
-      setState({
-        signupCurve,
-        activeUsers: activeUsersRows[0] ?? null,
-        roleDistribution,
-        churnCandidates,
-        aiUsageTrend,
-        aiUsageByAction,
-        templateCreationTrend,
-        avgGroupsPerCoach: avgGroupsPerCoachRows[0] ?? null,
-        mostActiveCoaches,
-        platformCompletionRate: platformCompletionRateRows[0] ?? null,
-        completionByGroup,
-        topGroups,
-        atRiskStudents,
-        completionTrend,
-        retentionCohorts,
-        recentActivity,
-        loading: false,
-        error: errors.length > 0 ? errors.join(" ") : null,
-      });
+    if (!isMountedRef.current || requestId !== requestIdRef.current) {
+      return;
     }
 
+    const errors: string[] = [];
+
+    const signupCurve = getRpcRows(
+      signupCurveResult,
+      "Failed to load signup curve",
+      errors,
+    );
+    const activeUsersRows = getRpcRows(
+      activeUsersResult,
+      "Failed to load active users",
+      errors,
+    );
+    const roleDistribution = getRpcRows(
+      roleDistributionResult,
+      "Failed to load role distribution",
+      errors,
+    );
+    const churnCandidates = getRpcRows(
+      churnCandidatesResult,
+      "Failed to load churn candidates",
+      errors,
+    );
+    const aiUsageTrend = getRpcRows(
+      aiUsageTrendResult,
+      "Failed to load AI usage trend",
+      errors,
+    );
+    const aiUsageByAction = getRpcRows(
+      aiUsageByActionResult,
+      "Failed to load AI usage by action",
+      errors,
+    );
+    const templateCreationTrend = getRpcRows(
+      templateCreationTrendResult,
+      "Failed to load template creation trend",
+      errors,
+    );
+    const avgGroupsPerCoachRows = getRpcRows(
+      avgGroupsPerCoachResult,
+      "Failed to load average groups per coach",
+      errors,
+    );
+    const mostActiveCoaches = getRpcRows(
+      mostActiveCoachesResult,
+      "Failed to load most active coaches",
+      errors,
+    );
+    const platformCompletionRateRows = getRpcRows(
+      platformCompletionRateResult,
+      "Failed to load platform completion rate",
+      errors,
+    );
+    const completionByGroup = getRpcRows(
+      completionByGroupResult,
+      "Failed to load completion by group",
+      errors,
+    );
+    const topGroups = getRpcRows(
+      topGroupsResult,
+      "Failed to load top groups",
+      errors,
+    );
+    const atRiskStudents = getRpcRows(
+      atRiskStudentsResult,
+      "Failed to load at-risk students",
+      errors,
+    );
+    const completionTrend = getRpcRows(
+      completionTrendResult,
+      "Failed to load completion trend",
+      errors,
+    );
+    const retentionCohorts = getRpcRows(
+      retentionCohortsResult,
+      "Failed to load retention cohorts",
+      errors,
+    );
+    const recentActivity = getRpcRows(
+      recentActivityResult,
+      "Failed to load recent activity",
+      errors,
+    );
+
+    setState({
+      signupCurve,
+      activeUsers: activeUsersRows[0] ?? null,
+      roleDistribution,
+      churnCandidates,
+      aiUsageTrend,
+      aiUsageByAction,
+      templateCreationTrend,
+      avgGroupsPerCoach: avgGroupsPerCoachRows[0] ?? null,
+      mostActiveCoaches,
+      platformCompletionRate: platformCompletionRateRows[0] ?? null,
+      completionByGroup,
+      topGroups,
+      atRiskStudents,
+      completionTrend,
+      retentionCohorts,
+      recentActivity,
+      loading: false,
+      isRefreshing: false,
+      error: errors.length > 0 ? errors.join(" ") : null,
+    });
+  }, [endDate, startDate]);
+
+  useEffect(() => {
     void fetchAnalytics();
 
     return () => {
-      isActive = false;
+      requestIdRef.current += 1;
     };
-  }, [endDate, startDate]);
+  }, [fetchAnalytics]);
 
-  return state;
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  const refetch = useCallback(() => fetchAnalytics("refresh"), [fetchAnalytics]);
+
+  return {
+    ...state,
+    refetch,
+  };
 }

@@ -269,3 +269,20 @@ Added a Recent Activity feed to the Platform Health tab, powered by a new `admin
 | grep export | pass (`17`) |
 | lint | pass (0 errors, 31 existing warnings) |
 | build | pass |
+
+---
+
+## Analytics V2 Prompt 6: Auto-Refresh
+**Date:** 2026-03-12
+**Status:** Complete
+### Summary
+Added a manual refresh button and a compact 60-second auto-refresh toggle beside the analytics date range picker. `useAdminAnalytics` now exposes a shared `refetch()` path plus `isRefreshing`, so both refresh controls reuse the same fetch logic without forcing the dashboard back into its initial loading skeleton.
+### Verification
+| Check | Result |
+|-------|--------|
+| grep refresh button | pass (`8`) |
+| grep auto-refresh | pass (`10`) |
+| grep interval cleanup | pass (`1`) |
+| no new deps | pass |
+| lint | pass (0 errors, 31 existing warnings) |
+| build | pass |

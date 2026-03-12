@@ -1,6 +1,6 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Navigate } from "react-router-dom";
-import { AlertCircle, BarChart3, Download, Loader2, Users, UserX } from "lucide-react";
+import { AlertCircle, BarChart3, Download, Loader2, RefreshCw, Users, UserX } from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -1637,7 +1637,36 @@ export default function AdminAnalytics() {
   const { profile, loading } = useProfile();
   const [startDate, setStartDate] = useState<string | null>(null);
   const [endDate, setEndDate] = useState<string | null>(null);
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [autoRefreshCycle, setAutoRefreshCycle] = useState(0);
   const analytics = useAdminAnalytics(startDate, endDate);
+  const { isRefreshing, loading: analyticsLoading, refetch } = analytics;
+
+  useEffect(() => {
+    if (!autoRefresh) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      void refetch();
+    }, 60000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [autoRefresh, autoRefreshCycle, endDate, refetch, startDate]);
+
+  const handleRefresh = async () => {
+    if (analyticsLoading || isRefreshing) {
+      return;
+    }
+
+    if (autoRefresh) {
+      setAutoRefreshCycle((current) => current + 1);
+    }
+
+    await refetch();
+  };
 
   if (loading) {
     return (
@@ -1660,14 +1689,55 @@ export default function AdminAnalytics() {
         </p>
       </div>
 
-      <DateRangeFilter
-        startDate={startDate}
-        endDate={endDate}
-        onChange={(nextStartDate, nextEndDate) => {
-          setStartDate(nextStartDate);
-          setEndDate(nextEndDate);
-        }}
-      />
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-stretch xl:justify-between">
+        <div className="min-w-0 flex-1">
+          <DateRangeFilter
+            startDate={startDate}
+            endDate={endDate}
+            onChange={(nextStartDate, nextEndDate) => {
+              setStartDate(nextStartDate);
+              setEndDate(nextEndDate);
+            }}
+          />
+        </div>
+
+        <div className="flex items-center justify-end gap-2 rounded-xl border border-border/80 bg-card/80 px-3 py-2 xl:self-start">
+          <button
+            type="button"
+            onClick={() => {
+              void handleRefresh();
+            }}
+            disabled={analyticsLoading || isRefreshing}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border/60 bg-background/60 text-muted-foreground transition-colors hover:bg-background hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+            aria-label="Refresh analytics"
+            title="Refresh analytics"
+          >
+            <RefreshCw
+              className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
+            />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setAutoRefresh((current) => !current);
+              setAutoRefreshCycle((current) => current + 1);
+            }}
+            className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-medium transition-colors ${
+              autoRefresh
+                ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+                : "border-border/60 bg-background/60 text-muted-foreground hover:bg-background hover:text-foreground"
+            }`}
+            aria-pressed={autoRefresh}
+            title={autoRefresh ? "Disable auto-refresh" : "Enable auto-refresh"}
+          >
+            <span
+              className={`h-2 w-2 rounded-full ${autoRefresh ? "bg-emerald-400" : "bg-muted-foreground/60"}`}
+            />
+            <span>Auto-refresh</span>
+          </button>
+        </div>
+      </div>
 
       <Tabs defaultValue={ANALYTICS_TABS[0].value} className="space-y-4">
         <TabsList className="h-auto w-full flex-wrap justify-start gap-2 rounded-xl bg-card/80 p-2">
