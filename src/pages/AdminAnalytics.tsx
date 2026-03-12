@@ -106,6 +106,50 @@ function formatPercent(value: number | null | undefined) {
   return `${Number(value ?? 0).toFixed(1)}%`;
 }
 
+type RetentionHeatmapCell = AdminAnalyticsData["retentionCohorts"][number];
+
+type RetentionHeatmapRow = {
+  cohortWeek: string;
+  cohortSize: number;
+  weeks: Map<number, RetentionHeatmapCell>;
+};
+
+function buildRetentionHeatmap(points: AdminAnalyticsData["retentionCohorts"]) {
+  const cohorts = new Map<string, RetentionHeatmapRow>();
+  let maxWeekOffset = 0;
+
+  points.forEach((point) => {
+    const existing = cohorts.get(point.cohort_week) ?? {
+      cohortWeek: point.cohort_week,
+      cohortSize: point.cohort_size,
+      weeks: new Map<number, RetentionHeatmapCell>(),
+    };
+
+    existing.cohortSize = point.cohort_size;
+    existing.weeks.set(point.week_offset, point);
+    cohorts.set(point.cohort_week, existing);
+    maxWeekOffset = Math.max(maxWeekOffset, point.week_offset);
+  });
+
+  return {
+    rows: Array.from(cohorts.values()).sort((left, right) => {
+      return new Date(right.cohortWeek).getTime() - new Date(left.cohortWeek).getTime();
+    }),
+    weekOffsets: Array.from({ length: maxWeekOffset + 1 }, (_, index) => index),
+  };
+}
+
+function getRetentionCellStyle(retentionPct: number) {
+  const normalized = Math.max(0, Math.min(retentionPct, 100)) / 100;
+  const alpha = 0.08 + normalized * 0.72;
+
+  return {
+    backgroundColor: `rgba(16, 185, 129, ${alpha.toFixed(2)})`,
+    color: normalized >= 0.55 ? "#ecfdf5" : "#d1fae5",
+    borderColor: `rgba(16, 185, 129, ${(0.18 + normalized * 0.4).toFixed(2)})`,
+  };
+}
+
 function buildAiUsageChartData(points: AdminAnalyticsData["aiUsageTrend"]) {
   const rows = new Map<string, Record<string, number | string>>();
 
@@ -219,8 +263,88 @@ function AnalyticsLoading({
   );
 }
 
+function RetentionHeatmap({ points }: { points: AdminAnalyticsData["retentionCohorts"] }) {
+  const { rows, weekOffsets } = buildRetentionHeatmap(points);
+  const hasEnoughData = rows.length >= 2;
+  const gridTemplateColumns = `120px 88px repeat(${weekOffsets.length}, minmax(72px, 1fr))`;
+
+  if (!hasEnoughData) {
+    return (
+      <AnalyticsEmptyState description="Not enough data for retention analysis. Cohorts appear after users have been active for at least 2 weeks." />
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <div className="min-w-[720px]">
+        <div
+          className="grid gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground"
+          style={{ gridTemplateColumns }}
+        >
+          <div className="px-3 py-2">Cohort</div>
+          <div className="px-3 py-2 text-right">Size</div>
+          {weekOffsets.map((weekOffset) => (
+            <div key={weekOffset} className="px-3 py-2 text-center">
+              Week {weekOffset}
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-2 space-y-2">
+          {rows.map((row) => (
+            <div key={row.cohortWeek} className="grid gap-2" style={{ gridTemplateColumns }}>
+              <div className="flex items-center rounded-lg border border-border/60 bg-background/40 px-3 py-3 text-sm font-medium text-foreground">
+                {formatChartDate(row.cohortWeek)}
+              </div>
+              <div className="flex items-center justify-end rounded-lg border border-border/60 bg-background/40 px-3 py-3 text-sm font-medium text-foreground">
+                {row.cohortSize}
+              </div>
+              {weekOffsets.map((weekOffset) => {
+                const cell = row.weeks.get(weekOffset);
+
+                if (!cell) {
+                  return (
+                    <div
+                      key={`${row.cohortWeek}-${weekOffset}`}
+                      className="flex min-h-14 items-center justify-center rounded-lg border border-border/50 bg-background/20 px-2 text-sm text-muted-foreground"
+                    >
+                      —
+                    </div>
+                  );
+                }
+
+                const cellStyle = getRetentionCellStyle(cell.retention_pct);
+
+                return (
+                  <div
+                    key={`${row.cohortWeek}-${weekOffset}`}
+                    className="flex min-h-14 items-center justify-center rounded-lg border px-2 text-sm font-semibold"
+                    style={cellStyle}
+                    title={`${formatChartDate(row.cohortWeek)} cohort, week ${weekOffset}: ${formatPercent(cell.retention_pct)} (${cell.active_users}/${row.cohortSize})`}
+                  >
+                    {formatPercent(cell.retention_pct)}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PlatformHealthPanel({ analytics }: { analytics: AdminAnalyticsData }) {
-  const { signupCurve, activeUsers, roleDistribution, churnCandidates, aiUsageTrend, loading, error } =
+  const {
+    signupCurve,
+    activeUsers,
+    roleDistribution,
+    churnCandidates,
+    aiUsageTrend,
+    retentionCohorts,
+    loading,
+    error,
+  } =
     analytics;
 
   const hasAnyData =
@@ -228,7 +352,8 @@ function PlatformHealthPanel({ analytics }: { analytics: AdminAnalyticsData }) {
     signupCurve.length > 0 ||
     roleDistribution.length > 0 ||
     churnCandidates.length > 0 ||
-    aiUsageTrend.length > 0;
+    aiUsageTrend.length > 0 ||
+    retentionCohorts.length > 0;
 
   const roleChartData = roleDistribution.map((item) => ({
     ...item,
@@ -433,6 +558,18 @@ function PlatformHealthPanel({ analytics }: { analytics: AdminAnalyticsData }) {
           ) : (
             <AnalyticsEmptyState description="No churn candidates were found for the current filter." />
           )}
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/80 bg-card/80">
+        <CardHeader>
+          <CardTitle className="text-xl">Retention Cohorts</CardTitle>
+          <CardDescription>
+            Weekly signup cohorts versus later weekly activity. Week 0 is the signup week; later weeks use sign-in and activity telemetry.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <RetentionHeatmap points={retentionCohorts} />
         </CardContent>
       </Card>
     </div>

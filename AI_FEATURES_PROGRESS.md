@@ -218,3 +218,19 @@ Added date range filtering (7d / 30d / 90d / all-time) to the analytics dashboar
 | RPCs updated | 14/14 |
 | lint | pass (0 errors, 31 existing warnings) |
 | build | pass |
+
+---
+
+## Analytics V2 Prompt 3: Retention Cohort Chart
+
+**Date:** 2026-03-12
+**Status:** Complete
+
+### Summary
+Added weekly retention cohort heatmap to Platform Health tab. New RPC `admin_retention_cohorts` computes signup cohorts and week-over-week retention using `profiles.created_at`, `auth.users.last_sign_in_at`, and `activity_events`. Rendered as a color-coded grid table.
+
+### Verification
+| Check | Result |
+|-------|--------|
+| lint | pass (0 errors, 31 existing warnings) |
+| build | pass |

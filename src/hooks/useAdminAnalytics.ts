@@ -89,6 +89,14 @@ export type CompletionTrendPoint = {
   completion_rate: number;
 };
 
+export type RetentionCohortPoint = {
+  cohort_week: string;
+  cohort_size: number;
+  week_offset: number;
+  active_users: number;
+  retention_pct: number;
+};
+
 type RpcRowsResult<T> = PromiseSettledResult<{
   data: T[] | null;
   error: { message: string } | null;
@@ -109,6 +117,7 @@ type AdminAnalyticsState = {
   topGroups: TopGroup[];
   atRiskStudents: AtRiskStudent[];
   completionTrend: CompletionTrendPoint[];
+  retentionCohorts: RetentionCohortPoint[];
   loading: boolean;
   error: string | null;
 };
@@ -128,6 +137,7 @@ const INITIAL_STATE: AdminAnalyticsState = {
   topGroups: [],
   atRiskStudents: [],
   completionTrend: [],
+  retentionCohorts: [],
   loading: true,
   error: null,
 };
@@ -173,6 +183,7 @@ export function useAdminAnalytics(startDate: string | null, endDate: string | nu
         topGroupsResult,
         atRiskStudentsResult,
         completionTrendResult,
+        retentionCohortsResult,
       ] = await Promise.allSettled([
         supabase.rpc("admin_signup_curve", {
           p_interval: "week",
@@ -191,6 +202,7 @@ export function useAdminAnalytics(startDate: string | null, endDate: string | nu
         supabase.rpc("admin_top_groups", dateRangeArgs),
         supabase.rpc("admin_at_risk_students", dateRangeArgs),
         supabase.rpc("admin_completion_trend", dateRangeArgs),
+        supabase.rpc("admin_retention_cohorts"),
       ]);
 
       if (!isActive) {
@@ -269,6 +281,11 @@ export function useAdminAnalytics(startDate: string | null, endDate: string | nu
         "Failed to load completion trend",
         errors,
       );
+      const retentionCohorts = getRpcRows(
+        retentionCohortsResult,
+        "Failed to load retention cohorts",
+        errors,
+      );
 
       setState({
         signupCurve,
@@ -285,6 +302,7 @@ export function useAdminAnalytics(startDate: string | null, endDate: string | nu
         topGroups,
         atRiskStudents,
         completionTrend,
+        retentionCohorts,
         loading: false,
         error: errors.length > 0 ? errors.join(" ") : null,
       });

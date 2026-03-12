@@ -946,6 +946,16 @@ export type Database = {
           total_tasks: number
         }[]
       }
+      admin_retention_cohorts: {
+        Args: { p_weeks?: number }
+        Returns: {
+          active_users: number
+          cohort_size: number
+          cohort_week: string
+          retention_pct: number
+          week_offset: number
+        }[]
+      }
       admin_role_distribution: {
         Args: { p_end_date?: string; p_start_date?: string }
         Returns: {
