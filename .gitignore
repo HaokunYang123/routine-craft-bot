@@ -43,3 +43,11 @@ coverage/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# Diagnosis and report files
+ADMIN_ACCESS_DIAGNOSIS.md
+ANALYTICS_DIAGNOSIS.md
+ANALYTICS_PROMPT_3_REPORT.md
+ANALYTICS_V2_PROMPT_1_REPORT.md
+ANALYTICS_V2_PROMPT_2_REPORT.md
+DEPLOYMENT_DIAGNOSIS.md

@@ -1,12 +1,14 @@
+import { useEffect, useState } from "react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider, QueryCache } from "@tanstack/react-query";
 import { handleError } from "@/lib/error";
-import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { AppErrorBoundary } from "@/components/error/AppErrorBoundary";
 import { RouteErrorBoundary } from "@/components/error/RouteErrorBoundary";
 import { SessionExpiredModal } from "@/components/auth/SessionExpiredModal";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import DashboardLayout from "./pages/DashboardLayout";
@@ -33,6 +35,8 @@ import JoinGroup from "./pages/JoinGroup";
 import ParentDashboard from "./pages/ParentDashboard";
 import LandingPage from "./pages/LandingPage";
 import AdminAnalytics from "./pages/AdminAnalytics";
+
+type RootRole = "coach" | "student" | "parent" | null;
 
 const queryClient = new QueryClient({
   queryCache: new QueryCache({
@@ -91,7 +95,10 @@ function SessionExpiredHandler() {
   const navigate = useNavigate();
 
   // Don't show modal on auth pages (already at login)
-  const isAuthPage = location.pathname === '/' || location.pathname.startsWith('/login');
+  const isAuthPage =
+    location.pathname === "/" ||
+    location.pathname.startsWith("/login") ||
+    location.pathname.startsWith("/auth");
 
   const handleReLogin = () => {
     clearSessionExpired();
@@ -106,6 +113,77 @@ function SessionExpiredHandler() {
   );
 }
 
+function RootRoute() {
+  const { user, loading } = useAuth();
+  const [role, setRole] = useState<RootRole | undefined>(undefined);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchRole = async () => {
+      if (loading) {
+        return;
+      }
+
+      if (!user) {
+        setRole(null);
+        return;
+      }
+
+      setRole(undefined);
+
+      const { data } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (cancelled) {
+        return;
+      }
+
+      if (data?.role === "coach" || data?.role === "student" || data?.role === "parent") {
+        setRole(data.role);
+        return;
+      }
+
+      setRole(null);
+    };
+
+    void fetchRole();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [loading, user]);
+
+  if (loading || (user && role === undefined)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="w-8 h-8 rounded-full border-4 border-primary/30 border-t-primary animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <LandingPage />;
+  }
+
+  if (role === "coach") {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  if (role === "student") {
+    return <Navigate to="/app" replace />;
+  }
+
+  if (role === "parent") {
+    return <Navigate to="/parent" replace />;
+  }
+
+  return <Navigate to="/onboarding" replace />;
+}
+
 const App = () => (
   <BrowserRouter>
     <AppErrorBoundary>
@@ -114,7 +192,8 @@ const App = () => (
           <Sonner />
           <SessionExpiredHandler />
           <Routes>
-            <Route path="/" element={<LandingPage />} />
+            <Route path="/" element={<RootRoute />} />
+            <Route path="/auth" element={<Index />} />
             <Route path="/login" element={<Index />} />
             <Route path="/login/coach" element={<Index />} />
             <Route path="/login/student" element={<Index />} />

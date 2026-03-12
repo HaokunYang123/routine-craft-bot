@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -69,7 +69,15 @@ function mapPasswordResetError(message: string): string {
 export function AuthTabs({ forceResetMode = false, emailConfirmedMessage = null }: AuthTabsProps) {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<"signup" | "login">("signup");
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const defaultTab: "signup" | "login" =
+    searchParams.get("signup") === "true"
+      ? "signup"
+      : location.pathname === "/auth"
+        ? "login"
+        : "signup";
+  const [activeTab, setActiveTab] = useState<"signup" | "login">(defaultTab);
   const [authView, setAuthView] = useState<AuthView>(forceResetMode ? "reset_password" : "tabs");
   const [loading, setLoading] = useState<string | null>(null); // Track which button is loading
   const loadingTimeoutRef = useRef<number | null>(null);
@@ -171,6 +179,14 @@ export function AuthTabs({ forceResetMode = false, emailConfirmedMessage = null 
     setAuthView("tabs");
     setActiveTab("login");
   }, [emailConfirmedMessage]);
+
+  useEffect(() => {
+    if (forceResetMode || authView !== "tabs") {
+      return;
+    }
+
+    setActiveTab(defaultTab);
+  }, [authView, defaultTab, forceResetMode]);
 
   const handleSignUpWithGoogle = async (role: Role) => {
     setLoading(`signup-${role}`);
