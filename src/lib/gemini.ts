@@ -1,4 +1,5 @@
 import { supabase, SUPABASE_ANON_KEY, SUPABASE_URL } from "@/integrations/supabase/client";
+import { logActivity } from "@/lib/activityLogger";
 
 const REQUEST_TIMEOUT_MS = 45000;
 const JSON_RETRY_SUFFIX = " Respond with valid JSON only, no markdown.";
@@ -270,6 +271,7 @@ export async function callGemini<T>(request: GeminiRequest): Promise<GeminiRespo
 
   const parsedFirstAttempt = parseGeminiJson<T>(firstAttempt.data);
   if (parsedFirstAttempt.success) {
+    logActivity("ai_feature_used", { action: request.action });
     return parsedFirstAttempt;
   }
 
@@ -300,5 +302,6 @@ export async function callGemini<T>(request: GeminiRequest): Promise<GeminiRespo
     };
   }
 
+  logActivity("ai_feature_used", { action: request.action });
   return parsedRetryAttempt;
 }

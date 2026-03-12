@@ -861,7 +861,7 @@ export type Database = {
     Functions: {
       accept_invite: { Args: { p_join_code: string }; Returns: Json }
       admin_active_users: {
-        Args: never
+        Args: { p_end_date?: string; p_start_date?: string }
         Returns: {
           dau: number
           mau: number
@@ -869,14 +869,14 @@ export type Database = {
         }[]
       }
       admin_ai_usage_by_action: {
-        Args: never
+        Args: { p_end_date?: string; p_start_date?: string }
         Returns: {
           action: string
           usage_count: number
         }[]
       }
       admin_ai_usage_trend: {
-        Args: never
+        Args: { p_end_date?: string; p_start_date?: string }
         Returns: {
           action: string
           period: string
@@ -884,7 +884,7 @@ export type Database = {
         }[]
       }
       admin_at_risk_students: {
-        Args: never
+        Args: { p_end_date?: string; p_start_date?: string }
         Returns: {
           completed_tasks: number
           completion_rate: number
@@ -894,13 +894,13 @@ export type Database = {
         }[]
       }
       admin_avg_groups_per_coach: {
-        Args: never
+        Args: { p_end_date?: string; p_start_date?: string }
         Returns: {
           avg_groups: number
         }[]
       }
       admin_churn_candidates: {
-        Args: never
+        Args: { p_end_date?: string; p_start_date?: string }
         Returns: {
           days_inactive: number
           email: string
@@ -909,7 +909,7 @@ export type Database = {
         }[]
       }
       admin_completion_by_group: {
-        Args: never
+        Args: { p_end_date?: string; p_start_date?: string }
         Returns: {
           completed_tasks: number
           completion_rate: number
@@ -919,7 +919,7 @@ export type Database = {
         }[]
       }
       admin_completion_trend: {
-        Args: never
+        Args: { p_end_date?: string; p_start_date?: string }
         Returns: {
           completed_tasks: number
           completion_rate: number
@@ -928,7 +928,7 @@ export type Database = {
         }[]
       }
       admin_most_active_coaches: {
-        Args: { p_limit?: number }
+        Args: { p_end_date?: string; p_limit?: number; p_start_date?: string }
         Returns: {
           ai_calls: number
           email: string
@@ -939,7 +939,7 @@ export type Database = {
         }[]
       }
       admin_platform_completion_rate: {
-        Args: never
+        Args: { p_end_date?: string; p_start_date?: string }
         Returns: {
           completed_tasks: number
           completion_rate: number
@@ -947,28 +947,28 @@ export type Database = {
         }[]
       }
       admin_role_distribution: {
-        Args: never
+        Args: { p_end_date?: string; p_start_date?: string }
         Returns: {
           role: string
           user_count: number
         }[]
       }
       admin_signup_curve: {
-        Args: { p_interval?: string }
+        Args: { p_end_date?: string; p_interval?: string; p_start_date?: string }
         Returns: {
           period: string
           signup_count: number
         }[]
       }
       admin_template_creation_trend: {
-        Args: never
+        Args: { p_end_date?: string; p_start_date?: string }
         Returns: {
           period: string
           template_count: number
         }[]
       }
       admin_top_groups: {
-        Args: { p_limit?: number }
+        Args: { p_end_date?: string; p_limit?: number; p_start_date?: string }
         Returns: {
           completion_rate: number
           group_id: string
@@ -1036,6 +1036,10 @@ export type Database = {
         Returns: boolean
       }
       join_group_by_code: { Args: { p_join_code: string }; Returns: Json }
+      log_activity_event: {
+        Args: { p_event_type: string; p_metadata: Json }
+        Returns: undefined
+      }
       remove_student_from_class: {
         Args: { p_connection_id: string }
         Returns: Json

@@ -33,6 +33,7 @@ import { GeneratedTask, useAIAssistant } from "@/hooks/useAIAssistant";
 import { useTemplates, Template } from "@/hooks/useTemplates";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { logActivity } from "@/lib/activityLogger";
 import { minutesToTimeString } from "@/lib/utils";
 import { queryKeys } from "@/lib/queries/keys";
 import { PullToRefresh } from "@/components/ui/PullToRefresh";
@@ -147,6 +148,7 @@ export default function Templates() {
     setManualSaving(false);
     if (result) {
       setActiveTab("library");
+      logActivity("template_created", { template_id: result.id, source: "manual" });
     }
   };
 

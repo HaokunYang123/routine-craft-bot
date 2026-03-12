@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Navigate } from "react-router-dom";
 import { AlertCircle, BarChart3, Loader2, Users, UserX } from "lucide-react";
 import {
@@ -17,6 +18,7 @@ import {
 } from "recharts";
 import { useProfile } from "@/hooks/useProfile";
 import { useAdminAnalytics } from "@/hooks/useAdminAnalytics";
+import { DateRangeFilter } from "@/components/admin/DateRangeFilter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -297,7 +299,7 @@ function PlatformHealthPanel({ analytics }: { analytics: AdminAnalyticsData }) {
       <Card className="border-border/80 bg-card/80">
         <CardHeader>
           <CardTitle className="text-xl">Signup Curve</CardTitle>
-          <CardDescription>Weekly signup volume based on account creation date.</CardDescription>
+          <CardDescription>Weekly signup volume based on profile creation date.</CardDescription>
         </CardHeader>
         <CardContent>
           {signupCurve.length > 0 ? (
@@ -406,7 +408,7 @@ function PlatformHealthPanel({ analytics }: { analytics: AdminAnalyticsData }) {
       <Card className="border-border/80 bg-card/80">
         <CardHeader>
           <CardTitle className="text-xl">Churn Risk</CardTitle>
-          <CardDescription>Coaches inactive for 14 or more days, including never-signed-in accounts.</CardDescription>
+          <CardDescription>Coaches flagged by the current inactivity window, including never-signed-in accounts.</CardDescription>
         </CardHeader>
         <CardContent>
           {churnCandidates.length > 0 ? (
@@ -429,7 +431,7 @@ function PlatformHealthPanel({ analytics }: { analytics: AdminAnalyticsData }) {
               </TableBody>
             </Table>
           ) : (
-            <AnalyticsEmptyState description="No churn candidates were found in the current dataset." />
+            <AnalyticsEmptyState description="No churn candidates were found for the current filter." />
           )}
         </CardContent>
       </Card>
@@ -776,7 +778,7 @@ function StudentOutcomesPanel({ analytics }: { analytics: AdminAnalyticsData }) 
         <Card className="border-border/80 bg-card/80">
           <CardHeader>
             <CardTitle className="text-xl">At-Risk Students</CardTitle>
-            <CardDescription>Students below 50% completion over the last 14 days.</CardDescription>
+            <CardDescription>Students below 50% completion in the current reporting window.</CardDescription>
           </CardHeader>
           <CardContent>
             {atRiskStudents.length > 0 ? (
@@ -810,7 +812,7 @@ function StudentOutcomesPanel({ analytics }: { analytics: AdminAnalyticsData }) 
                 </TableBody>
               </Table>
             ) : (
-              <AnalyticsEmptyState description="No at-risk students were found in the last 14 days." />
+              <AnalyticsEmptyState description="No at-risk students were found for the current filter." />
             )}
           </CardContent>
         </Card>
@@ -821,7 +823,9 @@ function StudentOutcomesPanel({ analytics }: { analytics: AdminAnalyticsData }) 
 
 export default function AdminAnalytics() {
   const { profile, loading } = useProfile();
-  const analytics = useAdminAnalytics();
+  const [startDate, setStartDate] = useState<string | null>(null);
+  const [endDate, setEndDate] = useState<string | null>(null);
+  const analytics = useAdminAnalytics(startDate, endDate);
 
   if (loading) {
     return (
@@ -843,6 +847,15 @@ export default function AdminAnalytics() {
           Live product health for the admin dashboard, including coach behavior and student outcomes.
         </p>
       </div>
+
+      <DateRangeFilter
+        startDate={startDate}
+        endDate={endDate}
+        onChange={(nextStartDate, nextEndDate) => {
+          setStartDate(nextStartDate);
+          setEndDate(nextEndDate);
+        }}
+      />
 
       <Tabs defaultValue={ANALYTICS_TABS[0].value} className="space-y-4">
         <TabsList className="h-auto w-full flex-wrap justify-start gap-2 rounded-xl bg-card/80 p-2">

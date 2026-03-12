@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { logActivity } from "@/lib/activityLogger";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +17,7 @@ interface JoinResult {
 }
 
 export function JoinInstructor({ onSuccess }: { onSuccess?: () => void }) {
+    const { user } = useAuth();
     const { toast } = useToast();
     const [code, setCode] = useState("");
     const [loading, setLoading] = useState(false);
@@ -44,6 +47,7 @@ export function JoinInstructor({ onSuccess }: { onSuccess?: () => void }) {
                     title: "Joined Successfully",
                     description: result.message || "You are now connected to your instructor.",
                 });
+                if (user) logActivity("student_added", { student_id: user.id, context: "direct" });
                 onSuccess?.();
             } else {
                 toast({

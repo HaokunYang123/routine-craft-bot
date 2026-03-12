@@ -14,6 +14,7 @@ import { format, isToday, isTomorrow, parseISO, subDays, isAfter, isBefore, star
 import { InstructorsList } from "@/components/student/InstructorsList";
 import { JoinInstructor } from "@/components/student/JoinInstructor";
 import { useToast } from "@/hooks/use-toast";
+import { logActivity } from "@/lib/activityLogger";
 import { cn, safeParseISO, safeFormatDate } from "@/lib/utils";
 import { handleError } from "@/lib/error";
 
@@ -258,6 +259,7 @@ export default function StudentSchedule() {
                     title: "Nice work!",
                     description: "Task marked as complete.",
                 });
+                logActivity("task_completed", { task_instance_id: taskId });
 
                 // Clear any existing timeout for this task
                 const existing = timeoutsRef.current.get(taskId);

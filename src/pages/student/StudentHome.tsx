@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useTaskRollover } from "@/hooks/useTaskRollover";
 import { useSessionDismissal } from "@/hooks/useSessionDismissal";
 import { useExcusedNotification } from "@/hooks/useExcusedNotification";
+import { logActivity } from "@/lib/activityLogger";
 import { handleError } from "@/lib/error";
 import { REALTIME_CHANNELS } from "@/lib/realtime/channels";
 import { PullToRefresh } from "@/components/ui/PullToRefresh";
@@ -402,6 +403,7 @@ export default function StudentHome() {
           title: "Joined Successfully!",
           description: result.message || `You've joined ${result.group_name}`,
         });
+        logActivity("student_added", { student_id: user.id, context: "group" });
         setJoinCode("");
         setShowJoinForm(false);
         fetchConnectedGroups();

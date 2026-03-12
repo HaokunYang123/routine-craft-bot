@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { useToast } from "./use-toast";
+import { logActivity } from "@/lib/activityLogger";
 import { handleError } from "@/lib/error";
 import { queryKeys } from "@/lib/queries/keys";
 import { addDays, format, eachDayOfInterval, getDay, addMonths, setDate, getDate, lastDayOfMonth } from "date-fns";
@@ -517,6 +518,12 @@ export function useAssignments() {
       });
     },
 
+    onSuccess: ({ taskId, status }) => {
+      if (status === "completed") {
+        logActivity("task_completed", { task_instance_id: taskId });
+      }
+    },
+
     onSettled: () => {
       // Always refetch to ensure server state consistency
       queryClient.invalidateQueries({ queryKey: queryKeys.assignments.all });
@@ -721,11 +728,12 @@ export function useAssignments() {
       return { taskId };
     },
 
-    onSuccess: () => {
+    onSuccess: ({ taskId }) => {
       toast({
         title: "Task Excused",
         description: "The task has been excused and removed from the student's overdue list.",
       });
+      logActivity("task_excused", { task_instance_id: taskId });
       return queryClient.invalidateQueries({ queryKey: queryKeys.assignments.all });
     },
 

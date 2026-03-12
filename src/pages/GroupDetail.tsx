@@ -76,6 +76,7 @@ import {
 } from "@/components/ui/dialog";
 import { AssignTaskModal } from "@/components/assignments/AssignTaskModal";
 import { PullToRefresh } from "@/components/ui/PullToRefresh";
+import { logActivity } from "@/lib/activityLogger";
 
 interface GroupInfo {
     id: string;
@@ -487,6 +488,7 @@ export default function GroupDetail() {
                 title: "Student Removed",
                 description: `${studentToRemove.display_name} has been removed from the group and all related data has been cleared.`
             });
+            logActivity("student_removed", { student_id: studentToRemove.student_id, group_id: groupId });
         } catch (error: unknown) {
             toast({ title: "Error", description: error instanceof Error ? error.message : "An error occurred", variant: "destructive" });
         } finally {

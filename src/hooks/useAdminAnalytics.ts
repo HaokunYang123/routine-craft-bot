@@ -145,7 +145,7 @@ function getRpcRows<T>(result: RpcRowsResult<T>, fallbackMessage: string, errors
   return result.value.data ?? [];
 }
 
-export function useAdminAnalytics() {
+export function useAdminAnalytics(startDate: string | null, endDate: string | null) {
   const [state, setState] = useState<AdminAnalyticsState>(INITIAL_STATE);
 
   useEffect(() => {
@@ -153,6 +153,10 @@ export function useAdminAnalytics() {
 
     async function fetchAnalytics() {
       setState((current) => ({ ...current, loading: true, error: null }));
+      const dateRangeArgs = {
+        p_start_date: startDate ?? undefined,
+        p_end_date: endDate ?? undefined,
+      };
 
       const [
         signupCurveResult,
@@ -170,20 +174,23 @@ export function useAdminAnalytics() {
         atRiskStudentsResult,
         completionTrendResult,
       ] = await Promise.allSettled([
-        supabase.rpc("admin_signup_curve", { p_interval: "week" }),
-        supabase.rpc("admin_active_users"),
-        supabase.rpc("admin_role_distribution"),
-        supabase.rpc("admin_churn_candidates"),
-        supabase.rpc("admin_ai_usage_trend"),
-        supabase.rpc("admin_ai_usage_by_action"),
-        supabase.rpc("admin_template_creation_trend"),
-        supabase.rpc("admin_avg_groups_per_coach"),
-        supabase.rpc("admin_most_active_coaches"),
-        supabase.rpc("admin_platform_completion_rate"),
-        supabase.rpc("admin_completion_by_group"),
-        supabase.rpc("admin_top_groups"),
-        supabase.rpc("admin_at_risk_students"),
-        supabase.rpc("admin_completion_trend"),
+        supabase.rpc("admin_signup_curve", {
+          p_interval: "week",
+          ...dateRangeArgs,
+        }),
+        supabase.rpc("admin_active_users", dateRangeArgs),
+        supabase.rpc("admin_role_distribution", dateRangeArgs),
+        supabase.rpc("admin_churn_candidates", dateRangeArgs),
+        supabase.rpc("admin_ai_usage_trend", dateRangeArgs),
+        supabase.rpc("admin_ai_usage_by_action", dateRangeArgs),
+        supabase.rpc("admin_template_creation_trend", dateRangeArgs),
+        supabase.rpc("admin_avg_groups_per_coach", dateRangeArgs),
+        supabase.rpc("admin_most_active_coaches", dateRangeArgs),
+        supabase.rpc("admin_platform_completion_rate", dateRangeArgs),
+        supabase.rpc("admin_completion_by_group", dateRangeArgs),
+        supabase.rpc("admin_top_groups", dateRangeArgs),
+        supabase.rpc("admin_at_risk_students", dateRangeArgs),
+        supabase.rpc("admin_completion_trend", dateRangeArgs),
       ]);
 
       if (!isActive) {
@@ -288,7 +295,7 @@ export function useAdminAnalytics() {
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [endDate, startDate]);
 
   return state;
 }

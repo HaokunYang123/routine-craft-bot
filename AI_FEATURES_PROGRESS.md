@@ -152,3 +152,69 @@ Atomic rate limiter shipped via Postgres upsert with coach-only enforcement in d
 
 ### Concerns
 - `npm run lint` initially failed when run concurrently with `npm run build` because ESLint tried to read a transient Vite timestamp module while the build was still generating it. Rerunning lint by itself passed with only existing warnings.
+
+## Landing Page
+- **Date:** 2026-03-11
+- **Scope:** Public landing page at `/` for unauthenticated visitors
+- **Components:** LandingPage.tsx, routing update
+- **Brand:** Dark theme (#222325), Oswald + Source Sans 3, green/blue/orange accents
+- **Sections:** Hero, Features, How It Works, Audiences (Coaches/Parents/Schools), Quote, CTA
+- **Auth routing:** Unauthenticated -> LandingPage, Authenticated -> Dashboard
+- **Verification:** lint pass, build pass
+
+---
+
+## Analytics V2 Prompt 1: Frontend Instrumentation
+
+**Date:** 2026-03-11
+**Status:** Complete
+
+### Summary
+Wired `logActivity()` calls into 14 frontend success paths covering all 9 requested event types. Created `src/lib/activityLogger.ts` as a fire-and-forget utility that calls the existing `log_activity_event` RPC. No database changes. No dashboard changes.
+
+### Events Instrumented
+| # | event_type | File | Line | metadata keys |
+|---|-----------|------|------|---------------|
+| 1 | template_created | `src/pages/Templates.tsx` | 151 | `template_id`, `source` |
+| 2 | template_created | `src/components/ai/AIPlanBuilder.tsx` | 559 | `template_id`, `source` |
+| 3 | task_assigned | `src/components/assignments/AssignTaskModal.tsx` | 427 | `assignment_type`, `group_id` |
+| 4 | task_assigned | `src/components/assignments/AssignTaskModal.tsx` | 529 | `assignment_type`, `student_id`, `group_id` |
+| 5 | group_created | `src/pages/CoachDashboard.tsx` | 174 | `group_id`, `group_name` |
+| 6 | ai_feature_used | `src/lib/gemini.ts` | 274 | `action` |
+| 7 | ai_feature_used | `src/lib/gemini.ts` | 305 | `action` |
+| 8 | student_added | `src/pages/student/StudentHome.tsx` | 406 | `student_id`, `context` |
+| 9 | student_added | `src/components/student/JoinInstructor.tsx` | 50 | `student_id`, `context` |
+| 10 | student_removed | `src/pages/GroupDetail.tsx` | 491 | `student_id`, `group_id` |
+| 11 | task_completed | `src/hooks/useAssignments.ts` | 523 | `task_instance_id` |
+| 12 | task_completed | `src/pages/AssigneeDashboard.tsx` | 222 | `task_instance_id` |
+| 13 | task_completed | `src/pages/student/StudentSchedule.tsx` | 262 | `task_instance_id` |
+| 14 | task_excused | `src/hooks/useAssignments.ts` | 736 | `task_instance_id` |
+
+### Verification
+| Check | Result |
+|-------|--------|
+| lint | pass (0 errors, existing warnings only) |
+| build | pass |
+| logActivity calls | 14 |
+
+### Concerns
+- `student_added` is instrumented on the real post-RPC success handlers because there is no live client-side insert path for those current flows.
+- `task_completed` needed coverage in both the shared hook and two legacy direct-update student dashboards to avoid gaps.
+- `ai_feature_used` only logs successful parsed responses, not failed/invalid AI attempts.
+
+---
+
+## Analytics V2 Prompt 2: Date Range Filters
+
+**Date:** 2026-03-11
+**Status:** Complete
+
+### Summary
+Added date range filtering (7d / 30d / 90d / all-time) to the analytics dashboard. Updated all 14 RPCs with optional `p_start_date` and `p_end_date` parameters. Created `DateRangeFilter` component. Updated `useAdminAnalytics` hook to pass date params. Default is all-time (`null`) for backwards compatibility.
+
+### Verification
+| Check | Result |
+|-------|--------|
+| RPCs updated | 14/14 |
+| lint | pass (0 errors, 31 existing warnings) |
+| build | pass |

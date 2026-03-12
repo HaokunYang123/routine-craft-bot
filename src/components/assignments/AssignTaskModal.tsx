@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAssignments } from "@/hooks/useAssignments";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { logActivity } from "@/lib/activityLogger";
 import { generateTimeSlots } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -423,6 +424,7 @@ export function AssignTaskModal({
         }
         onOpenChange(false);
         onAssigned?.();
+        logActivity("task_assigned", { assignment_type: "group", group_id: groupId });
       }
       return;
     }
@@ -524,6 +526,7 @@ export function AssignTaskModal({
         title: "Task Assigned",
         description: `Assigned to ${studentName || "student"}.`,
       });
+      logActivity("task_assigned", { assignment_type: "individual", student_id: studentId, group_id: groupId });
       onOpenChange(false);
       onAssigned?.();
     } catch (err: unknown) {

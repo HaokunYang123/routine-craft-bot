@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
+import { logActivity } from "@/lib/activityLogger";
 import { handleError } from "@/lib/error";
 
 // Use task_instances table - these have the correctly calculated scheduled_date
@@ -218,6 +219,7 @@ export default function AssigneeDashboard() {
           title: "Task Completed!",
           description: `Great job completing "${task.name}"`,
         });
+        logActivity("task_completed", { task_instance_id: task.id });
       }
     } catch (error: unknown) {
       console.error("Failed to update task:", error);

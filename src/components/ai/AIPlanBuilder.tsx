@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useRateLimitCooldown } from "@/hooks/useRateLimitCooldown";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { logActivity } from "@/lib/activityLogger";
 import { RateLimitError, callGemini } from "@/lib/gemini";
 import { queryKeys } from "@/lib/queries/keys";
 
@@ -555,6 +556,7 @@ export function AIPlanBuilder(props: AIPlanBuilderProps) {
       toast({
         title: "Template saved!",
       });
+      logActivity("template_created", { template_id: insertedTemplate.id, source: "ai_plan" });
 
       resetToInput();
     } catch (error) {

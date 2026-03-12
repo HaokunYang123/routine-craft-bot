@@ -35,6 +35,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Users, Plus, Loader2, FileText } from "lucide-react";
+import { logActivity } from "@/lib/activityLogger";
 import { handleError } from "@/lib/error";
 
 const GROUP_COLORS = [
@@ -170,6 +171,7 @@ export default function CoachDashboard() {
       setNewGroupName("");
       setNewGroupColor("#3B82F6");
       setCreateOpen(false);
+      logActivity("group_created", { group_id: result.id, group_name: result.name });
     }
     setCreating(false);
   };
