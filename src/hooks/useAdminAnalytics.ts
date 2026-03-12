@@ -169,12 +169,27 @@ function getRpcRows<T>(result: RpcRowsResult<T>, fallbackMessage: string, errors
   return result.value.data ?? [];
 }
 
-export function useAdminAnalytics(startDate: string | null, endDate: string | null) {
+export function useAdminAnalytics(
+  startDate: string | null,
+  endDate: string | null,
+  enabled = true,
+) {
   const [state, setState] = useState<AdminAnalyticsState>(INITIAL_STATE);
   const isMountedRef = useRef(true);
   const requestIdRef = useRef(0);
 
   const fetchAnalytics = useCallback(async (mode: "load" | "refresh" = "load") => {
+    if (!enabled) {
+      if (isMountedRef.current) {
+        setState((current) => ({
+          ...INITIAL_STATE,
+          loading: false,
+          isRefreshing: false,
+        }));
+      }
+      return;
+    }
+
     const requestId = requestIdRef.current + 1;
     requestIdRef.current = requestId;
 
@@ -340,15 +355,24 @@ export function useAdminAnalytics(startDate: string | null, endDate: string | nu
       isRefreshing: false,
       error: errors.length > 0 ? errors.join(" ") : null,
     });
-  }, [endDate, startDate]);
+  }, [enabled, endDate, startDate]);
 
   useEffect(() => {
+    if (!enabled) {
+      setState((current) => ({
+        ...INITIAL_STATE,
+        loading: false,
+        isRefreshing: false,
+      }));
+      return;
+    }
+
     void fetchAnalytics();
 
     return () => {
       requestIdRef.current += 1;
     };
-  }, [fetchAnalytics]);
+  }, [enabled, fetchAnalytics]);
 
   useEffect(() => {
     return () => {
@@ -356,7 +380,13 @@ export function useAdminAnalytics(startDate: string | null, endDate: string | nu
     };
   }, []);
 
-  const refetch = useCallback(() => fetchAnalytics("refresh"), [fetchAnalytics]);
+  const refetch = useCallback(() => {
+    if (!enabled) {
+      return Promise.resolve();
+    }
+
+    return fetchAnalytics("refresh");
+  }, [enabled, fetchAnalytics]);
 
   return {
     ...state,

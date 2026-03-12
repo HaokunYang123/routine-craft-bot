@@ -1639,7 +1639,7 @@ export default function AdminAnalytics() {
   const [endDate, setEndDate] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [autoRefreshCycle, setAutoRefreshCycle] = useState(0);
-  const analytics = useAdminAnalytics(startDate, endDate);
+  const analytics = useAdminAnalytics(startDate, endDate, Boolean(profile?.is_admin));
   const { isRefreshing, loading: analyticsLoading, refetch } = analytics;
 
   useEffect(() => {
