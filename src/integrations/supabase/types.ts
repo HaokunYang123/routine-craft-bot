@@ -938,6 +938,18 @@ export type Database = {
           user_id: string
         }[]
       }
+      admin_recent_activity: {
+        Args: { p_end_date?: string; p_limit?: number; p_start_date?: string }
+        Returns: {
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json
+          user_email: string | null
+          user_id: string
+          user_role: string | null
+        }[]
+      }
       admin_platform_completion_rate: {
         Args: { p_end_date?: string; p_start_date?: string }
         Returns: {

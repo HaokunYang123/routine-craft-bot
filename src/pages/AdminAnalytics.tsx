@@ -57,6 +57,16 @@ const TOOLTIP_CONTENT_STYLE = {
   backgroundColor: "hsl(var(--background))",
   borderColor: "hsl(var(--border))",
 };
+const ACTIVITY_BADGE_STYLES: Record<string, string> = {
+  template_created: "bg-blue-500/20 text-blue-400",
+  task_assigned: "bg-green-500/20 text-green-400",
+  group_created: "bg-purple-500/20 text-purple-400",
+  ai_feature_used: "bg-amber-500/20 text-amber-400",
+  student_added: "bg-teal-500/20 text-teal-400",
+  student_removed: "bg-red-500/20 text-red-400",
+  task_completed: "bg-emerald-500/20 text-emerald-400",
+  task_excused: "bg-gray-500/20 text-gray-400",
+};
 
 type AdminAnalyticsData = ReturnType<typeof useAdminAnalytics>;
 
@@ -123,6 +133,136 @@ function formatRoleLabel(role: string) {
 
 function formatPercent(value: number | null | undefined) {
   return `${Number(value ?? 0).toFixed(1)}%`;
+}
+
+function formatEventTypeLabel(eventType: string) {
+  if (!eventType) {
+    return "Unknown";
+  }
+
+  return eventType
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function formatRelativeTime(value: string) {
+  const timestamp = new Date(value);
+
+  if (Number.isNaN(timestamp.getTime())) {
+    return formatTableDate(value);
+  }
+
+  const diffMs = timestamp.getTime() - Date.now();
+  const diffSeconds = Math.round(diffMs / 1000);
+  const formatter = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
+  const intervals = [
+    { unit: "year", seconds: 31536000 },
+    { unit: "month", seconds: 2592000 },
+    { unit: "week", seconds: 604800 },
+    { unit: "day", seconds: 86400 },
+    { unit: "hour", seconds: 3600 },
+    { unit: "minute", seconds: 60 },
+  ] as const;
+
+  for (const interval of intervals) {
+    if (Math.abs(diffSeconds) >= interval.seconds) {
+      return formatter.format(
+        Math.round(diffSeconds / interval.seconds),
+        interval.unit,
+      );
+    }
+  }
+
+  return formatter.format(diffSeconds, "second");
+}
+
+function shortenId(value: string | null | undefined) {
+  if (!value) {
+    return null;
+  }
+
+  return value.slice(0, 8);
+}
+
+function getMetadataValue(metadata: Record<string, unknown>, key: string) {
+  const value = metadata[key];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function getActivitySummary(activity: AdminAnalyticsData["recentActivity"][number]) {
+  const metadata =
+    activity.metadata && typeof activity.metadata === "object" && !Array.isArray(activity.metadata)
+      ? activity.metadata
+      : {};
+
+  switch (activity.event_type) {
+    case "template_created": {
+      const source = getMetadataValue(metadata, "source");
+      const templateId = shortenId(getMetadataValue(metadata, "template_id"));
+      if (source && templateId) {
+        return `Source: ${formatEventTypeLabel(source)} • Template ${templateId}`;
+      }
+      if (source) {
+        return `Source: ${formatEventTypeLabel(source)}`;
+      }
+      if (templateId) {
+        return `Template ${templateId}`;
+      }
+      return "Template created";
+    }
+    case "task_assigned": {
+      const assignmentType = getMetadataValue(metadata, "assignment_type");
+      const groupId = shortenId(getMetadataValue(metadata, "group_id"));
+      const studentId = shortenId(getMetadataValue(metadata, "student_id"));
+      const details = [
+        assignmentType ? `${formatEventTypeLabel(assignmentType)} assignment` : "Task assigned",
+        groupId ? `Group ${groupId}` : null,
+        studentId ? `Student ${studentId}` : null,
+      ].filter(Boolean);
+      return details.join(" • ");
+    }
+    case "group_created": {
+      const groupName = getMetadataValue(metadata, "group_name");
+      const groupId = shortenId(getMetadataValue(metadata, "group_id"));
+      if (groupName) {
+        return `Created "${groupName}"`;
+      }
+      if (groupId) {
+        return `Created group ${groupId}`;
+      }
+      return "Group created";
+    }
+    case "ai_feature_used": {
+      const action = getMetadataValue(metadata, "action");
+      return action ? `Action: ${formatEventTypeLabel(action)}` : "AI feature used";
+    }
+    case "student_added": {
+      const context = getMetadataValue(metadata, "context");
+      const studentId = shortenId(getMetadataValue(metadata, "student_id"));
+      const details = [
+        context ? `Context: ${formatEventTypeLabel(context)}` : "Student added",
+        studentId ? `Student ${studentId}` : null,
+      ].filter(Boolean);
+      return details.join(" • ");
+    }
+    case "student_removed": {
+      const studentId = shortenId(getMetadataValue(metadata, "student_id"));
+      const groupId = shortenId(getMetadataValue(metadata, "group_id"));
+      const details = [
+        studentId ? `Student ${studentId}` : "Student removed",
+        groupId ? `Group ${groupId}` : null,
+      ].filter(Boolean);
+      return details.join(" • ");
+    }
+    case "task_completed":
+    case "task_excused": {
+      const taskId = shortenId(getMetadataValue(metadata, "task_instance_id"));
+      return taskId ? `Task ${taskId}` : formatEventTypeLabel(activity.event_type);
+    }
+    default:
+      return formatEventTypeLabel(activity.event_type);
+  }
 }
 
 type RetentionHeatmapCell = AdminAnalyticsData["retentionCohorts"][number];
@@ -429,6 +569,7 @@ function PlatformHealthPanel({ analytics }: { analytics: AdminAnalyticsData }) {
     churnCandidates,
     aiUsageTrend,
     retentionCohorts,
+    recentActivity,
     loading,
     error,
   } =
@@ -440,7 +581,8 @@ function PlatformHealthPanel({ analytics }: { analytics: AdminAnalyticsData }) {
     roleDistribution.length > 0 ||
     churnCandidates.length > 0 ||
     aiUsageTrend.length > 0 ||
-    retentionCohorts.length > 0;
+    retentionCohorts.length > 0 ||
+    recentActivity.length > 0;
 
   const roleChartData = roleDistribution.map((item) => ({
     ...item,
@@ -457,7 +599,7 @@ function PlatformHealthPanel({ analytics }: { analytics: AdminAnalyticsData }) {
     : [];
 
   if (loading) {
-    return <AnalyticsLoading statCards={3} charts={3} />;
+    return <AnalyticsLoading statCards={3} charts={4} />;
   }
 
   if (!hasAnyData && !error) {
@@ -802,6 +944,94 @@ function PlatformHealthPanel({ analytics }: { analytics: AdminAnalyticsData }) {
         />
         <CardContent>
           <RetentionHeatmap points={retentionCohorts} />
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/80 bg-card/80">
+        <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+          <div className="space-y-1.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <CardTitle className="text-xl">Recent Activity</CardTitle>
+              <span className="rounded-full border border-border/60 bg-background/60 px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                {recentActivity.length} shown
+              </span>
+            </div>
+            <CardDescription>Most recent tracked analytics events in reverse chronological order.</CardDescription>
+          </div>
+          {recentActivity.length > 0 ? (
+            <ExportButton
+              label="recent activity"
+              onClick={() =>
+                exportToCsv(
+                  recentActivity.map((activity) => ({
+                    timestamp: formatExportDate(activity.created_at),
+                    relative_time: formatRelativeTime(activity.created_at),
+                    event_type: formatEventTypeLabel(activity.event_type),
+                    user_email: activity.user_email ?? "Unknown",
+                    user_role: activity.user_role ?? "Unknown",
+                    summary: getActivitySummary(activity),
+                    metadata: JSON.stringify(activity.metadata),
+                  })),
+                  "recent_activity.csv",
+                  [
+                    { key: "timestamp", label: "Timestamp" },
+                    { key: "relative_time", label: "Relative Time" },
+                    { key: "event_type", label: "Event Type" },
+                    { key: "user_email", label: "User Email" },
+                    { key: "user_role", label: "User Role" },
+                    { key: "summary", label: "Summary" },
+                    { key: "metadata", label: "Metadata" },
+                  ],
+                )
+              }
+            />
+          ) : undefined}
+        </CardHeader>
+        <CardContent>
+          {recentActivity.length > 0 ? (
+            <div className="max-h-[400px] space-y-3 overflow-y-auto pr-1">
+              {recentActivity.map((activity) => (
+                <div
+                  key={activity.id}
+                  className="rounded-xl border border-border/60 bg-background/40 px-4 py-3"
+                >
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                          {formatRelativeTime(activity.created_at)}
+                        </span>
+                        <span
+                          className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${ACTIVITY_BADGE_STYLES[activity.event_type] ?? "bg-gray-500/20 text-gray-400"}`}
+                        >
+                          {formatEventTypeLabel(activity.event_type)}
+                        </span>
+                        {activity.user_role ? (
+                          <span className="rounded-full border border-border/60 px-2 py-1 text-xs text-muted-foreground">
+                            {formatRoleLabel(activity.user_role)}
+                          </span>
+                        ) : null}
+                      </div>
+                      <div className="space-y-1">
+                        <p className="truncate text-sm font-medium text-foreground">
+                          {activity.user_email ?? "Unknown user"}
+                        </p>
+                        <p className="text-sm text-muted-foreground">{getActivitySummary(activity)}</p>
+                      </div>
+                    </div>
+                    <p
+                      className="shrink-0 text-xs text-muted-foreground"
+                      title={formatTableDate(activity.created_at)}
+                    >
+                      {formatTableDate(activity.created_at)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <AnalyticsEmptyState description="No activity recorded yet." />
+          )}
         </CardContent>
       </Card>
     </div>

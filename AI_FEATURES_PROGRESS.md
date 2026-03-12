@@ -251,3 +251,21 @@ Added CSV export buttons to every chart and table on the analytics dashboard. Cr
 | export buttons | 15 |
 | lint | pass (0 errors, 31 existing warnings) |
 | build | pass |
+
+---
+
+## Analytics V2 Prompt 5: Activity Feed
+**Date:** 2026-03-12
+**Status:** Complete
+### Summary
+Added a Recent Activity feed to the Platform Health tab, powered by a new `admin_recent_activity` admin RPC and wired through `useAdminAnalytics`. The feed shows recent event timestamps, color-coded event badges, user email, concise metadata summaries, and a CSV export, while preserving the shared date range filter.
+### Verification
+| Check | Result |
+|-------|--------|
+| RPC exists | pass |
+| RPC count query | pass (`0`) |
+| grep hook | pass (`1`) |
+| grep feed | pass (`9`) |
+| grep export | pass (`17`) |
+| lint | pass (0 errors, 31 existing warnings) |
+| build | pass |

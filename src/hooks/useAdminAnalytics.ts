@@ -97,6 +97,16 @@ export type RetentionCohortPoint = {
   retention_pct: number;
 };
 
+export type RecentActivityEvent = {
+  id: string;
+  user_id: string;
+  event_type: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  user_email: string | null;
+  user_role: string | null;
+};
+
 type RpcRowsResult<T> = PromiseSettledResult<{
   data: T[] | null;
   error: { message: string } | null;
@@ -118,6 +128,7 @@ type AdminAnalyticsState = {
   atRiskStudents: AtRiskStudent[];
   completionTrend: CompletionTrendPoint[];
   retentionCohorts: RetentionCohortPoint[];
+  recentActivity: RecentActivityEvent[];
   loading: boolean;
   error: string | null;
 };
@@ -138,6 +149,7 @@ const INITIAL_STATE: AdminAnalyticsState = {
   atRiskStudents: [],
   completionTrend: [],
   retentionCohorts: [],
+  recentActivity: [],
   loading: true,
   error: null,
 };
@@ -184,6 +196,7 @@ export function useAdminAnalytics(startDate: string | null, endDate: string | nu
         atRiskStudentsResult,
         completionTrendResult,
         retentionCohortsResult,
+        recentActivityResult,
       ] = await Promise.allSettled([
         supabase.rpc("admin_signup_curve", {
           p_interval: "week",
@@ -203,6 +216,10 @@ export function useAdminAnalytics(startDate: string | null, endDate: string | nu
         supabase.rpc("admin_at_risk_students", dateRangeArgs),
         supabase.rpc("admin_completion_trend", dateRangeArgs),
         supabase.rpc("admin_retention_cohorts"),
+        supabase.rpc("admin_recent_activity", {
+          p_limit: 50,
+          ...dateRangeArgs,
+        }),
       ]);
 
       if (!isActive) {
@@ -286,6 +303,11 @@ export function useAdminAnalytics(startDate: string | null, endDate: string | nu
         "Failed to load retention cohorts",
         errors,
       );
+      const recentActivity = getRpcRows(
+        recentActivityResult,
+        "Failed to load recent activity",
+        errors,
+      );
 
       setState({
         signupCurve,
@@ -303,6 +325,7 @@ export function useAdminAnalytics(startDate: string | null, endDate: string | nu
         atRiskStudents,
         completionTrend,
         retentionCohorts,
+        recentActivity,
         loading: false,
         error: errors.length > 0 ? errors.join(" ") : null,
       });
