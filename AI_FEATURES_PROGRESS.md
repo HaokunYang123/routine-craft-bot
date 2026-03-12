@@ -234,3 +234,20 @@ Added weekly retention cohort heatmap to Platform Health tab. New RPC `admin_ret
 |-------|--------|
 | lint | pass (0 errors, 31 existing warnings) |
 | build | pass |
+
+---
+
+## Analytics V2 Prompt 4: CSV Export
+
+**Date:** 2026-03-12
+**Status:** Complete
+
+### Summary
+Added CSV export buttons to every chart and table on the analytics dashboard. Created `src/lib/csvExport.ts` as a zero-dependency browser download utility. No database changes.
+
+### Verification
+| Check | Result |
+|-------|--------|
+| export buttons | 15 |
+| lint | pass (0 errors, 31 existing warnings) |
+| build | pass |

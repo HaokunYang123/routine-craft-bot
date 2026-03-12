@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Navigate } from "react-router-dom";
-import { AlertCircle, BarChart3, Loader2, Users, UserX } from "lucide-react";
+import { AlertCircle, BarChart3, Download, Loader2, Users, UserX } from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -23,6 +23,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { exportToCsv } from "@/lib/csvExport";
 
 const ANALYTICS_TABS = [
   {
@@ -88,6 +89,24 @@ function formatTableDate(value: string | null) {
   }
 
   return new Date(value).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function formatExportDate(value: string | null) {
+  if (!value) {
+    return "";
+  }
+
+  const parsedDate = new Date(value);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return value;
+  }
+
+  return parsedDate.toLocaleDateString(undefined, {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -199,18 +218,83 @@ function AnalyticsErrorBanner({ error }: { error: string }) {
   );
 }
 
+function ExportButton({
+  label,
+  onClick,
+}: {
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-white/10 p-1 text-gray-400 transition-colors hover:bg-white/10 hover:text-white"
+      aria-label={`Export ${label} as CSV`}
+      title={`Export ${label} as CSV`}
+    >
+      <Download className="h-4 w-4" />
+      <span className="sr-only">Export {label} as CSV</span>
+    </button>
+  );
+}
+
+function AnalyticsCardHeader({
+  title,
+  description,
+  exportAction,
+}: {
+  title: string;
+  description: string;
+  exportAction?: ReactNode;
+}) {
+  return (
+    <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+      <div className="space-y-1.5">
+        <CardTitle className="text-xl">{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
+      </div>
+      {exportAction}
+    </CardHeader>
+  );
+}
+
+function AnalyticsSectionHeader({
+  title,
+  description,
+  exportAction,
+}: {
+  title: string;
+  description: string;
+  exportAction?: ReactNode;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4">
+      <div className="space-y-1">
+        <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+          {title}
+        </h2>
+        <p className="text-sm text-muted-foreground">{description}</p>
+      </div>
+      {exportAction}
+    </div>
+  );
+}
+
 function MetricCard({
   title,
   value,
   description,
   icon: Icon,
   color,
+  action,
 }: {
   title: string;
   value: string;
   description: string;
   icon: typeof BarChart3;
   color: string;
+  action?: ReactNode;
 }) {
   return (
     <Card className="border-border/80 bg-card/80">
@@ -219,7 +303,10 @@ function MetricCard({
           <CardDescription>{title}</CardDescription>
           <CardTitle className="mt-2 text-4xl font-semibold tracking-tight">{value}</CardTitle>
         </div>
-        <Icon className={`h-5 w-5 ${color}`} />
+        <div className="flex items-center gap-2">
+          {action}
+          <Icon className={`h-5 w-5 ${color}`} />
+        </div>
       </CardHeader>
       <CardContent className="pt-0">
         <p className="text-sm text-muted-foreground">{description}</p>
@@ -359,9 +446,15 @@ function PlatformHealthPanel({ analytics }: { analytics: AdminAnalyticsData }) {
     ...item,
     label: formatRoleLabel(item.role),
   }));
-
   const aiUsageActions = Array.from(new Set(aiUsageTrend.map((item) => item.action))).sort();
   const aiUsageChartData = buildAiUsageChartData(aiUsageTrend);
+  const activeUsersExportRows = activeUsers
+    ? [
+        { metric: "DAU", value: activeUsers.dau },
+        { metric: "WAU", value: activeUsers.wau },
+        { metric: "MAU", value: activeUsers.mau },
+      ]
+    : [];
 
   if (loading) {
     return <AnalyticsLoading statCards={3} charts={3} />;
@@ -386,46 +479,89 @@ function PlatformHealthPanel({ analytics }: { analytics: AdminAnalyticsData }) {
     <div className="space-y-6">
       {error && <AnalyticsErrorBanner error={error} />}
 
-      <div className="grid gap-4 md:grid-cols-3">
-        {[
-          {
-            title: "DAU",
-            value: (activeUsers?.dau ?? 0).toLocaleString(),
-            description: "Signed in within 1 day",
-            icon: BarChart3,
-            color: "text-blue-400",
-          },
-          {
-            title: "WAU",
-            value: (activeUsers?.wau ?? 0).toLocaleString(),
-            description: "Signed in within 7 days",
-            icon: Users,
-            color: "text-emerald-400",
-          },
-          {
-            title: "MAU",
-            value: (activeUsers?.mau ?? 0).toLocaleString(),
-            description: "Signed in within 30 days",
-            icon: UserX,
-            color: "text-amber-400",
-          },
-        ].map((item) => (
-          <MetricCard
-            key={item.title}
-            title={item.title}
-            value={item.value}
-            description={item.description}
-            icon={item.icon}
-            color={item.color}
-          />
-        ))}
+      <div className="space-y-4">
+        <AnalyticsSectionHeader
+          title="Active Users"
+          description="Grouped DAU, WAU, and MAU account activity metrics."
+          exportAction={
+            activeUsersExportRows.length > 0 ? (
+              <ExportButton
+                label="active users"
+                onClick={() =>
+                  exportToCsv(
+                    activeUsersExportRows,
+                    "active_users.csv",
+                    [
+                      { key: "metric", label: "Metric" },
+                      { key: "value", label: "Value" },
+                    ],
+                  )
+                }
+              />
+            ) : undefined
+          }
+        />
+        <div className="grid gap-4 md:grid-cols-3">
+          {[
+            {
+              title: "DAU",
+              value: (activeUsers?.dau ?? 0).toLocaleString(),
+              description: "Signed in within 1 day",
+              icon: BarChart3,
+              color: "text-blue-400",
+            },
+            {
+              title: "WAU",
+              value: (activeUsers?.wau ?? 0).toLocaleString(),
+              description: "Signed in within 7 days",
+              icon: Users,
+              color: "text-emerald-400",
+            },
+            {
+              title: "MAU",
+              value: (activeUsers?.mau ?? 0).toLocaleString(),
+              description: "Signed in within 30 days",
+              icon: UserX,
+              color: "text-amber-400",
+            },
+          ].map((item) => (
+            <MetricCard
+              key={item.title}
+              title={item.title}
+              value={item.value}
+              description={item.description}
+              icon={item.icon}
+              color={item.color}
+            />
+          ))}
+        </div>
       </div>
 
       <Card className="border-border/80 bg-card/80">
-        <CardHeader>
-          <CardTitle className="text-xl">Signup Curve</CardTitle>
-          <CardDescription>Weekly signup volume based on profile creation date.</CardDescription>
-        </CardHeader>
+        <AnalyticsCardHeader
+          title="Signup Curve"
+          description="Weekly signup volume based on profile creation date."
+          exportAction={
+            signupCurve.length > 0 ? (
+              <ExportButton
+                label="signup curve"
+                onClick={() =>
+                  exportToCsv(
+                    signupCurve.map((point) => ({
+                      period: formatExportDate(point.period),
+                      signup_count: point.signup_count,
+                    })),
+                    "signup_curve.csv",
+                    [
+                      { key: "period", label: "Period" },
+                      { key: "signup_count", label: "Signups" },
+                    ],
+                  )
+                }
+              />
+            ) : undefined
+          }
+        />
         <CardContent>
           {signupCurve.length > 0 ? (
             <div className="h-[300px] w-full">
@@ -460,10 +596,30 @@ function PlatformHealthPanel({ analytics }: { analytics: AdminAnalyticsData }) {
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
         <Card className="border-border/80 bg-card/80">
-          <CardHeader>
-            <CardTitle className="text-xl">Role Distribution</CardTitle>
-            <CardDescription>Current account mix across coach, student, and parent roles.</CardDescription>
-          </CardHeader>
+          <AnalyticsCardHeader
+            title="Role Distribution"
+            description="Current account mix across coach, student, and parent roles."
+            exportAction={
+              roleDistribution.length > 0 ? (
+                <ExportButton
+                  label="role distribution"
+                  onClick={() =>
+                    exportToCsv(
+                      roleDistribution.map((item) => ({
+                        role: formatRoleLabel(item.role),
+                        user_count: item.user_count,
+                      })),
+                      "role_distribution.csv",
+                      [
+                        { key: "role", label: "Role" },
+                        { key: "user_count", label: "Count" },
+                      ],
+                    )
+                  }
+                />
+              ) : undefined
+            }
+          />
           <CardContent>
             {roleChartData.length > 0 ? (
               <div className="h-[300px] w-full">
@@ -497,10 +653,40 @@ function PlatformHealthPanel({ analytics }: { analytics: AdminAnalyticsData }) {
         </Card>
 
         <Card className="border-border/80 bg-card/80">
-          <CardHeader>
-            <CardTitle className="text-xl">AI Usage Trend</CardTitle>
-            <CardDescription>Weekly AI feature usage grouped by action.</CardDescription>
-          </CardHeader>
+          <AnalyticsCardHeader
+            title="AI Usage Trend"
+            description="Weekly AI feature usage grouped by action."
+            exportAction={
+              aiUsageChartData.length > 0 ? (
+                <ExportButton
+                  label="AI usage trend"
+                  onClick={() =>
+                    exportToCsv(
+                      aiUsageChartData.map((row) => {
+                        const exportRow: Record<string, unknown> = {
+                          period: formatExportDate(String(row.period)),
+                        };
+
+                        aiUsageActions.forEach((action) => {
+                          exportRow[action] = row[action] ?? 0;
+                        });
+
+                        return exportRow;
+                      }),
+                      "ai_usage_trend.csv",
+                      [
+                        { key: "period", label: "Period" },
+                        ...aiUsageActions.map((action) => ({
+                          key: action,
+                          label: formatRoleLabel(action.replace(/_/g, " ")),
+                        })),
+                      ],
+                    )
+                  }
+                />
+              ) : undefined
+            }
+          />
           <CardContent>
             {aiUsageChartData.length > 0 ? (
               <div className="h-[300px] w-full">
@@ -531,10 +717,32 @@ function PlatformHealthPanel({ analytics }: { analytics: AdminAnalyticsData }) {
       </div>
 
       <Card className="border-border/80 bg-card/80">
-        <CardHeader>
-          <CardTitle className="text-xl">Churn Risk</CardTitle>
-          <CardDescription>Coaches flagged by the current inactivity window, including never-signed-in accounts.</CardDescription>
-        </CardHeader>
+        <AnalyticsCardHeader
+          title="Churn Risk"
+          description="Coaches flagged by the current inactivity window, including never-signed-in accounts."
+          exportAction={
+            churnCandidates.length > 0 ? (
+              <ExportButton
+                label="churn risk"
+                onClick={() =>
+                  exportToCsv(
+                    churnCandidates.map((candidate) => ({
+                      email: candidate.email,
+                      last_sign_in: formatTableDate(candidate.last_sign_in),
+                      days_inactive: candidate.days_inactive,
+                    })),
+                    "churn_candidates.csv",
+                    [
+                      { key: "email", label: "Email" },
+                      { key: "last_sign_in", label: "Last Active" },
+                      { key: "days_inactive", label: "Days Inactive" },
+                    ],
+                  )
+                }
+              />
+            ) : undefined
+          }
+        />
         <CardContent>
           {churnCandidates.length > 0 ? (
             <Table>
@@ -562,12 +770,36 @@ function PlatformHealthPanel({ analytics }: { analytics: AdminAnalyticsData }) {
       </Card>
 
       <Card className="border-border/80 bg-card/80">
-        <CardHeader>
-          <CardTitle className="text-xl">Retention Cohorts</CardTitle>
-          <CardDescription>
-            Weekly signup cohorts versus later weekly activity. Week 0 is the signup week; later weeks use sign-in and activity telemetry.
-          </CardDescription>
-        </CardHeader>
+        <AnalyticsCardHeader
+          title="Retention Cohorts"
+          description="Weekly signup cohorts versus later weekly activity. Week 0 is the signup week; later weeks use sign-in and activity telemetry."
+          exportAction={
+            retentionCohorts.length > 0 ? (
+              <ExportButton
+                label="retention cohorts"
+                onClick={() =>
+                  exportToCsv(
+                    retentionCohorts.map((point) => ({
+                      cohort_week: formatExportDate(point.cohort_week),
+                      cohort_size: point.cohort_size,
+                      week_offset: point.week_offset,
+                      active_users: point.active_users,
+                      retention_pct: point.retention_pct,
+                    })),
+                    "retention_cohorts.csv",
+                    [
+                      { key: "cohort_week", label: "Cohort Week" },
+                      { key: "cohort_size", label: "Cohort Size" },
+                      { key: "week_offset", label: "Week Offset" },
+                      { key: "active_users", label: "Active Users" },
+                      { key: "retention_pct", label: "Retention %" },
+                    ],
+                  )
+                }
+              />
+            ) : undefined
+          }
+        />
         <CardContent>
           <RetentionHeatmap points={retentionCohorts} />
         </CardContent>
@@ -592,6 +824,9 @@ function CoachBehaviorPanel({ analytics }: { analytics: AdminAnalyticsData }) {
     templateCreationTrend.length > 0 ||
     avgGroupsPerCoach !== null ||
     mostActiveCoaches.length > 0;
+  const avgGroupsExportRows = avgGroupsPerCoach
+    ? [{ metric: "Average Groups per Coach", value: avgGroupsPerCoach.avg_groups.toFixed(1) }]
+    : [];
 
   if (loading) {
     return <AnalyticsLoading statCards={1} charts={3} />;
@@ -617,10 +852,30 @@ function CoachBehaviorPanel({ analytics }: { analytics: AdminAnalyticsData }) {
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
         <Card className="border-border/80 bg-card/80">
-          <CardHeader>
-            <CardTitle className="text-xl">AI Usage by Action</CardTitle>
-            <CardDescription>Total AI usage volume split by coach action type.</CardDescription>
-          </CardHeader>
+          <AnalyticsCardHeader
+            title="AI Usage by Action"
+            description="Total AI usage volume split by coach action type."
+            exportAction={
+              aiUsageByAction.length > 0 ? (
+                <ExportButton
+                  label="AI usage by action"
+                  onClick={() =>
+                    exportToCsv(
+                      aiUsageByAction.map((item) => ({
+                        action: item.action,
+                        usage_count: item.usage_count,
+                      })),
+                      "ai_usage_by_action.csv",
+                      [
+                        { key: "action", label: "Action" },
+                        { key: "usage_count", label: "Count" },
+                      ],
+                    )
+                  }
+                />
+              ) : undefined
+            }
+          />
           <CardContent>
             {aiUsageByAction.length > 0 ? (
               <div className="h-[320px] w-full">
@@ -656,14 +911,51 @@ function CoachBehaviorPanel({ analytics }: { analytics: AdminAnalyticsData }) {
           description="Total groups divided by the number of coach accounts."
           icon={Users}
           color="text-indigo-400"
+          action={
+            avgGroupsExportRows.length > 0 ? (
+              <ExportButton
+                label="average groups per coach"
+                onClick={() =>
+                  exportToCsv(
+                    avgGroupsExportRows,
+                    "avg_groups_per_coach.csv",
+                    [
+                      { key: "metric", label: "Metric" },
+                      { key: "value", label: "Value" },
+                    ],
+                  )
+                }
+              />
+            ) : undefined
+          }
         />
       </div>
 
       <Card className="border-border/80 bg-card/80">
-        <CardHeader>
-          <CardTitle className="text-xl">Template Creation Trend</CardTitle>
-          <CardDescription>Weekly template creation volume across all coaches.</CardDescription>
-        </CardHeader>
+        <AnalyticsCardHeader
+          title="Template Creation Trend"
+          description="Weekly template creation volume across all coaches."
+          exportAction={
+            templateCreationTrendData.length > 0 ? (
+              <ExportButton
+                label="template creation trend"
+                onClick={() =>
+                  exportToCsv(
+                    templateCreationTrend.map((point) => ({
+                      period: formatExportDate(point.period),
+                      template_count: point.template_count,
+                    })),
+                    "template_creation_trend.csv",
+                    [
+                      { key: "period", label: "Period" },
+                      { key: "template_count", label: "Templates" },
+                    ],
+                  )
+                }
+              />
+            ) : undefined
+          }
+        />
         <CardContent>
           {templateCreationTrendData.length > 0 ? (
             <div className="h-[300px] w-full">
@@ -699,10 +991,36 @@ function CoachBehaviorPanel({ analytics }: { analytics: AdminAnalyticsData }) {
       </Card>
 
       <Card className="border-border/80 bg-card/80">
-        <CardHeader>
-          <CardTitle className="text-xl">Most Active Coaches</CardTitle>
-          <CardDescription>Top coaches ranked by templates, groups, and AI usage combined.</CardDescription>
-        </CardHeader>
+        <AnalyticsCardHeader
+          title="Most Active Coaches"
+          description="Top coaches ranked by templates, groups, and AI usage combined."
+          exportAction={
+            mostActiveCoaches.length > 0 ? (
+              <ExportButton
+                label="most active coaches"
+                onClick={() =>
+                  exportToCsv(
+                    mostActiveCoaches.map((coach) => ({
+                      email: coach.email,
+                      templates_created: coach.templates_created,
+                      groups_created: coach.groups_created,
+                      ai_calls: coach.ai_calls,
+                      total_activity: coach.total_activity,
+                    })),
+                    "most_active_coaches.csv",
+                    [
+                      { key: "email", label: "Email" },
+                      { key: "templates_created", label: "Templates" },
+                      { key: "groups_created", label: "Groups" },
+                      { key: "ai_calls", label: "AI Calls" },
+                      { key: "total_activity", label: "Total" },
+                    ],
+                  )
+                }
+              />
+            ) : undefined
+          }
+        />
         <CardContent>
           {mostActiveCoaches.length > 0 ? (
             <Table>
@@ -754,6 +1072,16 @@ function StudentOutcomesPanel({ analytics }: { analytics: AdminAnalyticsData }) 
     completionByGroup.length > 0 ||
     topGroups.length > 0 ||
     atRiskStudents.length > 0;
+  const platformCompletionExportRows = platformCompletionRate
+    ? [
+        { metric: "Total Tasks", value: platformCompletionRate.total_tasks },
+        { metric: "Completed Tasks", value: platformCompletionRate.completed_tasks },
+        {
+          metric: "Completion Rate",
+          value: platformCompletionRate.completion_rate.toFixed(1),
+        },
+      ]
+    : [];
 
   if (loading) {
     return <AnalyticsLoading statCards={3} charts={4} />;
@@ -777,35 +1105,82 @@ function StudentOutcomesPanel({ analytics }: { analytics: AdminAnalyticsData }) 
     <div className="space-y-6">
       {error && <AnalyticsErrorBanner error={error} />}
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <MetricCard
-          title="Total Tasks"
-          value={(platformCompletionRate?.total_tasks ?? 0).toLocaleString()}
-          description="All task instances on the platform."
-          icon={BarChart3}
-          color="text-slate-400"
+      <div className="space-y-4">
+        <AnalyticsSectionHeader
+          title="Platform Completion"
+          description="Grouped task volume and completion metrics for the reporting window."
+          exportAction={
+            platformCompletionExportRows.length > 0 ? (
+              <ExportButton
+                label="completion rate"
+                onClick={() =>
+                  exportToCsv(
+                    platformCompletionExportRows,
+                    "completion_rate.csv",
+                    [
+                      { key: "metric", label: "Metric" },
+                      { key: "value", label: "Value" },
+                    ],
+                  )
+                }
+              />
+            ) : undefined
+          }
         />
-        <MetricCard
-          title="Completed Tasks"
-          value={(platformCompletionRate?.completed_tasks ?? 0).toLocaleString()}
-          description="Task instances marked completed."
-          icon={Users}
-          color="text-emerald-400"
-        />
-        <MetricCard
-          title="Completion Rate"
-          value={formatPercent(platformCompletionRate?.completion_rate)}
-          description="Platform-wide completion percentage."
-          icon={UserX}
-          color="text-rose-400"
-        />
+        <div className="grid gap-4 md:grid-cols-3">
+          <MetricCard
+            title="Total Tasks"
+            value={(platformCompletionRate?.total_tasks ?? 0).toLocaleString()}
+            description="All task instances on the platform."
+            icon={BarChart3}
+            color="text-slate-400"
+          />
+          <MetricCard
+            title="Completed Tasks"
+            value={(platformCompletionRate?.completed_tasks ?? 0).toLocaleString()}
+            description="Task instances marked completed."
+            icon={Users}
+            color="text-emerald-400"
+          />
+          <MetricCard
+            title="Completion Rate"
+            value={formatPercent(platformCompletionRate?.completion_rate)}
+            description="Platform-wide completion percentage."
+            icon={UserX}
+            color="text-rose-400"
+          />
+        </div>
       </div>
 
       <Card className="border-border/80 bg-card/80">
-        <CardHeader>
-          <CardTitle className="text-xl">Completion Trend</CardTitle>
-          <CardDescription>Weekly completion rate across the platform.</CardDescription>
-        </CardHeader>
+        <AnalyticsCardHeader
+          title="Completion Trend"
+          description="Weekly completion rate across the platform."
+          exportAction={
+            completionTrendData.length > 0 ? (
+              <ExportButton
+                label="completion trend"
+                onClick={() =>
+                  exportToCsv(
+                    completionTrend.map((point) => ({
+                      period: formatExportDate(point.period),
+                      total_tasks: point.total_tasks,
+                      completed_tasks: point.completed_tasks,
+                      completion_rate: point.completion_rate.toFixed(1),
+                    })),
+                    "completion_trend.csv",
+                    [
+                      { key: "period", label: "Period" },
+                      { key: "total_tasks", label: "Total" },
+                      { key: "completed_tasks", label: "Completed" },
+                      { key: "completion_rate", label: "Rate" },
+                    ],
+                  )
+                }
+              />
+            ) : undefined
+          }
+        />
         <CardContent>
           {completionTrendData.length > 0 ? (
             <div className="h-[300px] w-full">
@@ -845,10 +1220,34 @@ function StudentOutcomesPanel({ analytics }: { analytics: AdminAnalyticsData }) 
       </Card>
 
       <Card className="border-border/80 bg-card/80">
-        <CardHeader>
-          <CardTitle className="text-xl">Completion by Group</CardTitle>
-          <CardDescription>Completion rate for each group with assigned tasks.</CardDescription>
-        </CardHeader>
+        <AnalyticsCardHeader
+          title="Completion by Group"
+          description="Completion rate for each group with assigned tasks."
+          exportAction={
+            completionByGroup.length > 0 ? (
+              <ExportButton
+                label="completion by group"
+                onClick={() =>
+                  exportToCsv(
+                    completionByGroup.map((group) => ({
+                      group_name: group.group_name,
+                      total_tasks: group.total_tasks,
+                      completed_tasks: group.completed_tasks,
+                      completion_rate: group.completion_rate.toFixed(1),
+                    })),
+                    "completion_by_group.csv",
+                    [
+                      { key: "group_name", label: "Group" },
+                      { key: "total_tasks", label: "Total" },
+                      { key: "completed_tasks", label: "Completed" },
+                      { key: "completion_rate", label: "Rate" },
+                    ],
+                  )
+                }
+              />
+            ) : undefined
+          }
+        />
         <CardContent>
           {completionByGroup.length > 0 ? (
             <div className="h-[320px] w-full">
@@ -882,10 +1281,32 @@ function StudentOutcomesPanel({ analytics }: { analytics: AdminAnalyticsData }) 
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
         <Card className="border-border/80 bg-card/80">
-          <CardHeader>
-            <CardTitle className="text-xl">Top Groups</CardTitle>
-            <CardDescription>Best completion rates among groups with at least 5 tasks.</CardDescription>
-          </CardHeader>
+          <AnalyticsCardHeader
+            title="Top Groups"
+            description="Best completion rates among groups with at least 5 tasks."
+            exportAction={
+              topGroups.length > 0 ? (
+                <ExportButton
+                  label="top groups"
+                  onClick={() =>
+                    exportToCsv(
+                      topGroups.map((group) => ({
+                        group_name: group.group_name,
+                        completion_rate: group.completion_rate.toFixed(1),
+                        total_tasks: group.total_tasks,
+                      })),
+                      "top_groups.csv",
+                      [
+                        { key: "group_name", label: "Group" },
+                        { key: "completion_rate", label: "Rate" },
+                        { key: "total_tasks", label: "Total Tasks" },
+                      ],
+                    )
+                  }
+                />
+              ) : undefined
+            }
+          />
           <CardContent>
             {topGroups.length > 0 ? (
               <Table>
@@ -913,10 +1334,34 @@ function StudentOutcomesPanel({ analytics }: { analytics: AdminAnalyticsData }) 
         </Card>
 
         <Card className="border-border/80 bg-card/80">
-          <CardHeader>
-            <CardTitle className="text-xl">At-Risk Students</CardTitle>
-            <CardDescription>Students below 50% completion in the current reporting window.</CardDescription>
-          </CardHeader>
+          <AnalyticsCardHeader
+            title="At-Risk Students"
+            description="Students below 50% completion in the current reporting window."
+            exportAction={
+              atRiskStudents.length > 0 ? (
+                <ExportButton
+                  label="at-risk students"
+                  onClick={() =>
+                    exportToCsv(
+                      atRiskStudents.map((student) => ({
+                        email: student.email,
+                        total_tasks: student.total_tasks,
+                        completed_tasks: student.completed_tasks,
+                        completion_rate: student.completion_rate.toFixed(1),
+                      })),
+                      "at_risk_students.csv",
+                      [
+                        { key: "email", label: "Email" },
+                        { key: "total_tasks", label: "Total" },
+                        { key: "completed_tasks", label: "Completed" },
+                        { key: "completion_rate", label: "Rate" },
+                      ],
+                    )
+                  }
+                />
+              ) : undefined
+            }
+          />
           <CardContent>
             {atRiskStudents.length > 0 ? (
               <Table>
