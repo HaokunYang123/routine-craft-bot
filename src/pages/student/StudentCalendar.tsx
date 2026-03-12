@@ -109,7 +109,7 @@ export default function StudentCalendar() {
     try {
       const { data, error } = await supabase
         .from("task_instances")
-        .select("*")
+        .select("id, name, description, duration_minutes, scheduled_date, scheduled_time, status")
         .eq("assignee_id", user.id)
         .gte("scheduled_date", monthStart)
         .lte("scheduled_date", monthEnd)

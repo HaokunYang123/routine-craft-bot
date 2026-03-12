@@ -274,7 +274,7 @@ export default function GroupDetail() {
             // 3. Fetch notes for this group
             const { data: notesData } = await supabase
                 .from("notes")
-                .select("*")
+                .select("id, from_user_id, to_user_id, content, created_at, title")
                 .eq("group_id", groupId)
                 .order("created_at", { ascending: false });
 
