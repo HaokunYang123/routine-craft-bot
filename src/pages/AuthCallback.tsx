@@ -89,6 +89,7 @@ export default function AuthCallback() {
   const exchangeAttemptedRef = useRef<string | null>(null);
   const pkceRetryAttemptRef = useRef<string | null>(null);
   const fragmentSessionHandledRef = useRef(false);
+  const recoveryVerifyAttemptedRef = useRef<string | null>(null);
 
   const log = (message: string, uid?: string | null) => {
     void message;
@@ -111,6 +112,12 @@ export default function AuthCallback() {
     clearPendingAuth();
     localStorage.removeItem(CODE_STORAGE_KEY);
     navigate("/login?confirmed=true", { replace: true });
+  };
+
+  const replaceBrowserUrl = (nextUrl: URL) => {
+    const search = nextUrl.searchParams.toString();
+    const nextPath = `${nextUrl.pathname}${search ? `?${search}` : ""}${nextUrl.hash}`;
+    window.history.replaceState({}, "", nextPath);
   };
 
   const fetchProfileWithRetries = async (uid: string) => {
@@ -272,14 +279,21 @@ export default function AuthCallback() {
 
   useEffect(() => {
     const runCallback = async () => {
+      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+      const callbackType = searchParams.get("type") ?? hashParams.get("type");
+      const recoveryTokenHash =
+        callbackType === "recovery"
+          ? searchParams.get("token_hash") ?? hashParams.get("token_hash")
+          : null;
+
       setError(null);
       setErrorDetail(null);
       setSelectedRole(null);
       setState("processing");
       setStatusMessage(
-        urlType === "signup"
+        callbackType === "signup"
           ? "Confirming your email..."
-          : urlType === "recovery"
+          : callbackType === "recovery"
             ? "Verifying your reset link..."
             : "Verifying your sign-in..."
       );
@@ -300,7 +314,6 @@ export default function AuthCallback() {
       }
 
       if (!fragmentSessionHandledRef.current) {
-        const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
         const fragmentAccessToken = hashParams.get("access_token");
         const fragmentRefreshToken = hashParams.get("refresh_token");
 
@@ -308,7 +321,7 @@ export default function AuthCallback() {
           fragmentSessionHandledRef.current = true;
           const cleanedUrl = new URL(window.location.href);
           cleanedUrl.hash = "";
-          window.history.replaceState({}, "", `${cleanedUrl.pathname}${cleanedUrl.search}`);
+          replaceBrowserUrl(cleanedUrl);
           if (!fragmentRefreshToken) {
             logError("fragment token missing refresh");
             setError("Setup failed: no session");
@@ -353,6 +366,57 @@ export default function AuthCallback() {
 
       if (session) {
         log("session already present, skipping exchange", session.user.id);
+      } else if (
+        callbackType === "recovery" &&
+        recoveryTokenHash &&
+        recoveryVerifyAttemptedRef.current !== recoveryTokenHash
+      ) {
+        recoveryVerifyAttemptedRef.current = recoveryTokenHash;
+        log("recovery token hash detected, verifying otp");
+
+        const { error: verifyError } = await supabase.auth.verifyOtp({
+          token_hash: recoveryTokenHash,
+          type: "recovery",
+        });
+
+        if (verifyError) {
+          logError("recovery token verification failed");
+
+          const { data: { session: fallbackSession }, error: fallbackError } =
+            await supabase.auth.getSession();
+
+          if (fallbackError) {
+            logError("getSession fallback error");
+          }
+
+          if (fallbackSession) {
+            session = fallbackSession;
+            log("session recovered after recovery verification error", fallbackSession.user.id);
+          } else {
+            recoveryVerifyAttemptedRef.current = null;
+            setError("Your reset link is invalid or expired. Please request a new one.");
+            setErrorDetail(verifyError.message ?? "Could not verify recovery token.");
+            setState("session_error");
+            return;
+          }
+        } else {
+          const cleanedUrl = new URL(window.location.href);
+          cleanedUrl.searchParams.delete("token_hash");
+          replaceBrowserUrl(cleanedUrl);
+
+          const { data: { session: verifiedSession }, error: sessionError } =
+            await supabase.auth.getSession();
+
+          if (sessionError) {
+            logError("getSession after recovery verification error");
+            setError("Setup failed: no session");
+            setErrorDetail(sessionError.message ?? "Could not load recovery session");
+            setState("session_error");
+            return;
+          }
+
+          session = verifiedSession ?? null;
+        }
       } else if (codeForExchange && exchangeAttemptedRef.current !== codeForExchange) {
         exchangeAttemptedRef.current = codeForExchange;
         log("exchange attempt");
@@ -394,7 +458,7 @@ export default function AuthCallback() {
               session = fallbackSession;
               log("session recovered after exchange error", fallbackSession.user.id);
             } else {
-              if (retryPkceVerifierMissing && urlType !== "recovery") {
+              if (retryPkceVerifierMissing && callbackType !== "recovery") {
                 log("email confirmation pkce verifier missing, redirecting to login with confirmed flag");
                 redirectToConfirmedLogin();
                 return;
@@ -422,7 +486,7 @@ export default function AuthCallback() {
           if (urlCode) {
             const cleanedUrl = new URL(window.location.href);
             cleanedUrl.searchParams.delete("code");
-            window.history.replaceState({}, "", `${cleanedUrl.pathname}${cleanedUrl.search}${cleanedUrl.hash}`);
+            replaceBrowserUrl(cleanedUrl);
           }
 
           const { data: { session: exchangedSession }, error: sessionError } =
@@ -442,7 +506,7 @@ export default function AuthCallback() {
           if (urlCode) {
             const cleanedUrl = new URL(window.location.href);
             cleanedUrl.searchParams.delete("code");
-            window.history.replaceState({}, "", `${cleanedUrl.pathname}${cleanedUrl.search}${cleanedUrl.hash}`);
+            replaceBrowserUrl(cleanedUrl);
           }
         }
       } else {
@@ -462,7 +526,7 @@ export default function AuthCallback() {
         return;
       }
 
-      if (urlType === "recovery") {
+      if (callbackType === "recovery") {
         log("password recovery callback detected", session.user.id);
         clearPendingAuth();
         localStorage.removeItem(CODE_STORAGE_KEY);
@@ -481,7 +545,7 @@ export default function AuthCallback() {
         (session.user.user_metadata as { role?: string | null } | undefined)?.role ?? null
       );
       const metadataRole = rawMetadataRole ?? userMetadataRole;
-      const signupMetadataRole = urlType === "signup" ? rawMetadataRole ?? userMetadataRole : null;
+      const signupMetadataRole = callbackType === "signup" ? rawMetadataRole ?? userMetadataRole : null;
 
       setUserId(session.user.id);
 
@@ -569,7 +633,7 @@ export default function AuthCallback() {
         return;
       }
 
-      if (urlType === "signup" && signupMetadataRole && currentRole !== signupMetadataRole) {
+      if (callbackType === "signup" && signupMetadataRole && currentRole !== signupMetadataRole) {
         log("signup metadata role differs from profile role, applying metadata role", session.user.id);
         await attemptRoleUpdate(signupMetadataRole, session.user.id);
         return;

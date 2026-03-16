@@ -44,6 +44,7 @@ describe('AuthCallback', () => {
     mockNavigate.mockClear();
     mockToast.mockClear();
     localStorage.clear();
+    window.history.replaceState({}, '', '/');
 
     const mock = getMockSupabase();
     mock.auth.exchangeCodeForSession = vi.fn().mockResolvedValue({
@@ -89,5 +90,65 @@ describe('AuthCallback', () => {
     });
 
     expect(mock.auth.exchangeCodeForSession).not.toHaveBeenCalled();
+  });
+
+  it('verifies recovery token hashes and redirects to reset mode', async () => {
+    const mockSession = createMockSession({ userId: 'user-3' });
+    const mock = getMockSupabase();
+
+    mock.auth.getSession
+      .mockResolvedValueOnce({ data: { session: null }, error: null })
+      .mockResolvedValueOnce({ data: { session: mockSession }, error: null });
+
+    mock.auth.verifyOtp.mockResolvedValueOnce({
+      data: { session: mockSession, user: mockSession.user },
+      error: null,
+    });
+
+    render(<AuthCallback />, { initialRoute: '/auth/callback?token_hash=recovery-hash&type=recovery' });
+
+    await waitFor(() => {
+      expect(mock.auth.verifyOtp).toHaveBeenCalledWith({
+        token_hash: 'recovery-hash',
+        type: 'recovery',
+      });
+    });
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/login?mode=reset', { replace: true });
+    });
+  });
+
+  it('treats fragment recovery sessions as password reset callbacks', async () => {
+    const mockSession = createMockSession({ userId: 'user-4' });
+    const mock = getMockSupabase();
+
+    mock.auth.setSession.mockResolvedValueOnce({
+      data: { session: mockSession, user: mockSession.user },
+      error: null,
+    });
+    mock.auth.getSession.mockResolvedValueOnce({
+      data: { session: mockSession },
+      error: null,
+    });
+
+    window.history.replaceState(
+      {},
+      '',
+      '/auth/callback#access_token=access-token&refresh_token=refresh-token&type=recovery'
+    );
+
+    render(<AuthCallback />, { initialRoute: '/auth/callback' });
+
+    await waitFor(() => {
+      expect(mock.auth.setSession).toHaveBeenCalledWith({
+        access_token: 'access-token',
+        refresh_token: 'refresh-token',
+      });
+    });
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/login?mode=reset', { replace: true });
+    });
   });
 });

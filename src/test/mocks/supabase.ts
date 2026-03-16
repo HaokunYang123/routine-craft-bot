@@ -40,6 +40,9 @@ export interface MockQueryBuilder {
 export interface MockAuth {
   getSession: ReturnType<typeof vi.fn>;
   getUser: ReturnType<typeof vi.fn>;
+  setSession: ReturnType<typeof vi.fn>;
+  exchangeCodeForSession: ReturnType<typeof vi.fn>;
+  verifyOtp: ReturnType<typeof vi.fn>;
   updateUser: ReturnType<typeof vi.fn>;
   signInWithOAuth: ReturnType<typeof vi.fn>;
   signUp: ReturnType<typeof vi.fn>;
@@ -127,6 +130,18 @@ export function createMockSupabaseClient<T = unknown>(
     }),
     getUser: vi.fn().mockResolvedValue({
       data: { user: null },
+      error: null,
+    }),
+    setSession: vi.fn().mockResolvedValue({
+      data: { session: null, user: null },
+      error: null,
+    }),
+    exchangeCodeForSession: vi.fn().mockResolvedValue({
+      data: { session: null, user: null },
+      error: null,
+    }),
+    verifyOtp: vi.fn().mockResolvedValue({
+      data: { session: null, user: null },
       error: null,
     }),
     updateUser: vi.fn().mockResolvedValue({
