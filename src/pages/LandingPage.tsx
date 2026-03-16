@@ -1062,7 +1062,7 @@ export default function LandingPage() {
           fontSize: 15,
         }}
       >
-        <span style={{ color: COLORS.heading }}>TehCoachConnect</span>
+        <span style={{ color: COLORS.heading }}>TeachCoachConnect</span>
         <span>Built by Noctworks</span>
       </footer>
     </div>
