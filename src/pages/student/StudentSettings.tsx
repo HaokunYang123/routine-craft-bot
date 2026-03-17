@@ -192,7 +192,7 @@ export default function StudentSettings() {
                                             size="icon"
                                             onClick={handleSaveName}
                                             disabled={saving || !newDisplayName.trim()}
-                                            className="bg-cta-primary hover:bg-cta-hover text-white"
+                                            className="min-h-[44px] min-w-[44px] bg-cta-primary hover:bg-cta-hover text-white"
                                         >
                                             {saving ? (
                                                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -204,6 +204,7 @@ export default function StudentSettings() {
                                             size="icon"
                                             variant="outline"
                                             onClick={handleCancelEdit}
+                                            className="min-h-[44px] min-w-[44px]"
                                         >
                                             <X className="w-4 h-4" />
                                         </Button>
@@ -219,7 +220,7 @@ export default function StudentSettings() {
                                             variant="ghost"
                                             size="icon"
                                             onClick={() => setEditingName(true)}
-                                            className="h-8 w-8"
+                                            className="h-8 w-8 min-h-[44px] min-w-[44px]"
                                         >
                                             <Edit2 className="w-4 h-4" />
                                         </Button>

@@ -378,7 +378,12 @@ export default function People() {
                             {(studentsMap[group.id] || []).length} student{(studentsMap[group.id] || []).length !== 1 && "s"}
                             <span className="mx-1">•</span>
                             <span className="font-mono text-xs bg-secondary px-2 py-0.5 rounded">{group.join_code}</span>
-                            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={(e) => { e.stopPropagation(); copyCode(group.join_code); }}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-5 w-5 min-h-[44px] min-w-[44px]"
+                              onClick={(e) => { e.stopPropagation(); copyCode(group.join_code); }}
+                            >
                               <Copy className="w-3 h-3" />
                             </Button>
                             {group.default_template_id && (
@@ -393,12 +398,17 @@ export default function People() {
                           </CardDescription>
                         </div>
                       </div>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive" onClick={(e) => e.stopPropagation()}>
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </AlertDialogTrigger>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="min-h-[44px] min-w-[44px] text-muted-foreground hover:text-destructive"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
                             <AlertDialogTitle>Delete "{group.name}"?</AlertDialogTitle>
@@ -453,7 +463,7 @@ export default function People() {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-8 w-8 opacity-0 group-hover/student:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
+                                  className="h-8 w-8 min-h-[44px] min-w-[44px] opacity-0 group-hover/student:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
                                   onClick={(e) => e.stopPropagation()}
                                 >
                                   <UserMinus className="w-4 h-4" />

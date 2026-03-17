@@ -74,7 +74,7 @@ export function CoachSidebar() {
             variant="ghost"
             size="icon"
             onClick={toggleSidebar}
-            className="md:hidden h-8 w-8 text-sidebar-foreground hover:bg-sidebar-accent"
+            className="md:hidden h-8 w-8 min-h-[44px] min-w-[44px] text-sidebar-foreground hover:bg-sidebar-accent"
           >
             {collapsed ? <Menu className="h-4 w-4" /> : <X className="h-4 w-4" />}
           </Button>

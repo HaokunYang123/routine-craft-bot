@@ -254,7 +254,7 @@ export default function StudentCalendar() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8"
+                  className="h-8 w-8 min-h-[44px] min-w-[44px]"
                   onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
                 >
                   <ChevronLeft className="h-4 w-4" />
@@ -262,7 +262,7 @@ export default function StudentCalendar() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-8 px-3 text-xs"
+                  className="h-8 min-h-[44px] px-3 text-xs"
                   onClick={() => {
                     setCurrentMonth(new Date());
                     setSelectedDate(new Date());
@@ -273,7 +273,7 @@ export default function StudentCalendar() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8"
+                  className="h-8 w-8 min-h-[44px] min-w-[44px]"
                   onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
                 >
                   <ChevronRight className="h-4 w-4" />
@@ -437,13 +437,15 @@ export default function StudentCalendar() {
                           >
                             {task.name}
                           </p>
-                          <Checkbox
-                            checked={task.status === "completed"}
-                            onCheckedChange={(checked) =>
-                              toggleTaskStatus(task.id, checked as boolean)
-                            }
-                            className="mt-0.5 flex-shrink-0"
-                          />
+                          <div className="flex min-h-[44px] min-w-[44px] items-center justify-center self-start">
+                            <Checkbox
+                              checked={task.status === "completed"}
+                              onCheckedChange={(checked) =>
+                                toggleTaskStatus(task.id, checked as boolean)
+                              }
+                              className="flex-shrink-0"
+                            />
+                          </div>
                         </div>
                         {task.description && (
                           <p className="text-sm text-muted-foreground mt-1 line-clamp-2">

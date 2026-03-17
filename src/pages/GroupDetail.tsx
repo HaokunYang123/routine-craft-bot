@@ -700,7 +700,12 @@ export default function GroupDetail() {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => navigate("/dashboard")}
+                        className="min-h-[44px] min-w-[44px]"
+                    >
                         <ArrowLeft className="w-5 h-5 text-white" />
                     </Button>
                     <div>
@@ -725,7 +730,7 @@ export default function GroupDetail() {
                     <AlertDialog>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="outline" size="icon">
+                                <Button variant="outline" size="icon" className="min-h-[44px] min-w-[44px]">
                                     <Settings className="w-4 h-4" />
                                 </Button>
                             </DropdownMenuTrigger>
@@ -909,7 +914,11 @@ export default function GroupDetail() {
                                                     <TableCell className="text-right">
                                                         <DropdownMenu>
                                                             <DropdownMenuTrigger asChild>
-                                                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="h-8 w-8 min-h-[44px] min-w-[44px]"
+                                                                >
                                                                     <MoreVertical className="h-4 w-4" />
                                                                 </Button>
                                                             </DropdownMenuTrigger>
@@ -1093,7 +1102,7 @@ export default function GroupDetail() {
                                                                         <Button
                                                                             variant="ghost"
                                                                             size="icon"
-                                                                            className="h-8 w-8"
+                                                                            className="h-8 w-8 min-h-[44px] min-w-[44px]"
                                                                             onClick={(event) => {
                                                                                 event.stopPropagation();
                                                                                 toggleTaskGroup(group.name);

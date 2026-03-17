@@ -970,13 +970,14 @@ export default function StudentHome() {
                         }}
                       >
                         <div className="flex items-start gap-3">
-                          <Checkbox
-                            checked={task.status === "completed"}
-                            onCheckedChange={(checked) =>
-                              toggleTaskStatus(task.id, checked as boolean)
-                            }
-                            className="mt-0.5"
-                          />
+                          <div className="flex min-h-[44px] min-w-[44px] items-center justify-center self-start">
+                            <Checkbox
+                              checked={task.status === "completed"}
+                              onCheckedChange={(checked) =>
+                                toggleTaskStatus(task.id, checked as boolean)
+                              }
+                            />
+                          </div>
                           <div className="flex-1 min-w-0">
                             <p
                               className={cn(
@@ -1015,7 +1016,7 @@ export default function StudentHome() {
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="mt-2 h-7 px-2 text-xs text-primary hover:text-primary"
+                                    className="mt-2 h-7 min-h-[44px] px-2 text-xs text-primary hover:text-primary"
                                   >
                                     {isExpanded ? (
                                       <>
@@ -1072,13 +1073,14 @@ export default function StudentHome() {
                           }}
                         >
                           <div className="flex items-start gap-3">
-                            <Checkbox
-                              checked={task.status === "completed"}
-                              onCheckedChange={(checked) =>
-                                toggleTaskStatus(task.id, checked as boolean)
-                              }
-                              className="mt-0.5"
-                            />
+                            <div className="flex min-h-[44px] min-w-[44px] items-center justify-center self-start">
+                              <Checkbox
+                                checked={task.status === "completed"}
+                                onCheckedChange={(checked) =>
+                                  toggleTaskStatus(task.id, checked as boolean)
+                                }
+                              />
+                            </div>
                             <div className="flex-1 min-w-0">
                               <p className="font-medium text-red-900 dark:text-red-100">{task.name}</p>
                               <p className="text-xs text-red-800/70 dark:text-red-200/80 mt-1">
@@ -1106,7 +1108,7 @@ export default function StudentHome() {
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      className="mt-2 h-7 px-2 text-xs text-red-700 dark:text-red-200 hover:text-red-800 dark:hover:text-red-100"
+                                      className="mt-2 h-7 min-h-[44px] px-2 text-xs text-red-700 dark:text-red-200 hover:text-red-800 dark:hover:text-red-100"
                                     >
                                       {isExpanded ? (
                                         <>
@@ -1161,13 +1163,14 @@ export default function StudentHome() {
                                 }}
                               >
                                 <div className="flex items-start gap-3">
-                                  <Checkbox
-                                    checked={task.status === "completed"}
-                                    onCheckedChange={(checked) =>
-                                      toggleTaskStatus(task.id, checked as boolean)
-                                    }
-                                    className="mt-0.5"
-                                  />
+                                  <div className="flex min-h-[44px] min-w-[44px] items-center justify-center self-start">
+                                    <Checkbox
+                                      checked={task.status === "completed"}
+                                      onCheckedChange={(checked) =>
+                                        toggleTaskStatus(task.id, checked as boolean)
+                                      }
+                                    />
+                                  </div>
                                   <div className="flex-1 min-w-0">
                                     <p className="font-medium text-red-900 dark:text-red-100">{task.name}</p>
                                     <p className="text-xs text-red-800/70 dark:text-red-200/80 mt-1">
@@ -1194,7 +1197,7 @@ export default function StudentHome() {
                                         <Button
                                           variant="ghost"
                                           size="sm"
-                                          className="mt-2 h-7 px-2 text-xs text-red-700 dark:text-red-200 hover:text-red-800 dark:hover:text-red-100"
+                                          className="mt-2 h-7 min-h-[44px] px-2 text-xs text-red-700 dark:text-red-200 hover:text-red-800 dark:hover:text-red-100"
                                         >
                                           {isExpanded ? (
                                             <>
@@ -1249,7 +1252,7 @@ export default function StudentHome() {
                           e.stopPropagation();
                           dismissYesterday();
                         }}
-                        className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                        className="h-6 w-6 min-h-[44px] min-w-[44px] p-0 text-muted-foreground hover:text-foreground"
                         aria-label="Dismiss yesterday's completed tasks"
                       >
                         <X className="w-4 h-4" />

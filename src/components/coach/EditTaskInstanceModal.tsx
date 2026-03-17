@@ -241,12 +241,14 @@ export function EditTaskInstanceModal({
           {!loadingRecurringState && recurringAssignment.isRecurring && (
             <div className="space-y-2 rounded-md border border-border bg-card/60 p-3">
               <div className="flex items-start gap-3">
-                <Checkbox
-                  id="apply-to-future"
-                  checked={applyToFuture}
-                  onCheckedChange={(checked) => setApplyToFuture(checked === true)}
-                  disabled={isEditing}
-                />
+                <div className="flex min-h-[44px] min-w-[44px] items-center justify-center">
+                  <Checkbox
+                    id="apply-to-future"
+                    checked={applyToFuture}
+                    onCheckedChange={(checked) => setApplyToFuture(checked === true)}
+                    disabled={isEditing}
+                  />
+                </div>
                 <div className="space-y-1">
                   <Label htmlFor="apply-to-future" className="cursor-pointer">
                     Apply changes to all future occurrences
