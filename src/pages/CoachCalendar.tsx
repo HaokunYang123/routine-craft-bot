@@ -2,7 +2,7 @@
  * CoachCalendar - Coach's calendar view for scheduled tasks.
  *
  * Performance optimizations (Phase 14-03):
- * - Sub-components (DayCell, WeekView, DayView, TaskList, DaySheetContent) wrapped in React.memo
+ * - Sub-components (DayCell, WeekView, DayView, TaskList) wrapped in React.memo
  * - Event handlers (handleDateClick, navigatePeriod, goToToday) use useCallback
  * - Derived data (tasksByDateMap) uses useMemo for O(1) date lookups
  * - getTasksForDate, getCompletionStats, getGroupColorsForDate, hasEvents use useCallback
@@ -33,8 +33,6 @@ import {
   Circle,
   Users,
   Pencil,
-  AlertTriangle,
-  Wand2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -46,29 +44,13 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { useToast } from "@/hooks/use-toast";
-import { useAIAssistant } from "@/hooks/useAIAssistant";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { Progress } from "@/components/ui/progress";
-import { cn, safeParseISO } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { CalendarSkeleton } from "@/components/skeletons/CalendarSkeleton";
 import { handleError } from "@/lib/error";
 import { PullToRefresh } from "@/components/ui/PullToRefresh";
+import {
+  EditTaskInstanceModal,
+} from "@/components/coach/EditTaskInstanceModal";
 import {
   format,
   startOfWeek,
@@ -76,7 +58,6 @@ import {
   eachDayOfInterval,
   isToday,
   isSameDay,
-  parseISO,
   addDays,
   addWeeks,
   subWeeks,
@@ -92,6 +73,7 @@ const MONTHS = [
 
 interface ScheduledTask {
   id: string;
+  assignmentId: string | null;
   name: string;
   description: string | null;
   assigneeName: string;
@@ -253,8 +235,6 @@ export default function CoachCalendar() {
   const [tasks, setTasks] = useState<ScheduledTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [sheetOpen, setSheetOpen] = useState(false);
-  const { refineTask, loading: aiLoading } = useAIAssistant();
-  const [polishingDescription, setPolishingDescription] = useState(false);
   const [isMobile, setIsMobile] = useState(() => {
     if (typeof window === "undefined") return false;
     return window.innerWidth < 768;
@@ -358,7 +338,7 @@ export default function CoachCalendar() {
       // Fetch task instances for coach + selected group's students in month range.
       const { data: taskInstances, error } = await supabase
         .from("task_instances")
-        .select("id, name, scheduled_date, start_time, end_time, status, assignee_id")
+        .select("id, assignment_id, name, scheduled_date, start_time, end_time, status, assignee_id")
         .eq("coach_id", user.id)
         .in("assignee_id", memberUserIds)
         .gte("scheduled_date", monthStart)
@@ -388,6 +368,7 @@ export default function CoachCalendar() {
 
           return {
             id: task.id,
+            assignmentId: task.assignment_id,
             name: task.name,
             description: null,
             assigneeName: profileMap[task.assignee_id] || "Student",
@@ -613,10 +594,6 @@ export default function CoachCalendar() {
                 date={currentDate}
                 tasks={getTasksForDate(currentDate)}
                 onRefresh={fetchTasks}
-                userId={user?.id || ""}
-                polishingDescription={polishingDescription}
-                setPolishingDescription={setPolishingDescription}
-                refineTask={refineTask}
               />
             ) : viewMode === "week" ? (
               <WeekView
@@ -698,530 +675,6 @@ export default function CoachCalendar() {
     </Profiler>
   );
 }
-
-// Maximum tasks to show before collapse
-const MAX_VISIBLE_TASKS = 3;
-
-// Day Sheet Content Component - Memoized to prevent re-renders when other state changes
-const DaySheetContent = React.memo(function DaySheetContent({
-  tasks,
-  groups,
-  groupMap,
-  userId,
-  onRefresh,
-  polishingDescription,
-  setPolishingDescription,
-  refineTask,
-}: {
-  tasks: ScheduledTask[];
-  groups: { id: string; name: string; color: string }[];
-  groupMap: Record<string, GroupInfo>;
-  userId: string;
-  onRefresh: () => void;
-  polishingDescription: boolean;
-  setPolishingDescription: (v: boolean) => void;
-  refineTask: (text: string) => Promise<{ success: boolean; data?: string }>;
-}) {
-  const { toast } = useToast();
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(groups.map(g => g.id)));
-  // Track which members have expanded task lists (key: memberId)
-  const [expandedMembers, setExpandedMembers] = useState<Set<string>>(new Set());
-  // Track which individual tasks are expanded (for descriptions)
-  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
-  // Edit dialog state
-  const [editingTask, setEditingTask] = useState<ScheduledTask | null>(null);
-  const [editForm, setEditForm] = useState({ name: "", description: "", durationMinutes: "", coachNote: "" });
-  const [saving, setSaving] = useState(false);
-  const [resetCompleted, setResetCompleted] = useState(false);
-
-  const toggleGroup = (groupId: string) => {
-    setExpandedGroups((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(groupId)) {
-        newSet.delete(groupId);
-      } else {
-        newSet.add(groupId);
-      }
-      return newSet;
-    });
-  };
-
-  const toggleMemberTasks = (memberId: string) => {
-    setExpandedMembers((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(memberId)) {
-        newSet.delete(memberId);
-      } else {
-        newSet.add(memberId);
-      }
-      return newSet;
-    });
-  };
-
-  const toggleTaskExpanded = (taskId: string) => {
-    setExpandedTasks((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(taskId)) {
-        newSet.delete(taskId);
-      } else {
-        newSet.add(taskId);
-      }
-      return newSet;
-    });
-  };
-
-  const openEditDialog = (task: ScheduledTask, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setEditingTask(task);
-    setEditForm({
-      name: task.name,
-      description: task.description || "",
-      durationMinutes: task.durationMinutes?.toString() || "",
-      coachNote: "", // Always start with empty note for new edits
-    });
-    setResetCompleted(false);
-  };
-
-  const handleSaveEdit = async () => {
-    if (!editingTask || !editForm.name.trim()) return;
-
-    // If task is completed and user hasn't acknowledged the warning, don't save
-    const isCompleted = editingTask.status === "completed";
-    if (isCompleted && !resetCompleted) {
-      toast({
-        title: "Confirmation Required",
-        description: "Please confirm you want to reset this completed task.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setSaving(true);
-
-    try {
-      const updates: {
-        name: string;
-        description: string | null;
-        duration_minutes: number | null;
-        is_customized: boolean;
-        coach_note: string | null;
-        updated_at: string;
-        updated_by: string;
-        status?: string;
-        completed_at?: string | null;
-      } = {
-        name: editForm.name.trim(),
-        description: editForm.description.trim() || null,
-        duration_minutes: editForm.durationMinutes ? parseInt(editForm.durationMinutes) : null,
-        is_customized: true, // Mark as customized to prevent template overwrites
-        coach_note: editForm.coachNote.trim() || null,
-        updated_at: new Date().toISOString(),
-        updated_by: userId,
-      };
-
-      // If task was completed and user confirmed reset, change status back to pending
-      if (isCompleted && resetCompleted) {
-        updates.status = "pending";
-        updates.completed_at = null;
-      }
-
-      const { error } = await supabase
-        .from("task_instances")
-        .update(updates)
-        .eq("id", editingTask.id);
-
-      if (error) throw error;
-
-      toast({
-        title: "Task Updated",
-        description: isCompleted && resetCompleted
-          ? "Task reset to pending. The student will need to complete it again."
-          : "This instance has been updated. The original template is unchanged.",
-      });
-      setEditingTask(null);
-      onRefresh();
-    } catch (error) {
-      handleError(error, { component: 'DayViewModal', action: 'update task' });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // Group tasks by group, then by member
-  const tasksByGroup = tasks.reduce((acc, task) => {
-    const groupId = task.groupId || "unassigned";
-    const groupName = task.groupName || "Unassigned";
-    const groupColor = task.groupColor || "#6B7280";
-
-    if (!acc[groupId]) {
-      acc[groupId] = {
-        name: groupName,
-        color: groupColor,
-        members: {},
-      };
-    }
-
-    const memberId = task.assigneeId;
-    const memberName = task.assigneeName;
-
-    if (!acc[groupId].members[memberId]) {
-      acc[groupId].members[memberId] = {
-        name: memberName,
-        tasks: [],
-      };
-    }
-
-    acc[groupId].members[memberId].tasks.push(task);
-    return acc;
-  }, {} as Record<string, { name: string; color: string; members: Record<string, { name: string; tasks: ScheduledTask[] }> }>);
-
-  const handleToggleComplete = async (taskId: string, newStatus: "pending" | "completed") => {
-    try {
-      const { error } = await supabase
-        .from("task_instances")
-        .update({
-          status: newStatus,
-          completed_at: newStatus === "completed" ? new Date().toISOString() : null,
-        })
-        .eq("id", taskId);
-
-      if (error) throw error;
-      onRefresh();
-    } catch (error) {
-      handleError(error, { component: 'DayViewModal', action: 'toggle task complete', silent: true });
-    }
-  };
-
-  return (
-    <>
-      <div className="space-y-4">
-        {Object.entries(tasksByGroup).map(([groupId, group]) => {
-          const isExpanded = expandedGroups.has(groupId);
-          const allTasks = Object.values(group.members).flatMap(m => m.tasks);
-          const completedCount = allTasks.filter(t => t.status === "completed").length;
-          const totalCount = allTasks.length;
-          const completionRate = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-
-          return (
-            <Collapsible
-              key={groupId}
-              open={isExpanded}
-              onOpenChange={() => toggleGroup(groupId)}
-            >
-              <CollapsibleTrigger asChild>
-                <div
-                  className="flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-muted/50 transition-colors"
-                  style={{ borderLeftWidth: "4px", borderLeftColor: group.color }}
-                  role="button"
-                  aria-expanded={isExpanded}
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      toggleGroup(groupId);
-                    }
-                  }}
-                >
-                  <div className="flex items-center gap-3">
-                    <Users className="w-5 h-5" style={{ color: group.color }} />
-                    <div>
-                      <h3 className="font-semibold text-foreground">{group.name}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {Object.keys(group.members).length} members • {completedCount}/{totalCount} tasks
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Badge
-                      variant={completionRate === 100 ? "default" : "secondary"}
-                      className={completionRate === 100 ? "bg-green-500/20 text-green-700" : ""}
-                    >
-                      {completionRate}%
-                    </Badge>
-                    {isExpanded ? (
-                      <ChevronUp className="w-5 h-5 text-muted-foreground" />
-                    ) : (
-                      <ChevronDown className="w-5 h-5 text-muted-foreground" />
-                    )}
-                  </div>
-                </div>
-              </CollapsibleTrigger>
-
-              <CollapsibleContent className="mt-2 space-y-3 pl-4">
-                {Object.entries(group.members).map(([memberId, member]) => {
-                  const memberCompleted = member.tasks.filter(t => t.status === "completed").length;
-                  const memberTotal = member.tasks.length;
-                  const memberRate = memberTotal > 0 ? Math.round((memberCompleted / memberTotal) * 100) : 0;
-                  const isMemberExpanded = expandedMembers.has(memberId);
-                  const hasMoreTasks = member.tasks.length > MAX_VISIBLE_TASKS;
-                  const visibleTasks = isMemberExpanded
-                    ? member.tasks
-                    : member.tasks.slice(0, MAX_VISIBLE_TASKS);
-                  const hiddenCount = member.tasks.length - MAX_VISIBLE_TASKS;
-
-                  return (
-                    <div key={memberId} className="border rounded-lg p-3 bg-muted/20">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <div className={cn(
-                            "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium",
-                            memberRate === 100 ? "bg-green-500 text-white" :
-                            memberRate < 50 ? "bg-destructive text-white" :
-                            "bg-muted text-muted-foreground"
-                          )}>
-                            {member.name.charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <p className="font-medium text-sm">{member.name}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {memberCompleted}/{memberTotal} complete
-                            </p>
-                          </div>
-                        </div>
-                        <span className={cn(
-                          "text-sm font-medium",
-                          memberRate === 100 && "text-green-600",
-                          memberRate < 50 && "text-destructive"
-                        )}>
-                          {memberRate}%
-                        </span>
-                      </div>
-
-                      <div className="space-y-2">
-                        {visibleTasks.map((task) => {
-                          const hasDescription = task.description && task.description.trim().length > 0;
-                          const isTaskExpanded = expandedTasks.has(task.id);
-
-                          return (
-                            <div
-                              key={task.id}
-                              className={cn(
-                                "rounded-md text-sm overflow-hidden",
-                                task.status === "completed" ? "bg-muted/50" : "bg-background"
-                              )}
-                            >
-                              <div
-                                className={cn(
-                                  "flex items-center gap-2 p-2",
-                                  hasDescription && "cursor-pointer"
-                                )}
-                                onClick={() => hasDescription && toggleTaskExpanded(task.id)}
-                              >
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleToggleComplete(
-                                      task.id,
-                                      task.status === "completed" ? "pending" : "completed"
-                                    );
-                                  }}
-                                  className="focus:outline-none focus:ring-2 focus:ring-cta-primary rounded shrink-0"
-                                  aria-label={task.status === "completed" ? "Mark as incomplete" : "Mark as complete"}
-                                >
-                                  {task.status === "completed" ? (
-                                    <CheckCircle2 className="w-4 h-4 text-green-500" />
-                                  ) : (
-                                    <Circle className="w-4 h-4 text-muted-foreground hover:text-cta-primary" />
-                                  )}
-                                </button>
-                                <span className={cn(
-                                  "flex-1 truncate",
-                                  task.status === "completed" && "line-through text-muted-foreground"
-                                )}>
-                                  {task.name}
-                                </span>
-                                {task.durationMinutes && (
-                                  <Badge variant="outline" className="text-xs shrink-0">
-                                    {task.durationMinutes}m
-                                  </Badge>
-                                )}
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-6 w-6 shrink-0"
-                                  onClick={(e) => openEditDialog(task, e)}
-                                  title="Edit task"
-                                >
-                                  <Pencil className="w-3 h-3 text-muted-foreground hover:text-foreground" />
-                                </Button>
-                                {hasDescription && (
-                                  <ChevronDown
-                                    className={cn(
-                                      "w-3 h-3 text-muted-foreground transition-transform shrink-0",
-                                      isTaskExpanded && "rotate-180"
-                                    )}
-                                  />
-                                )}
-                              </div>
-                              {hasDescription && isTaskExpanded && (
-                                <div className="px-2 pb-2 pt-0 ml-6 border-t border-border/30">
-                                  <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap">
-                                    {task.description}
-                                  </p>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-
-                        {/* Show more/less button */}
-                        {hasMoreTasks && (
-                          <button
-                            onClick={() => toggleMemberTasks(memberId)}
-                            className="w-full text-center py-2 text-xs font-medium text-cta-primary hover:text-cta-hover hover:bg-muted/50 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-cta-primary"
-                            aria-expanded={isMemberExpanded}
-                            aria-label={isMemberExpanded ? "Show less tasks" : `Show ${hiddenCount} more tasks`}
-                          >
-                            {isMemberExpanded ? (
-                              <span className="flex items-center justify-center gap-1">
-                                <ChevronUp className="w-3 h-3" />
-                                Show less
-                              </span>
-                            ) : (
-                              <span className="flex items-center justify-center gap-1">
-                                <ChevronDown className="w-3 h-3" />
-                                Show {hiddenCount} more task{hiddenCount > 1 ? "s" : ""}
-                              </span>
-                            )}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </CollapsibleContent>
-            </Collapsible>
-          );
-        })}
-      </div>
-
-      {/* Edit Task Dialog */}
-      <Dialog open={!!editingTask} onOpenChange={(open) => !open && setEditingTask(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Task Instance</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <p className="text-sm text-muted-foreground">
-              Changes will only apply to this instance. The original template will not be modified.
-            </p>
-
-            {/* Warning for completed tasks */}
-            {editingTask?.status === "completed" && (
-              <div className="flex items-start gap-3 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
-                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                    This task is already completed
-                  </p>
-                  <p className="text-xs text-amber-700 dark:text-amber-300">
-                    Editing will reset this task to pending. The student will need to complete it again.
-                  </p>
-                  <div className="flex items-center gap-2 mt-2">
-                    <Checkbox
-                      id="sheet-reset-confirm"
-                      checked={resetCompleted}
-                      onCheckedChange={(checked) => setResetCompleted(checked === true)}
-                    />
-                    <Label
-                      htmlFor="sheet-reset-confirm"
-                      className="text-sm text-amber-800 dark:text-amber-200 cursor-pointer"
-                    >
-                      I understand, reset to pending
-                    </Label>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <Label htmlFor="sheet-edit-name">Task Name</Label>
-              <Input
-                id="sheet-edit-name"
-                value={editForm.name}
-                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                placeholder="Task name"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="sheet-edit-description">Description</Label>
-              <div className="flex gap-2">
-                <Textarea
-                  id="sheet-edit-description"
-                  value={editForm.description}
-                  onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                  placeholder="Optional description"
-                  rows={3}
-                  className="flex-1"
-                />
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={async () => {
-                    if (!editForm.description && !editForm.name) return;
-                    setPolishingDescription(true);
-                    const result = await refineTask(editForm.description || editForm.name);
-                    if (result.success && result.data) {
-                      setEditForm({ ...editForm, description: result.data });
-                    }
-                    setPolishingDescription(false);
-                  }}
-                  disabled={polishingDescription || (!editForm.description && !editForm.name)}
-                  className="shrink-0 h-auto border-purple-300 text-purple-600 hover:bg-purple-50 hover:text-purple-700"
-                  title="Polish with AI"
-                >
-                  {polishingDescription ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Wand2 className="w-4 h-4" />
-                  )}
-                </Button>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="sheet-edit-duration">Duration (minutes)</Label>
-              <Input
-                id="sheet-edit-duration"
-                type="number"
-                value={editForm.durationMinutes}
-                onChange={(e) => setEditForm({ ...editForm, durationMinutes: e.target.value })}
-                placeholder="e.g., 30"
-                min="1"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="sheet-edit-coach-note">Note for Student (optional)</Label>
-              <Textarea
-                id="sheet-edit-coach-note"
-                value={editForm.coachNote}
-                onChange={(e) => setEditForm({ ...editForm, coachNote: e.target.value })}
-                placeholder="Explain why you made this change... (e.g., 'Increased to 3 miles because you missed yesterday')"
-                rows={2}
-              />
-              <p className="text-xs text-muted-foreground">
-                This note will be visible to the student so they understand the change.
-              </p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingTask(null)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSaveEdit}
-              disabled={saving || !editForm.name.trim() || (editingTask?.status === "completed" && !resetCompleted)}
-              className="bg-cta-primary hover:bg-cta-hover text-white"
-            >
-              {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              Save Changes
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
-  );
-});
 
 // Week View Component - Memoized to prevent re-renders when other state changes
 const WeekView = React.memo(function WeekView({
@@ -1309,18 +762,10 @@ const DayView = React.memo(function DayView({
   date,
   tasks,
   onRefresh,
-  userId,
-  polishingDescription,
-  setPolishingDescription,
-  refineTask,
 }: {
   date: Date;
   tasks: ScheduledTask[];
   onRefresh: () => void;
-  userId: string;
-  polishingDescription: boolean;
-  setPolishingDescription: (v: boolean) => void;
-  refineTask: (text: string) => Promise<{ success: boolean; data?: string }>;
 }) {
   const completedCount = tasks.filter((t) => t.status === "completed").length;
 
@@ -1371,7 +816,7 @@ const DayView = React.memo(function DayView({
                   ({groupTasks.filter((t) => t.status === "completed").length}/{groupTasks.length})
                 </span>
               </div>
-              <TaskList tasks={groupTasks} onRefresh={onRefresh} showDetails userId={userId} polishingDescription={polishingDescription} setPolishingDescription={setPolishingDescription} refineTask={refineTask} />
+              <TaskList tasks={groupTasks} onRefresh={onRefresh} />
             </div>
           ))}
         </div>
@@ -1392,27 +837,13 @@ const MAX_SIDEBAR_TASKS = 5;
 const TaskList = React.memo(function TaskList({
   tasks,
   onRefresh,
-  showDetails = false,
-  userId,
-  polishingDescription,
-  setPolishingDescription,
-  refineTask,
 }: {
   tasks: ScheduledTask[];
   onRefresh: () => void;
-  showDetails?: boolean;
-  userId: string;
-  polishingDescription: boolean;
-  setPolishingDescription: (v: boolean) => void;
-  refineTask: (text: string) => Promise<{ success: boolean; data?: string }>;
 }) {
-  const { toast } = useToast();
   const [isExpanded, setIsExpanded] = useState(false);
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   const [editingTask, setEditingTask] = useState<ScheduledTask | null>(null);
-  const [editForm, setEditForm] = useState({ name: "", description: "", durationMinutes: "", coachNote: "" });
-  const [saving, setSaving] = useState(false);
-  const [resetCompleted, setResetCompleted] = useState(false);
 
   const toggleTaskExpanded = (taskId: string) => {
     setExpandedTasks((prev) => {
@@ -1424,83 +855,6 @@ const TaskList = React.memo(function TaskList({
       }
       return newSet;
     });
-  };
-
-  const openEditDialog = (task: ScheduledTask, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setEditingTask(task);
-    setEditForm({
-      name: task.name,
-      description: task.description || "",
-      durationMinutes: task.durationMinutes?.toString() || "",
-      coachNote: "", // Always start with empty note for new edits
-    });
-    setResetCompleted(false);
-  };
-
-  const handleSaveEdit = async () => {
-    if (!editingTask || !editForm.name.trim()) return;
-
-    // If task is completed and user hasn't acknowledged the warning, don't save
-    const isCompleted = editingTask.status === "completed";
-    if (isCompleted && !resetCompleted) {
-      toast({
-        title: "Confirmation Required",
-        description: "Please confirm you want to reset this completed task.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setSaving(true);
-
-    try {
-      const updates: {
-        name: string;
-        description: string | null;
-        duration_minutes: number | null;
-        is_customized: boolean;
-        coach_note: string | null;
-        updated_at: string;
-        updated_by: string;
-        status?: string;
-        completed_at?: string | null;
-      } = {
-        name: editForm.name.trim(),
-        description: editForm.description.trim() || null,
-        duration_minutes: editForm.durationMinutes ? parseInt(editForm.durationMinutes) : null,
-        is_customized: true, // Mark as customized to prevent template overwrites
-        coach_note: editForm.coachNote.trim() || null,
-        updated_at: new Date().toISOString(),
-        updated_by: userId,
-      };
-
-      // If task was completed and user confirmed reset, change status back to pending
-      if (isCompleted && resetCompleted) {
-        updates.status = "pending";
-        updates.completed_at = null;
-      }
-
-      const { error } = await supabase
-        .from("task_instances")
-        .update(updates)
-        .eq("id", editingTask.id);
-
-      if (error) throw error;
-
-      toast({
-        title: "Task Updated",
-        description: isCompleted && resetCompleted
-          ? "Task reset to pending. The student will need to complete it again."
-          : "This instance has been updated. The original template is unchanged.",
-      });
-      setEditingTask(null);
-      onRefresh();
-    } catch (error) {
-      handleError(error, { component: 'TaskSidebar', action: 'update task' });
-    } finally {
-      setSaving(false);
-    }
   };
 
   const handleToggleComplete = async (taskId: string, newStatus: "pending" | "completed") => {
@@ -1539,6 +893,7 @@ const TaskList = React.memo(function TaskList({
         {visibleTasks.map((task) => {
           const isTaskExpanded = expandedTasks.has(task.id);
           const hasDescription = task.description && task.description.trim().length > 0;
+          const isEditable = task.status === "pending" || task.status === "missed";
 
           return (
             <div
@@ -1616,15 +971,20 @@ const TaskList = React.memo(function TaskList({
 
                 {/* Action buttons */}
                 <div className="flex items-center gap-1 shrink-0">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={(e) => openEditDialog(task, e)}
-                    title="Edit task"
-                  >
-                    <Pencil className="w-4 h-4 text-muted-foreground hover:text-foreground" />
-                  </Button>
+                  {isEditable && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setEditingTask(task);
+                      }}
+                      title="Edit task"
+                    >
+                      <Pencil className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+                    </Button>
+                  )}
                   {hasDescription && (
                     <ChevronDown
                       className={cn(
@@ -1671,130 +1031,20 @@ const TaskList = React.memo(function TaskList({
         )}
       </div>
 
-      {/* Edit Task Dialog */}
-      <Dialog open={!!editingTask} onOpenChange={(open) => !open && setEditingTask(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Task Instance</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <p className="text-sm text-muted-foreground">
-              Changes will only apply to this instance. The original template will not be modified.
-            </p>
-
-            {/* Warning for completed tasks */}
-            {editingTask?.status === "completed" && (
-              <div className="flex items-start gap-3 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
-                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                    This task is already completed
-                  </p>
-                  <p className="text-xs text-amber-700 dark:text-amber-300">
-                    Editing will reset this task to pending. The student will need to complete it again.
-                  </p>
-                  <div className="flex items-center gap-2 mt-2">
-                    <Checkbox
-                      id="list-reset-confirm"
-                      checked={resetCompleted}
-                      onCheckedChange={(checked) => setResetCompleted(checked === true)}
-                    />
-                    <Label
-                      htmlFor="list-reset-confirm"
-                      className="text-sm text-amber-800 dark:text-amber-200 cursor-pointer"
-                    >
-                      I understand, reset to pending
-                    </Label>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <Label htmlFor="edit-name">Task Name</Label>
-              <Input
-                id="edit-name"
-                value={editForm.name}
-                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                placeholder="Task name"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-description">Description</Label>
-              <div className="flex gap-2">
-                <Textarea
-                  id="edit-description"
-                  value={editForm.description}
-                  onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                  placeholder="Optional description"
-                  rows={3}
-                  className="flex-1"
-                />
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={async () => {
-                    if (!editForm.description && !editForm.name) return;
-                    setPolishingDescription(true);
-                    const result = await refineTask(editForm.description || editForm.name);
-                    if (result.success && result.data) {
-                      setEditForm({ ...editForm, description: result.data });
-                    }
-                    setPolishingDescription(false);
-                  }}
-                  disabled={polishingDescription || (!editForm.description && !editForm.name)}
-                  className="shrink-0 h-auto border-purple-300 text-purple-600 hover:bg-purple-50 hover:text-purple-700"
-                  title="Polish with AI"
-                >
-                  {polishingDescription ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Wand2 className="w-4 h-4" />
-                  )}
-                </Button>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-duration">Duration (minutes)</Label>
-              <Input
-                id="edit-duration"
-                type="number"
-                value={editForm.durationMinutes}
-                onChange={(e) => setEditForm({ ...editForm, durationMinutes: e.target.value })}
-                placeholder="e.g., 30"
-                min="1"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-coach-note">Note for Student (optional)</Label>
-              <Textarea
-                id="edit-coach-note"
-                value={editForm.coachNote}
-                onChange={(e) => setEditForm({ ...editForm, coachNote: e.target.value })}
-                placeholder="Explain why you made this change... (e.g., 'Increased to 3 miles because you missed yesterday')"
-                rows={2}
-              />
-              <p className="text-xs text-muted-foreground">
-                This note will be visible to the student so they understand the change.
-              </p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingTask(null)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSaveEdit}
-              disabled={saving || !editForm.name.trim() || (editingTask?.status === "completed" && !resetCompleted)}
-              className="bg-cta-primary hover:bg-cta-hover text-white"
-            >
-              {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              Save Changes
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <EditTaskInstanceModal
+        instanceToEdit={editingTask ? {
+          instance_id: editingTask.id,
+          task_title: editingTask.name,
+          current_date: editingTask.scheduledDate,
+          current_start_time: editingTask.startTime,
+          current_end_time: editingTask.endTime,
+          assignment_id: editingTask.assignmentId,
+          status: editingTask.status,
+        } : null}
+        isOpen={!!editingTask}
+        onDismiss={() => setEditingTask(null)}
+        onSaveComplete={onRefresh}
+      />
     </>
   );
 });

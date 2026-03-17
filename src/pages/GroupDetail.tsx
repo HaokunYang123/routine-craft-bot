@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useGroups } from "@/hooks/useGroups";
+import { useAssignments } from "@/hooks/useAssignments";
 import { handleError } from "@/lib/error";
 import { queryKeys } from "@/lib/queries/keys";
 import { Button } from "@/components/ui/button";
@@ -63,6 +64,7 @@ import {
     MoreVertical,
     ChevronDown,
     ChevronUp,
+    Pencil,
 } from "lucide-react";
 import { subDays, format } from "date-fns";
 import { QRCodeSVG } from "qrcode.react";
@@ -75,6 +77,10 @@ import {
     DialogFooter,
 } from "@/components/ui/dialog";
 import { AssignTaskModal } from "@/components/assignments/AssignTaskModal";
+import {
+    EditTaskInstanceModal,
+    type EditableTaskInstance,
+} from "@/components/coach/EditTaskInstanceModal";
 import { PullToRefresh } from "@/components/ui/PullToRefresh";
 import { logActivity } from "@/lib/activityLogger";
 
@@ -115,6 +121,7 @@ interface Note {
 
 interface TaskInstance {
     id: string;
+    assignment_id: string | null;
     assignee_id: string;
     name: string;
     scheduled_date: string | null;
@@ -133,6 +140,7 @@ export default function GroupDetail() {
     const { user } = useAuth();
     const { toast } = useToast();
     const { deleteGroup } = useGroups();
+    const { excuseTask, isExcusingTask } = useAssignments();
     const queryClient = useQueryClient();
 
     const [loading, setLoading] = useState(true);
@@ -143,6 +151,7 @@ export default function GroupDetail() {
     const [tasksLoading, setTasksLoading] = useState(false);
     const [taskStatusFilter, setTaskStatusFilter] = useState<"all" | "active" | "overdue" | "completed">("all");
     const [expandedTaskGroups, setExpandedTaskGroups] = useState<Set<string>>(new Set());
+    const [editingTaskInstance, setEditingTaskInstance] = useState<EditableTaskInstance | null>(null);
 
     // Note State
     const [newNote, setNewNote] = useState("");
@@ -255,7 +264,7 @@ export default function GroupDetail() {
                 setTasksLoading(true);
                 const { data: tasksData, error: tasksError } = await supabase
                     .from("task_instances")
-                    .select("id, assignee_id, name, scheduled_date, assign_date, start_time, end_time, status")
+                    .select("id, assignment_id, assignee_id, name, scheduled_date, assign_date, start_time, end_time, status")
                     .in("assignee_id", memberIds)
                     .order("scheduled_date", { ascending: false });
 
@@ -578,6 +587,30 @@ export default function GroupDetail() {
         if (isTaskOverdue(task)) return "Overdue";
         if (task.status === "completed") return "Completed";
         return "Pending";
+    };
+
+    const isTaskEditable = (task: TaskInstance) => task.status === "pending" || task.status === "missed";
+
+    const openEditTaskModal = (task: TaskInstance) => {
+        const currentDate = getTaskDate(task);
+        if (!currentDate) return;
+
+        setEditingTaskInstance({
+            instance_id: task.id,
+            task_title: task.name,
+            current_date: currentDate,
+            current_start_time: task.start_time,
+            current_end_time: task.end_time,
+            assignment_id: task.assignment_id,
+            status: task.status,
+        });
+    };
+
+    const handleExcuseTask = async (task: TaskInstance) => {
+        const success = await excuseTask({ taskId: task.id });
+        if (success) {
+            await handleRefresh();
+        }
     };
 
     const taskGroups = taskInstances.reduce<Record<string, TaskInstance[]>>((acc, task) => {
@@ -968,19 +1001,20 @@ export default function GroupDetail() {
                                 <Card>
                                     <CardContent className="p-0">
                                         <Table>
-                                            <TableHeader>
-                                                <TableRow>
-                                                    <TableHead>Task</TableHead>
-                                                    <TableHead>Assignment</TableHead>
-                                                    <TableHead>Date</TableHead>
-                                                    <TableHead>Progress</TableHead>
-                                                    <TableHead>Status</TableHead>
-                                                    <TableHead className="w-[40px]"></TableHead>
-                                                </TableRow>
-                                            </TableHeader>
+                                                <TableHeader>
+                                                    <TableRow>
+                                                        <TableHead>Task</TableHead>
+                                                        <TableHead>Assignment</TableHead>
+                                                        <TableHead>Date</TableHead>
+                                                        <TableHead>Progress</TableHead>
+                                                        <TableHead>Status</TableHead>
+                                                        <TableHead className="w-[220px] text-right">Actions</TableHead>
+                                                    </TableRow>
+                                                </TableHeader>
                                             <TableBody>
                                                 {filteredGroupedTasks.map((group) => {
                                                     const isExpanded = expandedTaskGroups.has(group.name);
+                                                    const singleTask = group.isSingleAssignee ? group.instances[0] ?? null : null;
                                                     const statusLabel =
                                                         group.groupStatus === "completed"
                                                             ? "Completed"
@@ -1014,7 +1048,33 @@ export default function GroupDetail() {
                                                                 <TableCell>
                                                                     <Badge variant={statusVariant}>{statusLabel}</Badge>
                                                                 </TableCell>
-                                                                <TableCell>
+                                                                <TableCell className="text-right">
+                                                                    {group.isSingleAssignee && singleTask && isTaskEditable(singleTask) && (
+                                                                        <div className="flex justify-end gap-2">
+                                                                            <Button
+                                                                                variant="outline"
+                                                                                size="sm"
+                                                                                onClick={(event) => {
+                                                                                    event.stopPropagation();
+                                                                                    openEditTaskModal(singleTask);
+                                                                                }}
+                                                                            >
+                                                                                <Pencil className="w-4 h-4 mr-2" />
+                                                                                Edit
+                                                                            </Button>
+                                                                            <Button
+                                                                                variant="outline"
+                                                                                size="sm"
+                                                                                onClick={(event) => {
+                                                                                    event.stopPropagation();
+                                                                                    void handleExcuseTask(singleTask);
+                                                                                }}
+                                                                                disabled={isExcusingTask}
+                                                                            >
+                                                                                Excuse
+                                                                            </Button>
+                                                                        </div>
+                                                                    )}
                                                                     {!group.isSingleAssignee && (
                                                                         <Button
                                                                             variant="ghost"
@@ -1045,6 +1105,7 @@ export default function GroupDetail() {
                                                                                     <TableHead>Date</TableHead>
                                                                                     <TableHead>Time</TableHead>
                                                                                     <TableHead>Status</TableHead>
+                                                                                    <TableHead className="text-right">Actions</TableHead>
                                                                                 </TableRow>
                                                                             </TableHeader>
                                                                             <TableBody>
@@ -1059,6 +1120,32 @@ export default function GroupDetail() {
                                                                                             >
                                                                                                 {formatTaskStatusBadge(task)}
                                                                                             </Badge>
+                                                                                        </TableCell>
+                                                                                        <TableCell className="text-right">
+                                                                                            {isTaskEditable(task) ? (
+                                                                                                <div className="flex justify-end gap-2">
+                                                                                                    <Button
+                                                                                                        variant="outline"
+                                                                                                        size="sm"
+                                                                                                        onClick={() => openEditTaskModal(task)}
+                                                                                                    >
+                                                                                                        <Pencil className="w-4 h-4 mr-2" />
+                                                                                                        Edit
+                                                                                                    </Button>
+                                                                                                    <Button
+                                                                                                        variant="outline"
+                                                                                                        size="sm"
+                                                                                                        onClick={() => {
+                                                                                                            void handleExcuseTask(task);
+                                                                                                        }}
+                                                                                                        disabled={isExcusingTask}
+                                                                                                    >
+                                                                                                        Excuse
+                                                                                                    </Button>
+                                                                                                </div>
+                                                                                            ) : (
+                                                                                                <span className="text-xs text-muted-foreground">—</span>
+                                                                                            )}
                                                                                         </TableCell>
                                                                                     </TableRow>
                                                                                 ))}
@@ -1231,6 +1318,13 @@ export default function GroupDetail() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            <EditTaskInstanceModal
+                instanceToEdit={editingTaskInstance}
+                isOpen={!!editingTaskInstance}
+                onDismiss={() => setEditingTaskInstance(null)}
+                onSaveComplete={handleRefresh}
+            />
 
             <AssignTaskModal
                 open={assignDialogOpen}
