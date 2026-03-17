@@ -17,6 +17,7 @@ import People from "./pages/People";
 import Assistant from "./pages/Assistant";
 import Progress from "./pages/Progress";
 import GroupDetail from "./pages/GroupDetail";
+import CoachStudentProfile from "./pages/CoachStudentProfile";
 import Templates from "./pages/Templates";
 import CoachCalendar from "./pages/CoachCalendar";
 import CoachSettings from "./pages/CoachSettings";
@@ -228,6 +229,16 @@ const App = () => (
               }
             >
               <Route path=":groupId" element={<GroupDetail />} />
+            </Route>
+            <Route
+              path="/coach"
+              element={
+                <RouteErrorBoundary>
+                  <DashboardLayout key="coach" />
+                </RouteErrorBoundary>
+              }
+            >
+              <Route path="students/:targetStudentId" element={<CoachStudentProfile />} />
             </Route>
             <Route
               path="/admin"

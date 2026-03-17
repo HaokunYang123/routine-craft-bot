@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -589,6 +589,15 @@ export default function GroupDetail() {
         return "Pending";
     };
 
+    const getStudentProfileHref = (studentId: string) => {
+        const params = new URLSearchParams({
+            from: "group",
+            groupId: groupId ?? "",
+        });
+
+        return `/coach/students/${studentId}?${params.toString()}`;
+    };
+
     const isTaskEditable = (task: TaskInstance) => task.status === "pending" || task.status === "missed";
 
     const openEditTaskModal = (task: TaskInstance) => {
@@ -867,7 +876,12 @@ export default function GroupDetail() {
                                                 <TableRow key={student.id}>
                                                     <TableCell>
                                                         <div>
-                                                            <p className="font-medium">{student.display_name}</p>
+                                                            <Link
+                                                                to={getStudentProfileHref(student.student_id)}
+                                                                className="font-medium text-sky-300 hover:underline"
+                                                            >
+                                                                {student.display_name}
+                                                            </Link>
                                                             {student.email && (
                                                                 <p className="text-xs text-muted-foreground">{student.email}</p>
                                                             )}
@@ -1111,7 +1125,14 @@ export default function GroupDetail() {
                                                                             <TableBody>
                                                                                 {group.instances.map((task) => (
                                                                                     <TableRow key={task.id}>
-                                                                                        <TableCell>{getStudentName(task.assignee_id)}</TableCell>
+                                                                                        <TableCell>
+                                                                                            <Link
+                                                                                                to={getStudentProfileHref(task.assignee_id)}
+                                                                                                className="text-sky-300 hover:underline"
+                                                                                            >
+                                                                                                {getStudentName(task.assignee_id)}
+                                                                                            </Link>
+                                                                                        </TableCell>
                                                                                         <TableCell>{formatTaskDate(getTaskDate(task))}</TableCell>
                                                                                         <TableCell>{formatTaskTime(task.start_time, task.end_time)}</TableCell>
                                                                                         <TableCell>
@@ -1182,7 +1203,12 @@ export default function GroupDetail() {
                                                     <TableRow key={student.student_id}>
                                                         <TableCell>
                                                             <div className="flex flex-col">
-                                                                <span className="font-medium">{student.display_name}</span>
+                                                                <Link
+                                                                    to={getStudentProfileHref(student.student_id)}
+                                                                    className="font-medium text-sky-300 hover:underline"
+                                                                >
+                                                                    {student.display_name}
+                                                                </Link>
                                                                 {student.email && (
                                                                     <span className="text-xs text-muted-foreground">
                                                                         {student.email}

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Sheet,
@@ -214,6 +215,21 @@ export function StudentDetailSheet({
           </SheetTitle>
           <SheetDescription>View task assignments and history</SheetDescription>
         </SheetHeader>
+
+        {studentId && (
+          <div className="mt-4">
+            <Link
+              to={
+                groupId
+                  ? `/coach/students/${studentId}?${new URLSearchParams({ from: "group", groupId }).toString()}`
+                  : `/coach/students/${studentId}`
+              }
+              className="text-sm text-sky-300 hover:underline"
+            >
+              View Full Profile →
+            </Link>
+          </div>
+        )}
 
         {loading ? (
           <div className="flex items-center justify-center py-16">

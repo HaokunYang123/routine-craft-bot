@@ -548,7 +548,7 @@ export function AssignTaskModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md max-h-[90vh] grid-rows-[auto,minmax(0,1fr),auto] overflow-hidden">
+      <DialogContent className="coach-theme dark max-w-md max-h-[90vh] grid-rows-[auto,minmax(0,1fr),auto] overflow-hidden text-foreground">
         <DialogHeader>
           <DialogTitle>{modalTitle}</DialogTitle>
         </DialogHeader>

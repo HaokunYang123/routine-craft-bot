@@ -67,6 +67,15 @@ export function GroupReviewCard({
     navigate(`/groups/${group.id}`);
   };
 
+  const getStudentProfileHref = (memberId: string) => {
+    const params = new URLSearchParams({
+      from: "group",
+      groupId: group.id,
+    });
+
+    return `/coach/students/${memberId}?${params.toString()}`;
+  };
+
   return (
     <Card
       className={cn(
@@ -160,7 +169,12 @@ export function GroupReviewCard({
                   key={member.id}
                   onClick={(e) => {
                     e.stopPropagation();
-                    onMemberClick?.(member.id);
+                    if (onMemberClick) {
+                      onMemberClick(member.id);
+                      return;
+                    }
+
+                    navigate(getStudentProfileHref(member.id));
                   }}
                   className={cn(
                     "flex items-center justify-between p-3 rounded-lg transition-colors",
