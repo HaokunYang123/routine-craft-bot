@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useAssignments } from "@/hooks/useAssignments";
@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useTaskRollover } from "@/hooks/useTaskRollover";
 import { useSessionDismissal } from "@/hooks/useSessionDismissal";
 import { useExcusedNotification } from "@/hooks/useExcusedNotification";
+import { StudentGroupFilterBar } from "@/components/student/StudentGroupFilterBar";
 import { logActivity } from "@/lib/activityLogger";
 import { handleError } from "@/lib/error";
 import { REALTIME_CHANNELS } from "@/lib/realtime/channels";
@@ -35,6 +36,7 @@ interface TaskInstance {
   student_note: string | null;
   created_at: string | null;
   coach_name?: string;
+  group_id?: string;
   group_name?: string;
   group_color?: string;
 }
@@ -85,6 +87,10 @@ export default function StudentHome() {
   const [parentAccessCode, setParentAccessCode] = useState<string | null>(null);
   const [parentCodeLoaded, setParentCodeLoaded] = useState(false);
   const [parentCodeCopied, setParentCodeCopied] = useState(false);
+  const [activeFilterGroupId, setActiveFilterGroupId] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    return window.sessionStorage.getItem("tcc_student_group_filter") || null;
+  });
 
   // Task rollover categorization (TASK-01, TASK-02)
   // Casts local TaskInstance to match hook's expected type (local type extends hook type with UI fields)
@@ -162,6 +168,15 @@ export default function StudentHome() {
   }, [user]);
 
   // Refetch on tab visibility change (handles backgrounded tabs)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (activeFilterGroupId) {
+      window.sessionStorage.setItem("tcc_student_group_filter", activeFilterGroupId);
+      return;
+    }
+    window.sessionStorage.removeItem("tcc_student_group_filter");
+  }, [activeFilterGroupId]);
+
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && user) {
@@ -505,6 +520,7 @@ export default function StudentHome() {
         return {
           ...task,
           coach_name: coachProfiles[coachId] || "Coach",
+          group_id: groupId,
           group_name: group?.name,
           group_color: group?.color,
         };
@@ -577,6 +593,58 @@ export default function StudentHome() {
     ]);
   }, [queryClient]);
 
+  const availableGroups = useMemo(() => {
+    const groups = new Map<string, { group_id: string; group_name: string; group_color?: string }>();
+
+    [...tasks, ...upcomingTasks].forEach((task) => {
+      if (!task.group_id || !task.group_name || groups.has(task.group_id)) return;
+      groups.set(task.group_id, {
+        group_id: task.group_id,
+        group_name: task.group_name,
+        group_color: task.group_color,
+      });
+    });
+
+    return Array.from(groups.values()).sort((a, b) => a.group_name.localeCompare(b.group_name));
+  }, [tasks, upcomingTasks]);
+
+  useEffect(() => {
+    if (activeFilterGroupId && !availableGroups.some((group) => group.group_id === activeFilterGroupId)) {
+      setActiveFilterGroupId(null);
+    }
+  }, [activeFilterGroupId, availableGroups]);
+
+  const filterTasksForRender = useCallback(
+    (taskList: TaskInstance[]) =>
+      activeFilterGroupId ? taskList.filter((task) => task.group_id === activeFilterGroupId) : taskList,
+    [activeFilterGroupId],
+  );
+
+  const filteredToday = useMemo(() => filterTasksForRender(today as TaskInstance[]), [filterTasksForRender, today]);
+  const filteredOverdue = useMemo(() => filterTasksForRender(overdue as TaskInstance[]), [filterTasksForRender, overdue]);
+  const filteredYesterdayCompleted = useMemo(
+    () => filterTasksForRender(yesterdayCompleted as TaskInstance[]),
+    [filterTasksForRender, yesterdayCompleted],
+  );
+  const filteredUpcomingTasks = useMemo(
+    () => filterTasksForRender(upcomingTasks),
+    [filterTasksForRender, upcomingTasks],
+  );
+
+  const completedCount = filteredToday.filter((t) => t.status === "completed").length;
+  const totalCount = filteredToday.length;
+  const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+  const hasVisibleTasks =
+    filteredToday.length > 0 ||
+    filteredOverdue.length > 0 ||
+    filteredYesterdayCompleted.length > 0 ||
+    filteredUpcomingTasks.length > 0;
+  const hasAnyTasks =
+    today.length > 0 ||
+    overdue.length > 0 ||
+    yesterdayCompleted.length > 0 ||
+    upcomingTasks.length > 0;
+
   if (loading) {
     return (
       <PullToRefresh onRefresh={handleRefresh}>
@@ -586,12 +654,6 @@ export default function StudentHome() {
       </PullToRefresh>
     );
   }
-
-  // Progress is calculated from TODAY's tasks only (not overdue or yesterday)
-  // Per CONTEXT.md: Today's tasks show progress, overdue is separate
-  const completedCount = today.filter((t) => t.status === "completed").length;
-  const totalCount = today.length;
-  const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
   // Display today in user's timezone (TIME-02)
   const dayNumber = formatDate(new Date(), "d");
@@ -656,6 +718,12 @@ export default function StudentHome() {
           </p>
         </CardContent>
       </Card>
+
+      <StudentGroupFilterBar
+        availableGroups={availableGroups}
+        activeFilterGroupId={activeFilterGroupId}
+        onFilterChange={setActiveFilterGroupId}
+      />
 
       {/* Desktop: top row My Groups + Today's Tasks, second row Coach's Notes full width */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-1 lg:grid-cols-3">
@@ -866,20 +934,24 @@ export default function StudentHome() {
           )}
 
           {/* Empty state for today's tasks - only show if no today and no overdue */}
-          {today.length === 0 && overdue.length === 0 ? (
+          {filteredToday.length === 0 && filteredOverdue.length === 0 ? (
             <div className="text-center py-8">
               <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-3" />
-              <p className="text-foreground font-medium">All done!</p>
+              <p className="text-foreground font-medium">
+                {activeFilterGroupId ? "No current tasks in this group" : "All done!"}
+              </p>
               <p className="text-sm text-muted-foreground mt-1">
-                No tasks for today. Enjoy your day!
+                {activeFilterGroupId
+                  ? "Try All to view tasks from every group."
+                  : "No tasks for today. Enjoy your day!"}
               </p>
             </div>
           ) : (
             <div className="space-y-4">
               {/* Today's Tasks Section */}
-              {today.length > 0 && (
+              {filteredToday.length > 0 && (
                 <div className="space-y-3">
-                  {today.map((task) => {
+                  {filteredToday.map((task) => {
                     const isExpanded = expandedTasks.has(task.id);
                     const hasDescription = !!task.description;
 
@@ -974,19 +1046,19 @@ export default function StudentHome() {
               )}
 
               {/* Overdue Section - Per CONTEXT.md: Section order is Today -> Overdue -> Yesterday */}
-              {overdue.length > 0 && (
+              {filteredOverdue.length > 0 && (
                 <div className="mt-4 border-t pt-4">
                   <div className="overflow-hidden rounded-lg border border-red-200 bg-red-50/80 p-4 dark:border-red-800 dark:bg-red-950/40 lg:p-5">
                   <div className="mb-3 flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-300" />
                     <h3 className="font-semibold text-sm text-red-700 dark:text-red-200">Overdue</h3>
                     <Badge className="text-xs bg-red-600 text-white border-red-600">
-                      {overdue.length}
+                      {filteredOverdue.length}
                     </Badge>
                   </div>
                   <div className="space-y-4">
                     {/* Show first 5 overdue tasks */}
-                    {overdue.slice(0, 5).map((task) => {
+                    {filteredOverdue.slice(0, 5).map((task) => {
                       const isExpanded = expandedTasks.has(task.id);
                       const hasDescription = !!task.description;
 
@@ -1063,7 +1135,7 @@ export default function StudentHome() {
                     })}
 
                     {/* Collapsible for additional overdue tasks (more than 5) */}
-                    {overdue.length > 5 && (
+                    {filteredOverdue.length > 5 && (
                       <Collapsible open={overdueExpanded} onOpenChange={setOverdueExpanded}>
                         <CollapsibleTrigger asChild>
                           <Button
@@ -1071,11 +1143,11 @@ export default function StudentHome() {
                             className="w-full text-sm text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-200 dark:hover:text-red-100 dark:hover:bg-red-950/40"
                           >
                             <ChevronDown className={cn("w-4 h-4 mr-1 transition-transform", overdueExpanded && "rotate-180")} />
-                            {overdueExpanded ? "Show less" : `and ${overdue.length - 5} more overdue...`}
+                            {overdueExpanded ? "Show less" : `and ${filteredOverdue.length - 5} more overdue...`}
                           </Button>
                         </CollapsibleTrigger>
                         <CollapsibleContent className="space-y-3 mt-3">
-                          {overdue.slice(5).map((task) => {
+                          {filteredOverdue.slice(5).map((task) => {
                             const isExpanded = expandedTasks.has(task.id);
                             const hasDescription = !!task.description;
 
@@ -1158,7 +1230,7 @@ export default function StudentHome() {
               )}
 
               {/* Yesterday's Completed Section - Per CONTEXT.md: Collapsed by default, dismissible */}
-              {yesterdayCompleted.length > 0 && !isYesterdayDismissed && (
+              {filteredYesterdayCompleted.length > 0 && !isYesterdayDismissed && (
                 <div className="border-t pt-4 mt-4">
                   <Collapsible open={yesterdayExpanded} onOpenChange={setYesterdayExpanded}>
                     <div className="flex items-center justify-between mb-3">
@@ -1166,7 +1238,7 @@ export default function StudentHome() {
                         <button className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
                           <ChevronDown className={cn("w-4 h-4 transition-transform", yesterdayExpanded && "rotate-180")} />
                           <span className="font-medium">
-                            {yesterdayCompleted.length} task{yesterdayCompleted.length !== 1 ? "s" : ""} completed yesterday
+                            {filteredYesterdayCompleted.length} task{filteredYesterdayCompleted.length !== 1 ? "s" : ""} completed yesterday
                           </span>
                         </button>
                       </CollapsibleTrigger>
@@ -1184,7 +1256,7 @@ export default function StudentHome() {
                       </Button>
                     </div>
                     <CollapsibleContent className="space-y-3">
-                      {yesterdayCompleted.map((task) => (
+                      {filteredYesterdayCompleted.map((task) => (
                         <div
                           key={task.id}
                           className="p-4 rounded-lg border bg-muted/20 border-border opacity-75"
@@ -1227,7 +1299,7 @@ export default function StudentHome() {
       </div>
 
       {/* Upcoming Tasks */}
-      {upcomingTasks.length > 0 && (
+      {filteredUpcomingTasks.length > 0 && (
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2">
@@ -1237,7 +1309,7 @@ export default function StudentHome() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {upcomingTasks.map((task) => (
+              {filteredUpcomingTasks.map((task) => (
                 <div
                   key={task.id}
                   className="flex items-center justify-between p-3 rounded-lg bg-muted/30"
@@ -1263,17 +1335,21 @@ export default function StudentHome() {
       )}
 
       {/* Empty State - Only shown when no tasks at all */}
-      {today.length === 0 && overdue.length === 0 && yesterdayCompleted.length === 0 && upcomingTasks.length === 0 && (
+      {!hasVisibleTasks && (
         <Card className="border-dashed">
           <CardContent className="py-12 text-center">
             <Calendar className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-xl font-medium mb-2">No tasks yet</h3>
+            <h3 className="text-xl font-medium mb-2">
+              {hasAnyTasks && activeFilterGroupId ? "No tasks in this group" : "No tasks yet"}
+            </h3>
             <p className="text-muted-foreground max-w-sm mx-auto">
-              {connectedGroups.length === 0
+              {hasAnyTasks && activeFilterGroupId
+                ? "Try All to view tasks from every group."
+                : connectedGroups.length === 0
                 ? "Join a group using your coach's code to start receiving tasks!"
                 : "Your coach will assign tasks that will appear here. Check back soon!"}
             </p>
-            {connectedGroups.length === 0 && !showJoinForm && (
+            {connectedGroups.length === 0 && !showJoinForm && !hasAnyTasks && (
               <Button
                 onClick={() => setShowJoinForm(true)}
                 className="mt-4 bg-cta-primary hover:bg-cta-hover text-white"
