@@ -10,6 +10,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useTimezone } from "@/hooks/useTimezone";
 import { TimezoneSelect } from "@/components/TimezoneSelect";
 import { DeleteAccountSection } from "@/components/settings/DeleteAccountSection";
+import { NotificationSettingsPanel } from "@/components/settings/NotificationSettingsPanel";
 import { cn } from "@/lib/utils";
 
 // Coach emoji options
@@ -203,6 +204,8 @@ export default function CoachSettings() {
           </div>
         </CardContent>
       </Card>
+
+      <NotificationSettingsPanel />
 
       <DeleteAccountSection />
 

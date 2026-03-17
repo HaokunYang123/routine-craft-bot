@@ -219,6 +219,13 @@ Added date range filtering (7d / 30d / 90d / all-time) to the analytics dashboar
 | lint | pass (0 errors, 31 existing warnings) |
 | build | pass |
 
+## Phase 2.2: WS-COACH-STUDENT-PROFILE Frontend
+- Created `CoachStudentProfile.tsx` page with route `/coach/students/:targetStudentId`
+- Created `useCoachStudentTasks` and `useCoachStudentSummary` hooks
+- Unified student name navigation across `GroupDetail`, `GroupReviewCard`, and `StudentDetailSheet`
+- Integrated `EditTaskInstanceModal` (Phase 2.1) and `excuseTask` for task actions
+- Verification: required grep/file checks passed, `npm run lint` passed with 31 existing warnings and 0 errors, `npm run build` passed with existing chunk-size warnings only
+
 ---
 
 ## Analytics V2 Prompt 3: Retention Cohort Chart
@@ -286,3 +293,160 @@ Added a manual refresh button and a compact 60-second auto-refresh toggle beside
 | no new deps | pass |
 | lint | pass (0 errors, 31 existing warnings) |
 | build | pass |
+
+---
+
+## Phase 1.1: WS-TASK-EDIT Backend RPCs
+
+**Date:** 2026-03-16
+**Prompt:** PHASE1_1_TASK_EDIT_BACKEND.md
+
+### Summary
+Created two SECURITY DEFINER RPCs for coach task editing:
+- `coach_edit_single_instance`: edit date/time of a single pending or missed task instance
+- `coach_edit_recurring_pattern`: edit recurring assignment pattern with optional cascade to future pending instances
+
+Both RPCs enforce coach role, verify `instructor_students` linkage, validate inputs, log to `activity_events`, and return `jsonb`.
+
+### Verification
+| Check | Expected | Actual | Status |
+|-------|----------|--------|--------|
+| `coach_edit_single_instance` exists | Yes | Yes | Pass |
+| `coach_edit_recurring_pattern` exists | Yes | Yes | Pass |
+| Both are SECURITY DEFINER | Yes | Yes (`DEFINER` for both in `information_schema.routines`) | Pass |
+| Grants: authenticated only | Yes | `authenticated` granted; `postgres` and `service_role` also appear in `information_schema.role_routine_grants` due platform ownership/membership | Warn |
+| No PUBLIC/anon grants | 0 | 0 | Pass |
+| npm run lint | Pass | Pass (31 existing warnings, 0 errors) | Pass |
+| npm run build | Pass | Pass | Pass |
+
+### Concerns
+- The live schema differs from the PRD assumptions: `task_instances` uses `assignment_id`, `activity_events` uses `user_id`/`metadata`, and `task_instances.status` is `pending | completed | missed | excused`.
+- The live `recurring_schedules` table is not the active assignment model and does not link to `task_instances`, so `coach_edit_recurring_pattern` was implemented against `assignments.schedule_type`, `assignments.schedule_days`, and `assignments.start_date`, with cascade updates applied to the related future pending `task_instances`.
+
+---
+
+## Phase 1.2: WS-COACH-STUDENT-PROFILE Backend RPCs
+
+**Date:** 2026-03-16
+**Prompt:** PHASE1_2_STUDENT_PROFILE_BACKEND.md
+
+### Summary
+Created two SECURITY DEFINER RPCs for the coach student profile page:
+- `coach_fetch_student_task_list`: returns task instances for a student within a date range, with group info
+- `coach_fetch_student_profile_summary`: returns student name, email, group memberships, and completion stats
+
+Both RPCs enforce coach role, verify instructor_students link, and return structured data.
+
+### Schema Recon Findings
+- `assignments.assignee_id` is the student column on assignments, but it is nullable for group assignments.
+- `task_instances.name` is the task title column used for `parent_task_title`.
+- `group_members.user_id` is the student membership column.
+- `profiles` uses `display_name`, not `full_name`.
+- `task_instances.start_time` and `task_instances.end_time` are stored as `text`, so the task-list RPC casts valid values to `time`.
+
+### Verification
+| Check | Expected | Actual | Status |
+|-------|----------|--------|--------|
+| `coach_fetch_student_task_list` exists | Yes | Yes | Pass |
+| `coach_fetch_student_profile_summary` exists | Yes | Yes | Pass |
+| Both are SECURITY DEFINER | Yes | Yes (`DEFINER` for both in `information_schema.routines`) | Pass |
+| Grants: authenticated only | Yes | `authenticated` granted; `postgres` and `service_role` also appear in `information_schema.role_routine_grants` due platform ownership/membership | Warn |
+| No PUBLIC/anon grants | 0 | 0 | Pass |
+| npm run lint | Pass | Pass (31 existing warnings, 0 errors) | Pass |
+| npm run build | Pass | Pass | Pass |
+
+### Concerns
+- Filtering only on `assignments.assignee_id` would miss group-assigned tasks, so both RPCs use `task_instances.assignee_id` as the student filter and scope results to the current coach with `COALESCE(task_instances.coach_id, assignments.assigned_by) = auth.uid()`.
+
+---
+
+## Phase 1.3: WS-EMAIL-NOTIFY Backend
+
+**Date:** 2026-03-16
+**Prompt:** PHASE1_3_EMAIL_NOTIFY_BACKEND.md
+
+### Summary
+Created email notification backend:
+- `notification_preferences` table with RLS (own-row SELECT/INSERT/UPDATE)
+- `notification_send_log` table (no RLS, service role only)
+- `upsert_notification_prefs` RPC (SECURITY DEFINER, authenticated)
+- `fetch_notification_prefs` RPC (SECURITY DEFINER, authenticated)
+- `send-task-notification` edge function (webhook-triggered, Resend email delivery, dedup)
+
+### Manual Steps Required
+1. Set `RESEND_API_KEY` secret
+2. Deploy edge function
+3. Configure database webhook in Supabase dashboard
+4. Verify domain in Resend (or use `resend.dev` for testing)
+
+### Verification
+| Check | Expected | Actual | Status |
+|-------|----------|--------|--------|
+| `notification_preferences` table exists | Yes | Yes | Pass |
+| `notification_send_log` table exists | Yes | Yes | Pass |
+| RLS enabled on `notification_preferences` | Yes | Yes (`rowsecurity = true`) | Pass |
+| RLS NOT enabled on `notification_send_log` | Yes | Yes (`rowsecurity = false`) | Pass |
+| 3 RLS policies on `notification_preferences` | 3 | 3 (`SELECT`, `INSERT`, `UPDATE`) | Pass |
+| `upsert_notification_prefs` exists, DEFINER | Yes | Yes | Pass |
+| `fetch_notification_prefs` exists, DEFINER | Yes | Yes | Pass |
+| Grants: authenticated only, no anon/public | Yes | `authenticated` granted; `postgres` and `service_role` also appear in `information_schema.role_routine_grants`; `PUBLIC`/`anon` grants = 0 | Warn |
+| Edge function file exists | Yes | Yes | Pass |
+| Edge function follows ai-chat import pattern | Yes | Yes (`serve` from Deno std, `createClient` from jsdelivr Supabase CDN, `Deno.env` config) | Pass |
+| npm run lint | Pass | Pass (31 existing warnings, 0 errors) | Pass |
+| npm run build | Pass | Pass | Pass |
+
+### Concerns
+- `profiles.id` is not the auth user id in the live schema, so `notification_preferences.owner_profile_id` had to reference `profiles.user_id` to make `auth.uid()` ownership checks work.
+- `digest_frequency` is stored but not writable through the requested RPC surface; the edge function currently sends only when the stored value is `immediate`.
+
+---
+
+## Phase 2.1: WS-TASK-EDIT Frontend — EditTaskInstanceModal
+
+**Date:** 2026-03-16
+**Prompt:** PHASE2_1_TASK_EDIT_FRONTEND.md
+
+### Summary
+Created shared task edit modal and hook:
+- `EditTaskInstanceModal.tsx`: date/time editing, recurring checkbox, error mapping
+- `useEditTaskInstance.ts`: wraps both edit RPCs, manages mutation state
+
+Extracted inline edit from `CoachCalendar.tsx` and replaced with shared modal.
+Added Edit action to `GroupDetail.tsx` Tasks tab.
+
+### Recurring Detection
+- Used a lightweight assignment lookup inside the modal.
+- The modal queries `assignments(id, schedule_type)` on open.
+- If `schedule_type !== 'once'`, the instance is treated as recurring.
+- The modal passes `assignment_id` as the `scheduleId` to `coach_edit_recurring_pattern`, matching the actual Phase 1.1 backend implementation.
+
+### Verification
+| Check | Expected | Actual | Status |
+|-------|----------|--------|--------|
+| `EditTaskInstanceModal.tsx` exists | Yes | Yes | Pass |
+| `useEditTaskInstance.ts` exists | Yes | Yes | Pass |
+| CoachCalendar uses shared modal | Yes | Yes (import + JSX usage) | Pass |
+| CoachCalendar inline edit removed | Yes | `grep` for `editForm|handleSaveEdit|openEditDialog|DaySheetContent` returned 0 matches | Pass |
+| GroupDetail Tasks tab has Edit action | Yes | Yes (single-instance rows and expanded per-student rows) | Pass |
+| Portal theming applied | Yes | Yes (`DialogContent` uses `className=\"coach-theme dark ...\"`) | Pass |
+| Recurring detection mechanism | Documented | Documented above | Pass |
+| npm run lint | Pass | Pass (31 existing warnings, 0 errors) | Pass |
+| npm run build | Pass | Pass | Pass |
+
+### Concerns
+- The backend recurring edit RPC works on the active recurring assignment model, not `recurring_schedules`, so the frontend had to use `assignment_id` as the recurring pattern identifier.
+- Applying edits to all future occurrences changes weekday/time pattern only; same-weekday date shifts still need single-instance edit mode.
+
+## Phase 2.3: WS-STUDENT-GROUP-FILTER Frontend
+- Created `StudentGroupFilterBar.tsx` chip component
+- Integrated into `StudentHome.tsx` with client-side filtering
+- Filter persists in `sessionStorage`, hidden for <=1 group
+- `useTaskRollover` receives unfiltered data; filtering is render-layer only
+- Verification: `npm run lint` passed with 0 errors and 31 existing warnings, `npm run build` passed
+
+## Phase 2.4: WS-EMAIL-NOTIFY Frontend
+- Created `useNotificationPrefs` hook (fetch + upsert RPCs)
+- Created `NotificationSettingsPanel` component with role-conditional toggles
+- Integrated into `CoachSettings` and `StudentSettings` at the current pre-destructive card positions
+- 500ms debounced toggle updates
+- Verification: `npm run lint` passed with 0 errors and existing warnings, `npm run build` passed

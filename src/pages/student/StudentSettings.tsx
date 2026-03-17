@@ -23,6 +23,7 @@ import { handleError } from "@/lib/error";
 import { useTimezone } from "@/hooks/useTimezone";
 import { TimezoneSelect } from "@/components/TimezoneSelect";
 import { DeleteAccountSection } from "@/components/settings/DeleteAccountSection";
+import { NotificationSettingsPanel } from "@/components/settings/NotificationSettingsPanel";
 
 interface Profile {
     display_name: string | null;
@@ -278,6 +279,8 @@ export default function StudentSettings() {
                     )}
                 </CardContent>
             </Card>
+
+            <NotificationSettingsPanel />
 
             {/* Support & Legal */}
             <Card>
