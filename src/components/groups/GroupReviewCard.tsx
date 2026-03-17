@@ -169,11 +169,6 @@ export function GroupReviewCard({
                   key={member.id}
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (onMemberClick) {
-                      onMemberClick(member.id);
-                      return;
-                    }
-
                     navigate(getStudentProfileHref(member.id));
                   }}
                   className={cn(
@@ -212,6 +207,20 @@ export function GroupReviewCard({
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
+                    {onMemberClick && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onMemberClick(member.id);
+                        }}
+                      >
+                        Quick View
+                      </Button>
+                    )}
                     {member.hasNote && (
                       <Badge variant="outline" className="text-xs">
                         Note
