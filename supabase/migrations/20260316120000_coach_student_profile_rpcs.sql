@@ -41,11 +41,11 @@ BEGIN
 
   SELECT EXISTS (
     SELECT 1
-    FROM public.instructor_students isr
-    WHERE isr.instructor_id = v_caller_id
-      AND isr.student_id = p_target_student_id
-  )
-  INTO v_student_link_exists;
+    FROM public.group_members gm
+    JOIN public.groups g ON g.id = gm.group_id
+    WHERE gm.user_id = p_target_student_id
+      AND g.coach_id = v_caller_id
+  ) INTO v_student_link_exists;
 
   IF NOT v_student_link_exists THEN
     RAISE EXCEPTION 'student_not_linked' USING ERRCODE = 'P0001';
@@ -127,11 +127,11 @@ BEGIN
 
   SELECT EXISTS (
     SELECT 1
-    FROM public.instructor_students isr
-    WHERE isr.instructor_id = v_caller_id
-      AND isr.student_id = p_target_student_id
-  )
-  INTO v_student_link_exists;
+    FROM public.group_members gm
+    JOIN public.groups g ON g.id = gm.group_id
+    WHERE gm.user_id = p_target_student_id
+      AND g.coach_id = v_caller_id
+  ) INTO v_student_link_exists;
 
   IF NOT v_student_link_exists THEN
     RAISE EXCEPTION 'student_not_linked' USING ERRCODE = 'P0001';
