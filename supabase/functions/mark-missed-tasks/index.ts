@@ -15,7 +15,7 @@
     $$
     SELECT net.http_post(
       url := '<YOUR_PROJECT_URL>/functions/v1/mark-missed-tasks',
-      headers := '{"Authorization": "Bearer <YOUR_SERVICE_ROLE_KEY>"}'::jsonb,
+      headers := '{"Authorization": "Bearer <YOUR_EDGE_FUNCTION_SECRET>"}'::jsonb,
       body := '{}'::jsonb
     ) AS request_id;
     $$
@@ -25,16 +25,28 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+const jsonHeaders = { "Content-Type": "application/json" };
 
 serve(async (req) => {
-  // Handle CORS preflight
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+  // --- Caller verification ---
+  const expectedSecret = Deno.env.get("EDGE_FUNCTION_SECRET");
+  if (!expectedSecret) {
+    return new Response(
+      JSON.stringify({ error: "server_misconfigured" }),
+      { status: 500, headers: jsonHeaders }
+    );
   }
+
+  const authHeader = req.headers.get("authorization") ?? "";
+  const providedSecret = authHeader.replace(/^Bearer\s+/i, "");
+
+  if (providedSecret !== expectedSecret) {
+    return new Response(
+      JSON.stringify({ error: "unauthorized" }),
+      { status: 401, headers: jsonHeaders }
+    );
+  }
+  // --- End caller verification ---
 
   const startTime = Date.now();
   console.log("[mark-missed-tasks] Cron job started at:", new Date().toISOString());
@@ -83,7 +95,7 @@ serve(async (req) => {
         executionTimeMs: elapsed,
       }),
       {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: jsonHeaders,
       }
     );
 
@@ -99,7 +111,7 @@ serve(async (req) => {
       }),
       {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: jsonHeaders,
       }
     );
   }

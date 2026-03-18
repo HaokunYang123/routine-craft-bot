@@ -279,6 +279,26 @@ async function handleCompletionNotification(record: TaskInstanceWebhookRecord): 
 }
 
 serve(async (req: Request) => {
+  // --- Caller verification ---
+  const expectedSecret = Deno.env.get("EDGE_FUNCTION_SECRET");
+  if (!expectedSecret) {
+    return new Response(
+      JSON.stringify({ error: "server_misconfigured" }),
+      { status: 500, headers: jsonHeaders },
+    );
+  }
+
+  const authHeader = req.headers.get("authorization") ?? "";
+  const providedSecret = authHeader.replace(/^Bearer\s+/i, "");
+
+  if (providedSecret !== expectedSecret) {
+    return new Response(
+      JSON.stringify({ error: "unauthorized" }),
+      { status: 401, headers: jsonHeaders },
+    );
+  }
+  // --- End caller verification ---
+
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ ok: false, error: "method_not_allowed" }), {
       status: 405,
