@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { clearPasswordResetPending } from "@/lib/auth/passwordReset";
 import { Loader2, School, GraduationCap, LogIn } from "lucide-react";
 
 type AuthIntent = "signup" | "login";
@@ -102,6 +103,18 @@ export function AuthTabs({ forceResetMode = false, emailConfirmedMessage = null 
   const [resetSuccess, setResetSuccess] = useState<string | null>(null);
 
   const isLoginLocked = loginLockoutUntil !== null && Date.now() < loginLockoutUntil;
+
+  const navigateToRoleHome = (role: Role) => {
+    if (role === "coach") {
+      navigate("/dashboard", { replace: true });
+      return;
+    }
+    if (role === "student") {
+      navigate("/app", { replace: true });
+      return;
+    }
+    navigate("/parent", { replace: true });
+  };
 
   const clearLoadingTimeout = () => {
     if (loadingTimeoutRef.current !== null) {
@@ -464,17 +477,36 @@ export function AuthTabs({ forceResetMode = false, emailConfirmedMessage = null 
         return;
       }
 
-      await supabase.auth.signOut();
-      setResetSuccess("Password updated. Please log in with your new password.");
+      clearPasswordResetPending();
+      setResetSuccess("Password updated. Redirecting...");
       toast({
         title: "Password updated",
-        description: "Please log in with your new password.",
+        description: "Redirecting you to your dashboard.",
       });
       setResetPassword("");
       setResetConfirmPassword("");
-      navigate("/login", { replace: true });
-      setAuthView("tabs");
-      setActiveTab("login");
+
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user.id;
+
+      if (!userId) {
+        navigate("/", { replace: true });
+        return;
+      }
+
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      const role = normalizeRole(profileData?.role);
+      if (profileError || !role) {
+        navigate("/", { replace: true });
+        return;
+      }
+
+      navigateToRoleHome(role);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Could not update your password. Please try again.";
       setResetError(mapPasswordResetError(message));
@@ -503,6 +535,7 @@ export function AuthTabs({ forceResetMode = false, emailConfirmedMessage = null 
     setActiveTab("login");
 
     if (forceResetMode) {
+      clearPasswordResetPending();
       await supabase.auth.signOut();
       navigate("/login", { replace: true });
     }

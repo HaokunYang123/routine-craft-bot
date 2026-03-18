@@ -6,6 +6,11 @@ import { detectBrowserTimezone } from "@/lib/timezone";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { persistRoleToAuthMetadata } from "@/lib/auth/persistRoleMetadata";
+import {
+  getRedirectTypeFromExchangeData,
+  isPasswordRecoveryRedirectType,
+  markPasswordResetPending,
+} from "@/lib/auth/passwordReset";
 import { decideNextStep, deriveIntendedRole, type AuthRole } from "./authCallbackHelpers";
 
 type CallbackState =
@@ -280,11 +285,22 @@ export default function AuthCallback() {
   useEffect(() => {
     const runCallback = async () => {
       const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
-      const callbackType = searchParams.get("type") ?? hashParams.get("type");
+      const callbackType = urlType ?? hashParams.get("type");
+      const isRecoveryCallback = isPasswordRecoveryRedirectType(callbackType);
       const recoveryTokenHash =
-        callbackType === "recovery"
+        isRecoveryCallback
           ? searchParams.get("token_hash") ?? hashParams.get("token_hash")
           : null;
+      let exchangeRedirectType: string | null = null;
+
+      const exchangeCode = async (code: string) => {
+        const result = await supabase.auth.exchangeCodeForSession(code);
+        const redirectType = getRedirectTypeFromExchangeData(result.data);
+        if (redirectType) {
+          exchangeRedirectType = redirectType;
+        }
+        return result;
+      };
 
       setError(null);
       setErrorDetail(null);
@@ -293,7 +309,7 @@ export default function AuthCallback() {
       setStatusMessage(
         callbackType === "signup"
           ? "Confirming your email..."
-          : callbackType === "recovery"
+          : isRecoveryCallback
             ? "Verifying your reset link..."
             : "Verifying your sign-in..."
       );
@@ -356,18 +372,10 @@ export default function AuthCallback() {
 
       log("callback start");
 
-      const { data: { session: preSession }, error: preSessionError } = await supabase.auth.getSession();
+      let session = null;
 
-      if (preSessionError) {
-        logError("getSession pre-check error");
-      }
-
-      let session = preSession ?? null;
-
-      if (session) {
-        log("session already present, skipping exchange", session.user.id);
-      } else if (
-        callbackType === "recovery" &&
+      if (
+        isRecoveryCallback &&
         recoveryTokenHash &&
         recoveryVerifyAttemptedRef.current !== recoveryTokenHash
       ) {
@@ -421,7 +429,7 @@ export default function AuthCallback() {
         exchangeAttemptedRef.current = codeForExchange;
         log("exchange attempt");
 
-        let { error: exchangeError } = await supabase.auth.exchangeCodeForSession(codeForExchange);
+        let { error: exchangeError } = await exchangeCode(codeForExchange);
 
         if (exchangeError) {
           const message = exchangeError.message ?? "";
@@ -436,7 +444,7 @@ export default function AuthCallback() {
             pkceRetryAttemptRef.current = codeForExchange;
             log("pkce verifier missing, retrying exchange once");
             await new Promise((resolve) => setTimeout(resolve, PKCE_RETRY_DELAY_MS));
-            const { error: retryError } = await supabase.auth.exchangeCodeForSession(codeForExchange);
+            const { error: retryError } = await exchangeCode(codeForExchange);
             exchangeError = retryError ?? null;
           }
 
@@ -458,7 +466,7 @@ export default function AuthCallback() {
               session = fallbackSession;
               log("session recovered after exchange error", fallbackSession.user.id);
             } else {
-              if (retryPkceVerifierMissing && callbackType !== "recovery") {
+              if (retryPkceVerifierMissing && !isRecoveryCallback) {
                 log("email confirmation pkce verifier missing, redirecting to login with confirmed flag");
                 redirectToConfirmedLogin();
                 return;
@@ -513,6 +521,16 @@ export default function AuthCallback() {
         log("exchange skipped");
       }
 
+      if (!session) {
+        const { data: { session: recoveredSession }, error: sessionError } = await supabase.auth.getSession();
+
+        if (sessionError) {
+          logError("getSession post-callback error");
+        }
+
+        session = recoveredSession ?? null;
+      }
+
       if (session) {
         log("session present", session.user.id);
       } else {
@@ -526,10 +544,14 @@ export default function AuthCallback() {
         return;
       }
 
-      if (callbackType === "recovery") {
+      const isRecoveryFlow =
+        isRecoveryCallback || isPasswordRecoveryRedirectType(exchangeRedirectType);
+
+      if (isRecoveryFlow) {
         log("password recovery callback detected", session.user.id);
         clearPendingAuth();
         localStorage.removeItem(CODE_STORAGE_KEY);
+        markPasswordResetPending();
         navigate("/login?mode=reset", { replace: true });
         return;
       }

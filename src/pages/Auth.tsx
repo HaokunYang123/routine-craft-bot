@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { GraduationCap, Loader2, RefreshCw } from "lucide-react";
 import { AuthTabs } from "@/components/auth/AuthTabs";
 import { Button } from "@/components/ui/button";
+import { hasPasswordResetPending } from "@/lib/auth/passwordReset";
 
 type AuthState =
   | "checking"           // Initial session check
@@ -21,7 +22,8 @@ const Auth = () => {
   const [pollAttempt, setPollAttempt] = useState(0);
   const [userId, setUserId] = useState<string | null>(null);
   const [emailConfirmedMessage, setEmailConfirmedMessage] = useState<string | null>(null);
-  const isPasswordResetMode = searchParams.get("mode") === "reset";
+  const isPasswordResetMode =
+    searchParams.get("mode") === "reset" || hasPasswordResetPending();
 
   useEffect(() => {
     if (searchParams.get("confirmed") !== "true") {

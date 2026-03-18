@@ -44,6 +44,7 @@ describe('AuthCallback', () => {
     mockNavigate.mockClear();
     mockToast.mockClear();
     localStorage.clear();
+    sessionStorage.clear();
     window.history.replaceState({}, '', '/');
 
     const mock = getMockSupabase();
@@ -72,12 +73,13 @@ describe('AuthCallback', () => {
     });
   });
 
-  it('skips code exchange when session already exists', async () => {
+  it('still exchanges callback code when a session already exists', async () => {
     const mockSession = createMockSession({ userId: 'user-2' });
     const mock = getMockSupabase();
 
-    mock.auth.getSession.mockResolvedValueOnce({
-      data: { session: mockSession },
+    mock.auth.getSession.mockResolvedValueOnce({ data: { session: mockSession }, error: null });
+    mock.auth.exchangeCodeForSession.mockResolvedValueOnce({
+      data: { session: mockSession, user: mockSession.user },
       error: null,
     });
 
@@ -86,10 +88,8 @@ describe('AuthCallback', () => {
     render(<AuthCallback />, { initialRoute: '/auth/callback?code=url-code' });
 
     await waitFor(() => {
-      expect(mock.auth.getSession).toHaveBeenCalled();
+      expect(mock.auth.exchangeCodeForSession).toHaveBeenCalledWith('url-code');
     });
-
-    expect(mock.auth.exchangeCodeForSession).not.toHaveBeenCalled();
   });
 
   it('verifies recovery token hashes and redirects to reset mode', async () => {
@@ -117,6 +117,34 @@ describe('AuthCallback', () => {
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('/login?mode=reset', { replace: true });
     });
+
+    expect(sessionStorage.getItem('tcc_password_reset_pending')).toBe('true');
+  });
+
+  it('treats PKCE recovery callbacks without a url type as reset mode', async () => {
+    const mockSession = createMockSession({ userId: 'user-5' });
+    const mock = getMockSupabase();
+
+    mock.auth.exchangeCodeForSession.mockResolvedValueOnce({
+      data: { session: mockSession, user: mockSession.user, redirectType: 'PASSWORD_RECOVERY' },
+      error: null,
+    });
+    mock.auth.getSession.mockResolvedValueOnce({
+      data: { session: mockSession },
+      error: null,
+    });
+
+    render(<AuthCallback />, { initialRoute: '/auth/callback?code=recovery-code' });
+
+    await waitFor(() => {
+      expect(mock.auth.exchangeCodeForSession).toHaveBeenCalledWith('recovery-code');
+    });
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/login?mode=reset', { replace: true });
+    });
+
+    expect(sessionStorage.getItem('tcc_password_reset_pending')).toBe('true');
   });
 
   it('treats fragment recovery sessions as password reset callbacks', async () => {
