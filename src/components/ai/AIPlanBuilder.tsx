@@ -592,7 +592,7 @@ export function AIPlanBuilder(props: AIPlanBuilderProps) {
               onChange={(event) => setSubject(event.target.value)}
               disabled={isGenerating || isCoolingDown}
               placeholder="e.g. Basketball fundamentals"
-              className="bg-card border-border"
+              className="min-h-[44px] bg-card border-border"
             />
           </div>
 
@@ -600,12 +600,12 @@ export function AIPlanBuilder(props: AIPlanBuilderProps) {
             <div className="space-y-2">
               <Label htmlFor="ai-plan-age-group">Age Group</Label>
               <Select value={ageGroup} onValueChange={setAgeGroup} disabled={isGenerating || isCoolingDown}>
-                <SelectTrigger id="ai-plan-age-group" className="bg-card border-border">
+                <SelectTrigger id="ai-plan-age-group" className="min-h-[44px] bg-card border-border">
                   <SelectValue placeholder="Select age group" />
                 </SelectTrigger>
                 <SelectContent>
                   {AGE_GROUP_OPTIONS.map((option) => (
-                    <SelectItem key={option} value={option}>
+                    <SelectItem key={option} value={option} className="min-h-[44px]">
                       {option}
                     </SelectItem>
                   ))}
@@ -616,12 +616,12 @@ export function AIPlanBuilder(props: AIPlanBuilderProps) {
             <div className="space-y-2">
               <Label htmlFor="ai-plan-skill-level">Skill Level</Label>
               <Select value={skillLevel} onValueChange={setSkillLevel} disabled={isGenerating || isCoolingDown}>
-                <SelectTrigger id="ai-plan-skill-level" className="bg-card border-border">
+                <SelectTrigger id="ai-plan-skill-level" className="min-h-[44px] bg-card border-border">
                   <SelectValue placeholder="Select level" />
                 </SelectTrigger>
                 <SelectContent>
                   {SKILL_LEVEL_OPTIONS.map((option) => (
-                    <SelectItem key={option} value={option}>
+                    <SelectItem key={option} value={option} className="min-h-[44px]">
                       {option}
                     </SelectItem>
                   ))}
@@ -632,14 +632,14 @@ export function AIPlanBuilder(props: AIPlanBuilderProps) {
             <div className="space-y-2">
               <Label htmlFor="ai-plan-duration">Duration (weeks)</Label>
               <Select value={duration} onValueChange={setDuration} disabled={isGenerating || isCoolingDown}>
-                <SelectTrigger id="ai-plan-duration" className="bg-card border-border">
+                <SelectTrigger id="ai-plan-duration" className="min-h-[44px] bg-card border-border">
                   <SelectValue placeholder="Select duration" />
                 </SelectTrigger>
                 <SelectContent>
                   {Array.from({ length: 12 }, (_, index) => {
                     const value = String(index + 1);
                     return (
-                      <SelectItem key={value} value={value}>
+                      <SelectItem key={value} value={value} className="min-h-[44px]">
                         {value}
                       </SelectItem>
                     );
@@ -659,7 +659,7 @@ export function AIPlanBuilder(props: AIPlanBuilderProps) {
               onBlur={handleFocusAreaBlur}
               disabled={isGenerating || isCoolingDown}
               placeholder="Type a focus area, then press Enter or comma"
-              className="bg-card border-border"
+              className="min-h-[44px] bg-card border-border"
             />
             {focusAreas.length > 0 && (
               <div className="flex flex-wrap gap-2">
@@ -671,7 +671,7 @@ export function AIPlanBuilder(props: AIPlanBuilderProps) {
                       aria-label={`Remove ${focus}`}
                       onClick={() => removeFocusArea(focus)}
                       disabled={isGenerating || isCoolingDown}
-                      className="inline-flex h-4 w-4 items-center justify-center rounded hover:bg-black/10"
+                      className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full p-2 hover:bg-black/10"
                     >
                       <X className="h-3 w-3" />
                     </button>
@@ -685,7 +685,7 @@ export function AIPlanBuilder(props: AIPlanBuilderProps) {
             type="button"
             onClick={handleGeneratePlan}
             disabled={!subject.trim() || isGenerating || isCoolingDown}
-            className="bg-cta-primary hover:bg-cta-hover text-white"
+            className="min-h-[44px] bg-cta-primary hover:bg-cta-hover text-white"
           >
             {isGenerating ? (
               <>
@@ -713,7 +713,7 @@ export function AIPlanBuilder(props: AIPlanBuilderProps) {
                 variant="outline"
                 size="sm"
                 onClick={handleTryAgain}
-                className="mt-3 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                className="mt-3 min-h-[44px] border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
               >
                 Try Again
               </Button>
@@ -738,7 +738,7 @@ export function AIPlanBuilder(props: AIPlanBuilderProps) {
                     handleTemplateFieldChange("name", event.target.value)
                   }
                   disabled={isSaving}
-                  className="bg-card border-border"
+                  className="min-h-[44px] bg-card border-border"
                 />
               </div>
 
@@ -785,7 +785,7 @@ export function AIPlanBuilder(props: AIPlanBuilderProps) {
                                 size="icon"
                                 onClick={() => handleDeleteTask(task.id)}
                                 disabled={isSaving}
-                                className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                className="min-h-[44px] min-w-[44px] text-muted-foreground hover:text-destructive"
                                 aria-label="Delete task"
                               >
                                 <X className="h-4 w-4" />
@@ -801,7 +801,7 @@ export function AIPlanBuilder(props: AIPlanBuilderProps) {
                                   handleTaskTextChange(task.id, "title", event.target.value)
                                 }
                                 disabled={isSaving}
-                                className="bg-card border-border"
+                                className="min-h-[44px] bg-card border-border"
                               />
                             </div>
 
@@ -834,7 +834,7 @@ export function AIPlanBuilder(props: AIPlanBuilderProps) {
                                     handleTaskDayChange(task.id, event.target.value)
                                   }
                                   disabled={isSaving}
-                                  className="bg-card border-border"
+                                  className="min-h-[44px] bg-card border-border"
                                 />
                               </div>
 
@@ -849,7 +849,7 @@ export function AIPlanBuilder(props: AIPlanBuilderProps) {
                                     handleTaskDurationChange(task.id, event.target.value)
                                   }
                                   disabled={isSaving}
-                                  className="bg-card border-border"
+                                  className="min-h-[44px] bg-card border-border"
                                 />
                               </div>
 
@@ -867,7 +867,7 @@ export function AIPlanBuilder(props: AIPlanBuilderProps) {
                                   }
                                   disabled={isSaving}
                                   placeholder="HH:MM"
-                                  className="bg-card border-border"
+                                  className="min-h-[44px] bg-card border-border"
                                 />
                               </div>
 
@@ -881,7 +881,7 @@ export function AIPlanBuilder(props: AIPlanBuilderProps) {
                                   }
                                   disabled={isSaving}
                                   placeholder="HH:MM"
-                                  className="bg-card border-border"
+                                  className="min-h-[44px] bg-card border-border"
                                 />
                               </div>
                             </div>
@@ -905,7 +905,7 @@ export function AIPlanBuilder(props: AIPlanBuilderProps) {
                 type="button"
                 onClick={handleSaveTemplate}
                 disabled={isSaving || !templateDraft.name.trim()}
-                className="bg-cta-primary hover:bg-cta-hover text-white"
+                className="min-h-[44px] bg-cta-primary hover:bg-cta-hover text-white"
               >
                 {isSaving ? (
                   <>
@@ -916,7 +916,13 @@ export function AIPlanBuilder(props: AIPlanBuilderProps) {
                   "Save Template"
                 )}
               </Button>
-              <Button type="button" variant="outline" onClick={resetToInput} disabled={isSaving}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={resetToInput}
+                disabled={isSaving}
+                className="min-h-[44px]"
+              >
                 Start Over
               </Button>
             </div>

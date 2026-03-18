@@ -616,7 +616,7 @@ export function PersonalizeDialog({ open, onOpenChange, template }: PersonalizeD
                   id="personalize-template-name"
                   value={parseString(template.name) || "Template"}
                   disabled
-                  className="bg-card border-border"
+                  className="min-h-[44px] bg-card border-border"
                 />
               </div>
 
@@ -628,12 +628,12 @@ export function PersonalizeDialog({ open, onOpenChange, template }: PersonalizeD
                     onValueChange={setDifficulty}
                     disabled={isGenerating || isSaving || isCoolingDown}
                   >
-                    <SelectTrigger id="personalize-difficulty" className="bg-card border-border">
+                    <SelectTrigger id="personalize-difficulty" className="min-h-[44px] bg-card border-border">
                       <SelectValue placeholder="Select difficulty adjustment" />
                     </SelectTrigger>
                     <SelectContent>
                       {DIFFICULTY_OPTIONS.map((option) => (
-                        <SelectItem key={option} value={option}>
+                        <SelectItem key={option} value={option} className="min-h-[44px]">
                           {option}
                         </SelectItem>
                       ))}
@@ -648,12 +648,12 @@ export function PersonalizeDialog({ open, onOpenChange, template }: PersonalizeD
                     onValueChange={setPacing}
                     disabled={isGenerating || isSaving || isCoolingDown}
                   >
-                    <SelectTrigger id="personalize-pacing" className="bg-card border-border">
+                    <SelectTrigger id="personalize-pacing" className="min-h-[44px] bg-card border-border">
                       <SelectValue placeholder="Select pacing" />
                     </SelectTrigger>
                     <SelectContent>
                       {PACING_OPTIONS.map((option) => (
-                        <SelectItem key={option} value={option}>
+                        <SelectItem key={option} value={option} className="min-h-[44px]">
                           {option}
                         </SelectItem>
                       ))}
@@ -674,8 +674,8 @@ export function PersonalizeDialog({ open, onOpenChange, template }: PersonalizeD
                         onClick={() => toggleLearningStyle(style)}
                         disabled={isGenerating || isSaving || isCoolingDown}
                         className={isSelected
-                          ? "rounded-md border border-cta-primary/60 bg-cta-primary/15 px-3 py-1.5 text-sm text-foreground"
-                          : "rounded-md border border-border bg-card px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground"
+                          ? "min-h-[44px] rounded-md border border-cta-primary/60 bg-cta-primary/15 px-3 py-1.5 text-sm text-foreground"
+                          : "min-h-[44px] rounded-md border border-border bg-card px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground"
                         }
                       >
                         {style}
@@ -693,7 +693,7 @@ export function PersonalizeDialog({ open, onOpenChange, template }: PersonalizeD
                           aria-label={`Remove ${style}`}
                           onClick={() => toggleLearningStyle(style)}
                           disabled={isGenerating || isSaving || isCoolingDown}
-                          className="inline-flex h-4 w-4 items-center justify-center rounded hover:bg-black/10"
+                          className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full p-2 hover:bg-black/10"
                         >
                           <X className="h-3 w-3" />
                         </button>
@@ -711,7 +711,7 @@ export function PersonalizeDialog({ open, onOpenChange, template }: PersonalizeD
                   onChange={(event) => setAccommodations(event.target.value)}
                   disabled={isGenerating || isSaving || isCoolingDown}
                   placeholder="e.g. extra time, simplified language"
-                  className="bg-card border-border"
+                  className="min-h-[44px] bg-card border-border"
                 />
               </div>
 
@@ -731,7 +731,7 @@ export function PersonalizeDialog({ open, onOpenChange, template }: PersonalizeD
                 type="button"
                 onClick={handleGeneratePersonalization}
                 disabled={isGenerating || isSaving || isCoolingDown}
-                className="bg-cta-primary hover:bg-cta-hover text-white"
+                className="min-h-[44px] bg-cta-primary hover:bg-cta-hover text-white"
               >
                 {isGenerating ? (
                   <>
@@ -781,7 +781,7 @@ export function PersonalizeDialog({ open, onOpenChange, template }: PersonalizeD
                         handleTemplateTextChange("name", event.target.value)
                       }
                       disabled={isSaving}
-                      className="bg-card border-border"
+                      className="min-h-[44px] bg-card border-border"
                     />
                   </div>
 
@@ -810,7 +810,7 @@ export function PersonalizeDialog({ open, onOpenChange, template }: PersonalizeD
                           handleTemplateNumberChange("duration_weeks", event.target.value)
                         }
                         disabled={isSaving}
-                        className="bg-card border-border"
+                        className="min-h-[44px] bg-card border-border"
                       />
                     </div>
 
@@ -825,7 +825,7 @@ export function PersonalizeDialog({ open, onOpenChange, template }: PersonalizeD
                           handleTemplateNumberChange("frequency_per_week", event.target.value)
                         }
                         disabled={isSaving}
-                        className="bg-card border-border"
+                        className="min-h-[44px] bg-card border-border"
                       />
                     </div>
                   </div>
@@ -856,7 +856,7 @@ export function PersonalizeDialog({ open, onOpenChange, template }: PersonalizeD
                                     size="icon"
                                     onClick={() => handleDeleteTask(task.id)}
                                     disabled={isSaving}
-                                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                    className="min-h-[44px] min-w-[44px] text-muted-foreground hover:text-destructive"
                                     aria-label="Delete task"
                                   >
                                     <X className="h-4 w-4" />
@@ -872,7 +872,7 @@ export function PersonalizeDialog({ open, onOpenChange, template }: PersonalizeD
                                       handleTaskTextChange(task.id, "title", event.target.value)
                                     }
                                     disabled={isSaving}
-                                    className="bg-card border-border"
+                                    className="min-h-[44px] bg-card border-border"
                                   />
                                 </div>
 
@@ -905,7 +905,7 @@ export function PersonalizeDialog({ open, onOpenChange, template }: PersonalizeD
                                         handleTaskDayChange(task.id, event.target.value)
                                       }
                                       disabled={isSaving}
-                                      className="bg-card border-border"
+                                      className="min-h-[44px] bg-card border-border"
                                     />
                                   </div>
 
@@ -920,7 +920,7 @@ export function PersonalizeDialog({ open, onOpenChange, template }: PersonalizeD
                                         handleTaskDurationChange(task.id, event.target.value)
                                       }
                                       disabled={isSaving}
-                                      className="bg-card border-border"
+                                      className="min-h-[44px] bg-card border-border"
                                     />
                                   </div>
 
@@ -934,7 +934,7 @@ export function PersonalizeDialog({ open, onOpenChange, template }: PersonalizeD
                                       }
                                       disabled={isSaving}
                                       placeholder="HH:MM"
-                                      className="bg-card border-border"
+                                      className="min-h-[44px] bg-card border-border"
                                     />
                                   </div>
 
@@ -948,7 +948,7 @@ export function PersonalizeDialog({ open, onOpenChange, template }: PersonalizeD
                                       }
                                       disabled={isSaving}
                                       placeholder="HH:MM"
-                                      className="bg-card border-border"
+                                      className="min-h-[44px] bg-card border-border"
                                     />
                                   </div>
                                 </div>
@@ -972,7 +972,7 @@ export function PersonalizeDialog({ open, onOpenChange, template }: PersonalizeD
                     type="button"
                     onClick={handleSaveTemplate}
                     disabled={isSaving || !templateDraft.name.trim()}
-                    className="bg-cta-primary hover:bg-cta-hover text-white"
+                    className="min-h-[44px] bg-cta-primary hover:bg-cta-hover text-white"
                   >
                     {isSaving ? (
                       <>
@@ -988,6 +988,7 @@ export function PersonalizeDialog({ open, onOpenChange, template }: PersonalizeD
                     variant="outline"
                     onClick={handleResetPreview}
                     disabled={isSaving}
+                    className="min-h-[44px]"
                   >
                     Start Over
                   </Button>

@@ -101,7 +101,7 @@ export function PolishButton({ value, onChange }: PolishButtonProps) {
           size="sm"
           onClick={handlePolish}
           disabled={!value.trim() || isPolishing || isCoolingDown}
-          className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+          className="min-h-[44px] px-3 text-xs text-muted-foreground hover:text-foreground"
         >
           {isPolishing ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -117,7 +117,7 @@ export function PolishButton({ value, onChange }: PolishButtonProps) {
             variant="link"
             size="sm"
             onClick={handleUndo}
-            className="h-auto p-0 text-xs text-cta-primary"
+            className="min-h-[44px] min-w-[44px] px-2 py-2 text-xs text-cta-primary"
           >
             Undo
           </Button>

@@ -204,6 +204,7 @@
   }
 
   html, body {
+    background-color: #222325;
     @apply border-border;
     font-family: 'Nunito', sans-serif;
   }

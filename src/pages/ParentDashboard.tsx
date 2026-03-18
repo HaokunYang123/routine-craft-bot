@@ -571,7 +571,7 @@ export default function ParentDashboard() {
               type="button"
               variant="ghost"
               onClick={() => navigate("/")}
-              className="mb-4 -ml-2 inline-flex items-center gap-2 text-muted-foreground hover:text-foreground"
+              className="mb-4 -ml-2 inline-flex min-h-[44px] items-center gap-2 text-muted-foreground hover:text-foreground"
             >
               <ArrowLeft className="h-4 w-4" />
               Back
@@ -604,7 +604,7 @@ export default function ParentDashboard() {
                 setShowLinkForm((current) => !current);
                 setLinkError(null);
               }}
-              className="w-full sm:w-auto"
+              className="min-h-[44px] w-full sm:w-auto"
             >
               {showLinkForm ? "Hide Link Form" : "Link Another Child"}
             </Button>
@@ -641,7 +641,7 @@ export default function ParentDashboard() {
                           <button
                             type="button"
                             onClick={() => setSelectedChildId(child.childId)}
-                            className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                            className={`min-h-[44px] min-w-[44px] rounded-full px-4 py-2 text-sm font-medium transition ${
                               isSelected ? "text-foreground" : "text-muted-foreground hover:text-foreground"
                             }`}
                           >
@@ -653,7 +653,7 @@ export default function ParentDashboard() {
                                 type="button"
                                 variant="ghost"
                                 size="sm"
-                                className="h-8 rounded-full px-2 text-xs text-muted-foreground hover:text-destructive"
+                                className="min-h-[44px] rounded-full px-3 text-xs text-muted-foreground hover:text-destructive"
                                 disabled={unlinkingChildId === child.childId}
                               >
                                 Unlink
@@ -668,9 +668,9 @@ export default function ParentDashboard() {
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogCancel className="min-h-[44px]">Cancel</AlertDialogCancel>
                                 <AlertDialogAction
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  className="min-h-[44px] bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                   onClick={() => {
                                     void handleUnlink(child);
                                   }}
@@ -703,7 +703,7 @@ export default function ParentDashboard() {
                     <Button
                       type="button"
                       variant="outline"
-                      className="w-full sm:w-auto"
+                      className="min-h-[44px] w-full sm:w-auto"
                       disabled={unlinkingChildId === selectedChild.childId}
                     >
                       Unlink
@@ -717,9 +717,9 @@ export default function ParentDashboard() {
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogCancel className="min-h-[44px]">Cancel</AlertDialogCancel>
                       <AlertDialogAction
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        className="min-h-[44px] bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         onClick={() => {
                           void handleUnlink(selectedChild);
                         }}
@@ -750,9 +750,9 @@ export default function ParentDashboard() {
             onValueChange={(value) => setActiveTab(value as ParentTab)}
             className="space-y-5"
           >
-            <TabsList className="grid w-full grid-cols-2 sm:w-[320px]">
-              <TabsTrigger value="schedule">Schedule</TabsTrigger>
-              <TabsTrigger value="notes">Notes</TabsTrigger>
+            <TabsList className="grid min-h-[44px] w-full grid-cols-2 sm:w-[320px]">
+              <TabsTrigger value="schedule" className="min-h-[44px]">Schedule</TabsTrigger>
+              <TabsTrigger value="notes" className="min-h-[44px]">Notes</TabsTrigger>
             </TabsList>
 
             <TabsContent value="schedule" className="space-y-5">

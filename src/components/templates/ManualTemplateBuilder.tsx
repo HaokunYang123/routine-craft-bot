@@ -159,7 +159,7 @@ export function ManualTemplateBuilder({ onSave, isSaving }: ManualTemplateBuilde
               value={templateName}
               onChange={(e) => setTemplateName(e.target.value)}
               placeholder="e.g., Morning Workout Routine"
-              className="bg-card border-border"
+              className="min-h-[44px] bg-card border-border"
             />
           </div>
           <div className="space-y-2">
@@ -194,7 +194,7 @@ export function ManualTemplateBuilder({ onSave, isSaving }: ManualTemplateBuilde
                   size="icon"
                   onClick={() => removeTask(index)}
                   disabled={tasks.length === 1}
-                  className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
+                  className="min-h-[44px] min-w-[44px] text-muted-foreground hover:text-destructive shrink-0"
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>
@@ -206,7 +206,7 @@ export function ManualTemplateBuilder({ onSave, isSaving }: ManualTemplateBuilde
                   value={task.title}
                   onChange={(e) => updateTask(index, "title", e.target.value)}
                   placeholder="Task name"
-                  className="bg-card border-border"
+                  className="min-h-[44px] bg-card border-border"
                 />
               </div>
 
@@ -232,12 +232,12 @@ export function ManualTemplateBuilder({ onSave, isSaving }: ManualTemplateBuilde
                     value={String(task.day_offset)}
                     onValueChange={(value) => updateTask(index, "day_offset", parseInt(value, 10))}
                   >
-                    <SelectTrigger className="bg-card border-border">
+                    <SelectTrigger className="min-h-[44px] bg-card border-border">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       {[0, 1, 2, 3, 4, 5, 6].map((day) => (
-                        <SelectItem key={day} value={String(day)}>
+                        <SelectItem key={day} value={String(day)} className="min-h-[44px]">
                           Day {day + 1}
                         </SelectItem>
                       ))}
@@ -253,13 +253,13 @@ export function ManualTemplateBuilder({ onSave, isSaving }: ManualTemplateBuilde
                       updateTask(index, "priority", value as Priority)
                     }
                   >
-                    <SelectTrigger className="bg-card border-border">
+                    <SelectTrigger className="min-h-[44px] bg-card border-border">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="low">Low</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="low" className="min-h-[44px]">Low</SelectItem>
+                      <SelectItem value="medium" className="min-h-[44px]">Medium</SelectItem>
+                      <SelectItem value="high" className="min-h-[44px]">High</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -278,7 +278,7 @@ export function ManualTemplateBuilder({ onSave, isSaving }: ManualTemplateBuilde
                         Number.isNaN(parsed) ? 15 : Math.max(parsed, 1)
                       );
                     }}
-                    className="bg-card border-border"
+                    className="min-h-[44px] bg-card border-border"
                   />
                 </div>
               </div>
@@ -287,13 +287,13 @@ export function ManualTemplateBuilder({ onSave, isSaving }: ManualTemplateBuilde
                 <div className="space-y-2">
                   <Label className="text-xs">Start Time (optional)</Label>
                   <Select value={task.start_time} onValueChange={(value) => handleStartTimeChange(index, value)}>
-                    <SelectTrigger className="bg-card border-border">
+                    <SelectTrigger className="min-h-[44px] bg-card border-border">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value={NO_TIME_VALUE}>None</SelectItem>
+                      <SelectItem value={NO_TIME_VALUE} className="min-h-[44px]">None</SelectItem>
                       {TIME_SLOTS.map((slot) => (
-                        <SelectItem key={slot.label} value={slot.label}>
+                        <SelectItem key={slot.label} value={slot.label} className="min-h-[44px]">
                           {slot.label}
                         </SelectItem>
                       ))}
@@ -308,17 +308,17 @@ export function ManualTemplateBuilder({ onSave, isSaving }: ManualTemplateBuilde
                     onValueChange={(value) => updateTask(index, "end_time", value)}
                     disabled={task.start_time === NO_TIME_VALUE}
                   >
-                    <SelectTrigger className="bg-card border-border">
+                    <SelectTrigger className="min-h-[44px] bg-card border-border">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value={NO_TIME_VALUE}>None</SelectItem>
+                      <SelectItem value={NO_TIME_VALUE} className="min-h-[44px]">None</SelectItem>
                       {TIME_SLOTS.filter((slot) => {
                         if (task.start_time === NO_TIME_VALUE) return true;
                         const startValue = getTimeSlotValue(task.start_time);
                         return startValue === null ? true : slot.value > startValue;
                       }).map((slot) => (
-                        <SelectItem key={slot.label} value={slot.label}>
+                        <SelectItem key={slot.label} value={slot.label} className="min-h-[44px]">
                           {slot.label}
                         </SelectItem>
                       ))}
@@ -332,7 +332,7 @@ export function ManualTemplateBuilder({ onSave, isSaving }: ManualTemplateBuilde
           <Button
             variant="outline"
             onClick={addTask}
-            className="w-full border-dashed border-border text-muted-foreground hover:text-foreground"
+            className="min-h-[44px] w-full border-dashed border-border text-muted-foreground hover:text-foreground"
           >
             <Plus className="w-4 h-4 mr-2" />
             Add Task
@@ -366,7 +366,7 @@ export function ManualTemplateBuilder({ onSave, isSaving }: ManualTemplateBuilde
       <Button
         onClick={handleSave}
         disabled={!isValid || isSaving}
-        className="w-full bg-cta-primary hover:bg-cta-hover text-white"
+        className="min-h-[44px] w-full bg-cta-primary hover:bg-cta-hover text-white"
       >
         <Save className="w-4 h-4 mr-2" />
         {isSaving ? "Saving..." : "Save Template"}
