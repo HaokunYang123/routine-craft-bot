@@ -21,7 +21,7 @@ export interface GeminiResponse<T> {
 }
 
 interface EdgeChatResponse {
-  response?: string;
+  response?: unknown;
   retry_after_seconds?: number;
   remaining?: number;
   limit?: number;
@@ -92,11 +92,31 @@ const getAuthHeaders = async (): Promise<{ headers: Record<string, string> | nul
   }
 };
 
-const parseGeminiJson = <T>(rawText: string): GeminiResponse<T> => {
+const isStructuredJson = (value: unknown): value is Record<string, unknown> | unknown[] =>
+  typeof value === "object" && value !== null;
+
+const parseGeminiPayload = <T>(rawPayload: unknown): GeminiResponse<T> => {
+  if (isStructuredJson(rawPayload)) {
+    return {
+      success: true,
+      data: rawPayload as T,
+      error: null,
+    };
+  }
+
+  if (typeof rawPayload !== "string") {
+    console.error("[gemini] Edge function response was not JSON or a JSON string");
+    return {
+      success: false,
+      data: null,
+      error: "Gemini returned invalid JSON.",
+    };
+  }
+
   try {
     return {
       success: true,
-      data: JSON.parse(rawText) as T,
+      data: JSON.parse(rawPayload) as T,
       error: null,
     };
   } catch (error) {
@@ -116,7 +136,7 @@ const parseGeminiJson = <T>(rawText: string): GeminiResponse<T> => {
 const requestGemini = async (
   request: GeminiRequest,
   overrideUserMessage?: string,
-): Promise<GeminiResponse<string>> => {
+): Promise<GeminiResponse<unknown>> => {
   const edgeFunctionUrl = getEdgeFunctionUrl();
   if (!edgeFunctionUrl) {
     return {
@@ -201,8 +221,8 @@ const requestGemini = async (
       };
     }
 
-    const responseText = typeof payload.response === "string" ? payload.response : "";
-    if (!responseText) {
+    const responsePayload = typeof payload.response !== "undefined" ? payload.response : payload.message;
+    if (typeof responsePayload === "undefined") {
       console.error("[gemini] Edge function response missing content");
       return {
         success: false,
@@ -213,7 +233,7 @@ const requestGemini = async (
 
     return {
       success: true,
-      data: responseText,
+      data: responsePayload,
       error: null,
     };
   } catch (error) {
@@ -269,7 +289,7 @@ export async function callGemini<T>(request: GeminiRequest): Promise<GeminiRespo
     };
   }
 
-  const parsedFirstAttempt = parseGeminiJson<T>(firstAttempt.data);
+  const parsedFirstAttempt = parseGeminiPayload<T>(firstAttempt.data);
   if (parsedFirstAttempt.success) {
     logActivity("ai_feature_used", { action: request.action });
     return parsedFirstAttempt;
@@ -293,7 +313,7 @@ export async function callGemini<T>(request: GeminiRequest): Promise<GeminiRespo
     };
   }
 
-  const parsedRetryAttempt = parseGeminiJson<T>(retryAttempt.data);
+  const parsedRetryAttempt = parseGeminiPayload<T>(retryAttempt.data);
   if (!parsedRetryAttempt.success) {
     return {
       success: false,

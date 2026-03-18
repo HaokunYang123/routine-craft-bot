@@ -134,13 +134,7 @@ const RESPONSE_SCHEMAS: Record<SupportedAction, Record<string, unknown>> = {
   },
 };
 
-const MAX_OUTPUT_TOKENS: Record<SupportedAction, number> = {
-  generate_plan: 900,
-  personalize: 1000,
-  weekly_summary: 700,
-  polish: 300,
-  student_recap: 450,
-};
+const MAX_OUTPUT_TOKENS = 4096;
 
 type JsonRecord = Record<string, unknown>;
 
@@ -654,6 +648,91 @@ Rules:
   };
 };
 
+const tryParseJson = (text: string): unknown | null => {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+};
+
+const collectJsonCandidates = (text: string): string[] => {
+  const candidates = new Set<string>();
+  const trimmed = text.trim();
+
+  if (trimmed) {
+    candidates.add(trimmed);
+  }
+
+  const fencePattern = /```(?:json)?\s*([\s\S]*?)```/gi;
+  for (const match of trimmed.matchAll(fencePattern)) {
+    const fencedBody = match[1]?.trim();
+    if (fencedBody) {
+      candidates.add(fencedBody);
+    }
+  }
+
+  return Array.from(candidates);
+};
+
+const extractJsonEnvelope = (text: string, openChar: "{" | "[", closeChar: "}" | "]"): string | null => {
+  const start = text.indexOf(openChar);
+  const end = text.lastIndexOf(closeChar);
+
+  if (start === -1 || end === -1 || end < start) {
+    return null;
+  }
+
+  const extracted = text.slice(start, end + 1).trim();
+  return extracted || null;
+};
+
+const ensureStructuredResponse = (action: SupportedAction, parsed: unknown): JsonRecord => {
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    throw new Error(`Gemini returned a non-object JSON payload for ${action}`);
+  }
+
+  const required = Array.isArray(RESPONSE_SCHEMAS[action].required)
+    ? (RESPONSE_SCHEMAS[action].required as string[])
+    : [];
+  const missingFields = required.filter((field) => !Object.prototype.hasOwnProperty.call(parsed, field));
+
+  if (missingFields.length > 0) {
+    throw new Error(`Gemini response missing required fields for ${action}: ${missingFields.join(", ")}`);
+  }
+
+  return parsed as JsonRecord;
+};
+
+const parseStructuredGeminiResponse = (action: SupportedAction, rawText: string): JsonRecord => {
+  for (const candidate of collectJsonCandidates(rawText)) {
+    const directParse = tryParseJson(candidate);
+    if (directParse !== null) {
+      return ensureStructuredResponse(action, directParse);
+    }
+
+    const extractedObject = extractJsonEnvelope(candidate, "{", "}");
+    if (extractedObject) {
+      const parsedObject = tryParseJson(extractedObject);
+      if (parsedObject !== null) {
+        console.warn(`[ai-chat] Recovered prose-wrapped JSON for ${action} via object extraction`);
+        return ensureStructuredResponse(action, parsedObject);
+      }
+    }
+
+    const extractedArray = extractJsonEnvelope(candidate, "[", "]");
+    if (extractedArray) {
+      const parsedArray = tryParseJson(extractedArray);
+      if (parsedArray !== null) {
+        console.warn(`[ai-chat] Recovered prose-wrapped JSON for ${action} via array extraction`);
+        return ensureStructuredResponse(action, parsedArray);
+      }
+    }
+  }
+
+  throw new Error(`Failed to extract valid JSON from Gemini response for ${action}`);
+};
+
 serve(async (req) => {
   const origin = req.headers.get("Origin") || "";
   const corsHeaders = getCorsHeaders(origin);
@@ -770,7 +849,7 @@ serve(async (req) => {
         ],
         generationConfig: {
           temperature,
-          maxOutputTokens: MAX_OUTPUT_TOKENS[action],
+          maxOutputTokens: MAX_OUTPUT_TOKENS,
           responseMimeType: "application/json",
           responseSchema: RESPONSE_SCHEMAS[action],
         },
@@ -784,9 +863,15 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    const generatedText =
-      data?.candidates?.[0]?.content?.parts?.[0]?.text ||
-      "{\"error\":\"AI response missing structured payload\"}";
+    const generatedText = typeof data?.candidates?.[0]?.content?.parts?.[0]?.text === "string"
+      ? data.candidates[0].content.parts[0].text
+      : "";
+
+    if (!generatedText) {
+      throw new Error(`AI response missing structured payload for ${action}`);
+    }
+
+    const structuredResponse = parseStructuredGeminiResponse(action, generatedText);
 
     const usageMetadata = data.usageMetadata as GeminiUsageMetadata | undefined;
     const tokensIn = usageMetadata?.promptTokenCount ?? null;
@@ -802,7 +887,7 @@ serve(async (req) => {
       console.warn("[ai-chat] log_ai_usage failed:", usageError.message);
     }
 
-    return new Response(JSON.stringify({ response: generatedText, message: generatedText }), {
+    return new Response(JSON.stringify({ response: structuredResponse }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: unknown) {
