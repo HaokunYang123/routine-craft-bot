@@ -6,7 +6,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { clearPasswordResetPending } from "@/lib/auth/passwordReset";
+import {
+  buildPasswordRecoveryRedirectTo,
+  clearPasswordResetPending,
+} from "@/lib/auth/passwordReset";
 import { Loader2, School, GraduationCap, LogIn } from "lucide-react";
 
 type AuthIntent = "signup" | "login";
@@ -437,7 +440,7 @@ export function AuthTabs({ forceResetMode = false, emailConfirmedMessage = null 
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: buildPasswordRecoveryRedirectTo(window.location.origin),
       });
 
       if (error) {

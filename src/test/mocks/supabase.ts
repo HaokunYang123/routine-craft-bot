@@ -43,6 +43,7 @@ export interface MockAuth {
   setSession: ReturnType<typeof vi.fn>;
   exchangeCodeForSession: ReturnType<typeof vi.fn>;
   verifyOtp: ReturnType<typeof vi.fn>;
+  resetPasswordForEmail: ReturnType<typeof vi.fn>;
   updateUser: ReturnType<typeof vi.fn>;
   signInWithOAuth: ReturnType<typeof vi.fn>;
   signUp: ReturnType<typeof vi.fn>;
@@ -142,6 +143,10 @@ export function createMockSupabaseClient<T = unknown>(
     }),
     verifyOtp: vi.fn().mockResolvedValue({
       data: { session: null, user: null },
+      error: null,
+    }),
+    resetPasswordForEmail: vi.fn().mockResolvedValue({
+      data: {},
       error: null,
     }),
     updateUser: vi.fn().mockResolvedValue({

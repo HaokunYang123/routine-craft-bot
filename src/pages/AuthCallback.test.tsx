@@ -147,6 +147,55 @@ describe('AuthCallback', () => {
     expect(sessionStorage.getItem('tcc_password_reset_pending')).toBe('true');
   });
 
+  it('treats recovery url params as reset mode even when exchange metadata omits the redirect type', async () => {
+    const mockSession = createMockSession({ userId: 'user-6' });
+    const mock = getMockSupabase();
+
+    mock.auth.exchangeCodeForSession.mockResolvedValueOnce({
+      data: { session: mockSession, user: mockSession.user },
+      error: null,
+    });
+    mock.auth.getSession.mockResolvedValueOnce({
+      data: { session: mockSession },
+      error: null,
+    });
+
+    render(<AuthCallback />, { initialRoute: '/auth/callback?code=recovery-code&type=recovery' });
+
+    await waitFor(() => {
+      expect(mock.auth.exchangeCodeForSession).toHaveBeenCalledWith('recovery-code');
+    });
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/login?mode=reset', { replace: true });
+    });
+
+    expect(sessionStorage.getItem('tcc_password_reset_pending')).toBe('true');
+  });
+
+  it('keeps email confirmation callbacks on the confirmed-login fallback when pkce verification is missing', async () => {
+    const mock = getMockSupabase();
+
+    mock.auth.exchangeCodeForSession.mockResolvedValueOnce({
+      data: { session: null, user: null, redirectType: null },
+      error: { message: 'PKCE code verifier missing' },
+    });
+    mock.auth.getSession.mockResolvedValueOnce({
+      data: { session: null },
+      error: null,
+    });
+
+    render(<AuthCallback />, { initialRoute: '/auth/callback?code=confirm-code' });
+
+    await waitFor(() => {
+      expect(mock.auth.exchangeCodeForSession).toHaveBeenCalledWith('confirm-code');
+    });
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/login?confirmed=true', { replace: true });
+    });
+  });
+
   it('treats fragment recovery sessions as password reset callbacks', async () => {
     const mockSession = createMockSession({ userId: 'user-4' });
     const mock = getMockSupabase();

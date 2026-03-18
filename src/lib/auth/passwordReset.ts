@@ -1,5 +1,11 @@
 const PASSWORD_RESET_PENDING_KEY = "tcc_password_reset_pending";
 
+export function buildPasswordRecoveryRedirectTo(origin: string) {
+  const url = new URL("/auth/callback", origin);
+  url.searchParams.set("type", "recovery");
+  return url.toString();
+}
+
 export function markPasswordResetPending() {
   try {
     sessionStorage.setItem(PASSWORD_RESET_PENDING_KEY, "true");
